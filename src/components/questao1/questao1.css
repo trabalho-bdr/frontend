@@ -1,0 +1,759 @@
+/* ==========================================================================
+   ARQUIVO DA DEMOCRACIA — QUESTÃO 1: QUANTO CUSTA UMA CADEIRA?
+   Identidade Editorial Brasileira: Papel, Plenário, Jornais e Santinhos
+   ========================================================================== */
+
+.q1-story {
+  display: flex;
+  flex-direction: column;
+  gap: 2.75rem;
+  margin-bottom: 4rem;
+  font-family: var(--font-body, system-ui, -apple-system, sans-serif);
+  color: #1a2228;
+}
+
+/* Faixa de Filtros Compartilhados */
+.q1-filter-bar {
+  background: #fbf7ee;
+  border: 1.5px solid #2d3748;
+  border-radius: 4px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 3px 3px 0 rgba(45, 55, 72, 0.9);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.q1-filter-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-headline, 'Cinzel', serif);
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  color: #174a8b;
+  text-transform: uppercase;
+}
+
+.q1-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.q1-filter-group label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #4a5568;
+}
+
+.q1-select,
+.q1-input {
+  background: #fff;
+  border: 1.5px solid #4a5568;
+  border-radius: 3px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1a202c;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.q1-select:focus,
+.q1-input:focus {
+  border-color: #174a8b;
+  box-shadow: 0 0 0 2px rgba(23, 74, 139, 0.2);
+}
+
+.q1-badge-coverage {
+  margin-left: auto;
+  background: #176b50;
+  color: #fbf7ee;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.3rem 0.6rem;
+  border-radius: 3px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Painel da Maquete Simbólica */
+.q1-plenary-editorial {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
+  gap: 1.5rem;
+  background: #fdfbf7;
+  border: 1.5px solid #2d3748;
+  box-shadow: 4px 4px 0 rgba(45, 55, 72, 0.9);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+@media (max-width: 960px) {
+  .q1-plenary-editorial {
+    grid-template-columns: 1fr;
+  }
+}
+
+.q1-plenary-stage {
+  position: relative;
+  min-height: 480px;
+  background: radial-gradient(circle at center, #173e78 0%, #0d2346 100%);
+  display: flex;
+  flex-direction: column;
+}
+
+.q1-plenary-watermark {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 5;
+  background: rgba(13, 35, 70, 0.85);
+  border: 1px solid #edbf42;
+  color: #edbf42;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.q1-plenary-aside {
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #fbf7ee;
+  border-left: 1.5px solid #2d3748;
+}
+
+@media (max-width: 960px) {
+  .q1-plenary-aside {
+    border-left: none;
+    border-top: 1.5px solid #2d3748;
+  }
+}
+
+/* Big Number e Painel Editorial da Fórmula */
+.q1-cost-card {
+  background: #fff;
+  border: 1.5px solid #174a8b;
+  border-radius: 4px;
+  padding: 1.25rem;
+  margin: 1rem 0;
+  box-shadow: 3px 3px 0 #174a8b;
+  position: relative;
+}
+
+.q1-cost-card::before {
+  content: "INDICADOR DE GASTO AGREGADO";
+  position: absolute;
+  top: -9px;
+  left: 12px;
+  background: #174a8b;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.15rem 0.5rem;
+  letter-spacing: 0.06em;
+  border-radius: 2px;
+}
+
+.q1-cost-value {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #174a8b;
+  line-height: 1.1;
+  font-family: var(--font-headline, 'Cinzel', serif);
+  margin-top: 0.25rem;
+}
+
+.q1-cost-sub {
+  font-size: 0.8rem;
+  color: #4a5568;
+  font-weight: 600;
+  margin-top: 0.35rem;
+}
+
+/* Animação Visual da Fórmula */
+.q1-formula-box {
+  background: #f4ede0;
+  border: 1px dashed #718096;
+  border-radius: 4px;
+  padding: 1rem;
+  margin: 0.75rem 0;
+}
+
+.q1-formula-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  margin-bottom: 0.5rem;
+}
+
+.q1-formula-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.q1-formula-divider {
+  border-top: 2px solid #2d3748;
+  margin: 0.5rem 0;
+  position: relative;
+}
+
+.q1-formula-divider span {
+  position: absolute;
+  top: -10px;
+  right: 0;
+  background: #f4ede0;
+  padding: 0 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #c84d38;
+}
+
+.q1-methodology-note {
+  font-size: 0.75rem;
+  color: #4a5568;
+  line-height: 1.45;
+  background: #fff;
+  border-left: 3px solid #edbf42;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0 3px 3px 0;
+  margin-top: 0.5rem;
+}
+
+/* Descobertas: "O que os números revelam?" */
+.q1-insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+  margin: 1.5rem 0;
+}
+
+.q1-insight-card {
+  background: #fff;
+  border: 1.5px solid #2d3748;
+  border-radius: 4px;
+  padding: 1.25rem;
+  box-shadow: 3px 3px 0 rgba(45, 55, 72, 0.85);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  transition: transform 0.2s ease;
+}
+
+.q1-insight-card:hover {
+  transform: translateY(-2px);
+}
+
+.q1-insight-badge {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 2px;
+  background: #f4ede0;
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+}
+
+.q1-insight-value {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: #c84d38;
+  font-family: var(--font-headline, 'Cinzel', serif);
+  margin: 0.25rem 0;
+}
+
+.q1-insight-cand {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #174a8b;
+  margin-bottom: 0.35rem;
+}
+
+.q1-insight-detail {
+  font-size: 0.8rem;
+  color: #4a5568;
+  line-height: 1.4;
+  margin-bottom: 0.5rem;
+}
+
+.q1-insight-criteria {
+  font-size: 0.7rem;
+  color: #718096;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 0.4rem;
+  font-style: italic;
+}
+
+/* EXPERIÊNCIA 2: Nem todas as cadeiras custam igual (Ranking) */
+.q1-section-header {
+  border-bottom: 2px solid #2d3748;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.q1-section-header h2 {
+  font-family: var(--font-headline, 'Cinzel', serif);
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #1a202c;
+  margin: 0;
+}
+
+.q1-section-header p {
+  font-size: 0.88rem;
+  color: #4a5568;
+  margin: 0.25rem 0 0 0;
+  max-width: 650px;
+}
+
+.q1-ranking-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  background: #fbf7ee;
+  border: 1px solid #cbd5e0;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.25rem;
+}
+
+.q1-segmented {
+  display: inline-flex;
+  background: #edf2f7;
+  border-radius: 4px;
+  padding: 2px;
+  border: 1px solid #cbd5e0;
+}
+
+.q1-segmented button {
+  border: none;
+  background: transparent;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #4a5568;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.15s ease;
+}
+
+.q1-segmented button.active {
+  background: #174a8b;
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+/* Santinhos e Fichas Eleitorais */
+.q1-candidate-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 1.25rem;
+}
+
+.q1-santinho {
+  background: #fff;
+  border: 1.5px solid #2d3748;
+  border-radius: 4px;
+  padding: 1rem;
+  box-shadow: 3px 3px 0 rgba(45, 55, 72, 0.85);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(243, 229, 200, 0.12),
+    rgba(243, 229, 200, 0.12) 10px,
+    transparent 10px,
+    transparent 20px
+  );
+}
+
+.q1-santinho:hover {
+  transform: translateY(-3px);
+  box-shadow: 4px 5px 0 #174a8b;
+  border-color: #174a8b;
+}
+
+.q1-santinho.selected {
+  border-color: #c84d38;
+  box-shadow: 4px 4px 0 #c84d38;
+  background-color: #fffdf9;
+}
+
+.q1-santinho-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.q1-santinho-number {
+  font-size: 1.6rem;
+  font-weight: 900;
+  font-family: var(--font-headline, 'Cinzel', serif);
+  color: #174a8b;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.q1-santinho-status {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem;
+  border-radius: 2px;
+  letter-spacing: 0.05em;
+}
+
+.q1-status-eleito {
+  background: #176b50;
+  color: #fff;
+}
+
+.q1-status-nao {
+  background: #e2e8f0;
+  color: #4a5568;
+}
+
+.q1-status-suplente {
+  background: #edbf42;
+  color: #1a202c;
+}
+
+.q1-santinho-name {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1a202c;
+  line-height: 1.25;
+  margin-bottom: 0.25rem;
+}
+
+.q1-santinho-sub {
+  font-size: 0.75rem;
+  color: #4a5568;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.q1-santinho-metrics {
+  background: #fbf7ee;
+  border: 1px solid #e2e8f0;
+  border-radius: 3px;
+  padding: 0.6rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.q1-santinho-metric-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.76rem;
+}
+
+.q1-santinho-metric-row span {
+  color: #718096;
+}
+
+.q1-santinho-metric-row strong {
+  color: #1a202c;
+  font-weight: 700;
+}
+
+.q1-santinho-metric-highlight {
+  border-top: 1px dashed #cbd5e0;
+  padding-top: 0.35rem;
+  margin-top: 0.2rem;
+}
+
+.q1-santinho-metric-highlight strong {
+  color: #c84d38;
+  font-size: 0.88rem;
+}
+
+.q1-santinho-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.q1-btn-small {
+  background: #fff;
+  border: 1px solid #cbd5e0;
+  border-radius: 3px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex: 1;
+  text-align: center;
+}
+
+.q1-btn-small:hover {
+  background: #edf2f7;
+  border-color: #a0aec0;
+}
+
+.q1-btn-compare {
+  background: #174a8b;
+  color: #fff;
+  border-color: #174a8b;
+}
+
+.q1-btn-compare:hover {
+  background: #0f3567;
+  border-color: #0f3567;
+}
+
+/* Mesa de Investigação (Comparação Lado a Lado) */
+.q1-investigation-desk {
+  background: #2b3a4a;
+  border: 2px solid #1a2530;
+  border-radius: 6px;
+  padding: 1.5rem;
+  color: #fbf7ee;
+  margin: 1.75rem 0;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.4), 0 4px 10px rgba(0,0,0,0.25);
+}
+
+.q1-desk-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(251, 247, 238, 0.2);
+  padding-bottom: 0.75rem;
+}
+
+.q1-desk-title {
+  font-family: var(--font-headline, 'Cinzel', serif);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #edbf42;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.q1-desk-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+.q1-desk-document {
+  background: #fbf7ee;
+  color: #1a202c;
+  border: 1.5px solid #4a5568;
+  border-radius: 4px;
+  padding: 1.25rem;
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.4);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* EXPERIÊNCIA 3: Dispersão (Dinheiro vs Votos) */
+.q1-scatter-container {
+  background: #fff;
+  border: 1.5px solid #2d3748;
+  border-radius: 4px;
+  padding: 1.5rem;
+  box-shadow: 4px 4px 0 rgba(45, 55, 72, 0.9);
+}
+
+.q1-scatter-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.q1-scatter-legend {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.q1-scatter-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.q1-scatter-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.q1-dot-eleito {
+  background: #176b50;
+  box-shadow: 0 0 0 2px rgba(23, 107, 80, 0.25);
+}
+
+.q1-dot-nao {
+  background: #c84d38;
+  opacity: 0.75;
+}
+
+.q1-dot-highlight {
+  background: #edbf42;
+  box-shadow: 0 0 0 3px #174a8b;
+  transform: scale(1.3);
+}
+
+/* Quadrantes Analíticos */
+.q1-quadrants-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.q1-quadrant-card {
+  background: #fbf7ee;
+  border: 1px solid #cbd5e0;
+  border-radius: 3px;
+  padding: 0.75rem;
+  font-size: 0.78rem;
+}
+
+.q1-quadrant-card strong {
+  display: block;
+  font-size: 0.85rem;
+  color: #174a8b;
+  margin-bottom: 0.2rem;
+}
+
+.q1-quadrant-card p {
+  color: #4a5568;
+  margin: 0;
+  line-height: 1.35;
+}
+
+/* Estatística e Correlação Box */
+.q1-correlation-box {
+  background: #fdfbf7;
+  border-left: 3px solid #174a8b;
+  padding: 0.85rem 1rem;
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  color: #2d3748;
+  line-height: 1.45;
+}
+
+.q1-correlation-box strong {
+  color: #174a8b;
+}
+
+.q1-causality-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  color: #c84d38;
+  margin-top: 0.35rem;
+  font-size: 0.74rem;
+}
+
+/* Tooltip Customizado */
+.q1-custom-tooltip {
+  background: #fff;
+  border: 1.5px solid #174a8b;
+  border-radius: 4px;
+  padding: 0.85rem 1rem;
+  box-shadow: 4px 4px 0 rgba(23, 74, 139, 0.4);
+  font-size: 0.8rem;
+  max-width: 260px;
+}
+
+.q1-custom-tooltip h4 {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #174a8b;
+  margin: 0 0 0.25rem 0;
+}
+
+.q1-custom-tooltip p {
+  margin: 0.15rem 0;
+  color: #4a5568;
+}
+
+/* Paginação */
+.q1-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.q1-pagination button {
+  background: #fff;
+  border: 1.5px solid #2d3748;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #2d3748;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.q1-pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.q1-pagination button:not(:disabled):hover {
+  background: #174a8b;
+  color: #fff;
+  border-color: #174a8b;
+}
+
+.q1-pagination-info {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #4a5568;
+}
