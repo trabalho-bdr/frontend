@@ -104,20 +104,29 @@ def cadeiras(cargo:str='VEREADOR',uf:str=''):
 @router.get('/escolaridade')
 def escolaridade(ano:int=2024,cargo:str='VEREADOR',uf:str=''):
     uf,cargo,_=_select(uf,cargo,ano)
-    valid=(ano==2024 and cargo=='VEREADOR') or (ano==2022 and cargo in ('DEPUTADO ESTADUAL','DEPUTADO FEDERAL'))
-    if not valid: raise HTTPException(400,'Selecione 2024/Vereador ou 2022/Deputado para o recorte pesquisado')
-    sql=f'''SELECT c.escolaridade_candidatura serie,COUNT(*) candidaturas,
-      COUNT(*) FILTER(WHERE UPPER(r.resultado) LIKE 'ELEITO%') eleitos,
-      COUNT(*) FILTER(WHERE UPPER(r.resultado) LIKE 'ELEITO%'
-        OR UPPER(r.resultado) IN ('NÃO ELEITO','NAO ELEITO','SUPLENTE')) definidos,
-      ROUND(100.0*COUNT(*) FILTER(WHERE UPPER(r.resultado) LIKE 'ELEITO%')
-        /NULLIF(COUNT(*) FILTER(WHERE UPPER(r.resultado) LIKE 'ELEITO%'
-        OR UPPER(r.resultado) IN ('NÃO ELEITO','NAO ELEITO','SUPLENTE')),0),2) valor
+    valid=(ano in (2020,2024) and cargo=='VEREADOR') or (ano in (2018,2022) and cargo in ('DEPUTADO ESTADUAL','DEPUTADO FEDERAL'))
+    if not valid: raise HTTPException(400,'Ano e cargo incompatíveis neste recorte')
+    # Uma linha por candidatura impede que múltiplos registros de resultado inflem os totais.
+    sql=f'''WITH base AS (
+      SELECT c.id_candidatura,c.uf,COALESCE(NULLIF(TRIM(c.escolaridade_candidatura),''),'NÃO INFORMADA') serie,
+        MAX(CASE WHEN UPPER(TRIM(r.resultado)) LIKE 'ELEITO%' THEN 1 ELSE 0 END) eleita,
+        MAX(CASE WHEN UPPER(TRIM(r.resultado)) LIKE 'ELEITO%'
+          OR UPPER(TRIM(r.resultado)) IN ('NÃO ELEITO','NAO ELEITO','SUPLENTE') THEN 1 ELSE 0 END) definida
       FROM {DB}.main.Candidatura c JOIN {DB}.main.Eleicao e USING(id_eleicao)
-      JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
+      LEFT JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
       WHERE e.ano=? AND UPPER(e.cargo)=? AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
-      AND (?='' OR c.uf=?) GROUP BY 1 ORDER BY candidaturas DESC'''
-    return {'rows':_rows(sql,[ano,cargo,uf,uf]),'unidade':'%','titulo':'Escolaridade e taxa de eleição',
+        AND c.uf IN ('CE','MA','MS','RJ','RN','RS')
+      GROUP BY 1,2,3
+    ), grupos AS (
+      SELECT CASE WHEN ?='' THEN 'SEIS UFS' ELSE uf END uf,serie,
+        COUNT(*) candidaturas,SUM(eleita) eleitos,SUM(definida) definidos,
+        COUNT(*)-SUM(definida) excluidos
+      FROM base WHERE ?='' OR uf=? GROUP BY 1,2
+    ) SELECT uf,serie,candidaturas,eleitos,definidos,excluidos,
+      ROUND(100.0*eleitos/NULLIF(definidos,0),2) valor
+      FROM grupos ORDER BY candidaturas DESC,serie'''
+    rows=_rows(sql,[ano,cargo,uf,uf,uf])
+    return {'rows':rows,'unidade':'%','titulo':'Escolaridade e taxa de eleição',
       'metodo':'Eleitos ÷ candidaturas com resultado definido da mesma escolaridade. Não mede escolaridade dos eleitores e não demonstra causalidade.',
       'escopo':f'{cargo} · {ano} · municípios das UFs disponíveis', 'source':'consulta'}
 
