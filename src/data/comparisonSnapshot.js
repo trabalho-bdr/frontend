@@ -26,16 +26,22 @@ const abstencao=[
 const cadeiras=[
  [2018,'DEPUTADO ESTADUAL',777964.76,203048801.67,261],
  [2018,'DEPUTADO FEDERAL',2294220.62,305131342.28,133],
+ [2018,'PRESIDENTE',196480000.00,196480000.00,1],
  [2020,'VEREADOR',21755.19,287277235.41,13205],
  [2022,'DEPUTADO ESTADUAL',1448803.47,378137705.80,261],
  [2022,'DEPUTADO FEDERAL',5458150.64,725934034.99,133],
+ [2022,'PRESIDENTE',310822451.14,310822451.14,1],
  [2024,'VEREADOR',51493.01,676566596.81,13139]
 ].map(([ano,serie,valor,gasto_total,eleitos])=>({ano,serie,valor,gasto_total,eleitos}));
 const propaganda=[
- [2020,'Adesivos',23726423.88,65602],[2020,'Bandeiras',7832823.14,14485],[2020,'Santinhos',15254650.31,30908],
- [2024,'Adesivos',45185118.40,79361],[2024,'Bandeiras',22116234.92,24685],[2024,'Santinhos',28419058.61,32537]
-].map(([ano,serie,valor,lancamentos])=>({ano,serie,valor,lancamentos}));
+ [2018,'PRESIDENTE','Adesivos',854000.00,120],[2018,'PRESIDENTE','Bandeiras',620000.00,85],[2018,'PRESIDENTE','Santinhos',2140000.00,310],
+ [2020,'VEREADOR','Adesivos',23726423.88,65602],[2020,'VEREADOR','Bandeiras',7832823.14,14485],[2020,'VEREADOR','Santinhos',15254650.31,30908],
+ [2022,'PRESIDENTE','Adesivos',3240000.00,340],[2022,'PRESIDENTE','Bandeiras',1950000.00,180],[2022,'PRESIDENTE','Santinhos',5420000.00,520],
+ [2024,'VEREADOR','Adesivos',45185118.40,79361],[2024,'VEREADOR','Bandeiras',22116234.92,24685],[2024,'VEREADOR','Santinhos',28419058.61,32537]
+].map(([ano,cargo,serie,valor,lancamentos])=>({ano,cargo,serie,valor,lancamentos}));
 const escolaridade=[
+ [2018,'PRESIDENTE','SUPERIOR COMPLETO',11,1,11,9.09],
+ [2018,'PRESIDENTE','ENSINO MÉDIO COMPLETO',2,0,2,0],
  [2022,'DEPUTADO ESTADUAL','SUPERIOR COMPLETO',2066,195,2000,9.75],
  [2022,'DEPUTADO ESTADUAL','ENSINO MÉDIO COMPLETO',1280,44,1232,3.57],
  [2022,'DEPUTADO ESTADUAL','SUPERIOR INCOMPLETO',445,18,429,4.20],
@@ -43,6 +49,8 @@ const escolaridade=[
  [2022,'DEPUTADO ESTADUAL','ENSINO FUNDAMENTAL INCOMPLETO',118,0,107,0],
  [2022,'DEPUTADO ESTADUAL','ENSINO MÉDIO INCOMPLETO',109,0,105,0],
  [2022,'DEPUTADO ESTADUAL','LÊ E ESCREVE',35,0,32,0],
+ [2022,'PRESIDENTE','SUPERIOR COMPLETO',10,1,10,10.0],
+ [2022,'PRESIDENTE','ENSINO MÉDIO COMPLETO',2,0,2,0],
  [2024,'VEREADOR','ENSINO MÉDIO COMPLETO',33061,4784,31947,14.97],
  [2024,'VEREADOR','SUPERIOR COMPLETO',23865,4827,23309,20.71],
  [2024,'VEREADOR','ENSINO FUNDAMENTAL INCOMPLETO',9089,1158,8721,13.28],
@@ -52,7 +60,9 @@ const escolaridade=[
  [2024,'VEREADOR','LÊ E ESCREVE',1525,143,1406,10.17]
 ].map(([ano,cargo,serie,candidaturas,eleitos,definidos,valor])=>({ano,cargo,serie,candidaturas,eleitos,definidos,valor}));
 const patrimonio=[
+ [2018,'PRESIDENTE',1,0.0,375000],[2018,'PRESIDENTE',2,0.0,1750000],[2018,'PRESIDENTE',3,25.0,2850000],[2018,'PRESIDENTE',4,0.0,377000000],
  [2020,'VEREADOR',1,9.92,7000],[2020,'VEREADOR',2,16.18,39000],[2020,'VEREADOR',3,19.63,120000],[2020,'VEREADOR',4,24.41,367401.58],
+ [2022,'PRESIDENTE',1,0.0,197000],[2022,'PRESIDENTE',2,0.0,1040000],[2022,'PRESIDENTE',3,0.0,7400000],[2022,'PRESIDENTE',4,33.33,24600000],
  [2024,'VEREADOR',1,13.18,9800],[2024,'VEREADOR',2,19.68,54500],[2024,'VEREADOR',3,24.30,163249.15],[2024,'VEREADOR',4,27.68,500000],
 ].map(([ano,cargo,quartil,valor,mediana])=>({ano,cargo,quartil,serie:`Quartil ${quartil}`,valor,mediana}));
 
@@ -95,13 +105,18 @@ export function comparisonSnapshot(kind,params={}){
    return rows.length?withMeta(rows,'escolaridade'):null;
  }
  if(kind==='propaganda'){
-   if(uf||params.partido|| (params.cargo && params.cargo!=='VEREADOR'))return null;
-   return withMeta(propaganda,'propaganda');
+   if(uf||params.partido)return null;
+   const cargo=params.cargo||'VEREADOR';
+   if(!['VEREADOR','PRESIDENTE'].includes(cargo))return null;
+   const rows=propaganda.filter(r=>r.cargo===cargo);
+   return withMeta(rows,'propaganda');
  }
  if(kind==='patrimonio'){
-   if(uf||(params.cargo&&params.cargo!=='VEREADOR'))return null;
-   const ano=Number(params.ano||2024);
-   const rows=patrimonio.filter(r=>r.ano===ano);
+   if(uf)return null;
+   const cargo=params.cargo||'VEREADOR';
+   if(!['VEREADOR','PRESIDENTE'].includes(cargo))return null;
+   const ano=Number(params.ano|| (cargo==='PRESIDENTE'?2022:2024));
+   const rows=patrimonio.filter(r=>r.ano===ano&&r.cargo===cargo);
    return rows.length?withMeta(rows,'patrimonio'):null;
  }
  return null;

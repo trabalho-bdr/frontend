@@ -17,7 +17,7 @@ import {indicatorSettings} from '../atlas/geography.js';
 import {PrintLabel} from './Editorial.jsx';
 import useMotionPreference from '../hooks/useMotionPreference.js';
 
-const ALL_CARGOS=['VEREADOR','DEPUTADO FEDERAL','DEPUTADO ESTADUAL'];
+const ALL_CARGOS=['VEREADOR','DEPUTADO FEDERAL','DEPUTADO ESTADUAL','PRESIDENTE'];
 const PARTIES=['','PT','PL','PSOL','PSD','MDB','UNIÃO','PP','REPUBLICANOS','PSDB','PDT','PSB','NOVO','REDE','PODE'];
 const TITLES={legenda:'VOTOS DE LEGENDA',abstencao:'ABSTENÇÃO ELEITORAL',cadeiras:'CUSTO POR CADEIRA',escolaridade:'ESCOLARIDADE E VITÓRIA',propaganda:'GASTOS DE PROPAGANDA',patrimonio:'PATRIMÔNIO E ELEIÇÃO',fichas:'FICHAS LADO A LADO',municipios:'DOIS MUNICÍPIOS'};
 const OPTIONS={
@@ -30,9 +30,9 @@ const OPTIONS={
  investigacoes:['legenda','escolaridade','patrimonio','cadeiras','abstencao','propaganda'],
  fichas:['fichas']
 };
-const OFFICE_LABEL={'VEREADOR':'Vereador','DEPUTADO FEDERAL':'Deputado federal','DEPUTADO ESTADUAL':'Deputado estadual'};
-const schoolScopes=[['2024','VEREADOR'],['2022','DEPUTADO ESTADUAL'],['2022','DEPUTADO FEDERAL']];
-const wealthScopes=[['2024','VEREADOR'],['2020','VEREADOR'],['2022','DEPUTADO ESTADUAL'],['2018','DEPUTADO FEDERAL'],['2022','DEPUTADO FEDERAL'],['2018','DEPUTADO ESTADUAL']];
+const OFFICE_LABEL={'VEREADOR':'Vereador','DEPUTADO FEDERAL':'Deputado federal','DEPUTADO ESTADUAL':'Deputado estadual','PRESIDENTE':'Presidente da República'};
+const schoolScopes=[['2024','VEREADOR'],['2022','DEPUTADO ESTADUAL'],['2022','DEPUTADO FEDERAL'],['2022','PRESIDENTE'],['2018','PRESIDENTE']];
+const wealthScopes=[['2024','VEREADOR'],['2020','VEREADOR'],['2022','DEPUTADO ESTADUAL'],['2018','DEPUTADO FEDERAL'],['2022','DEPUTADO FEDERAL'],['2018','DEPUTADO ESTADUAL'],['2022','PRESIDENTE'],['2018','PRESIDENTE']];
 const valueOf=(v)=>v==null?'—':Number(v).toLocaleString('pt-BR',{maximumFractionDigits:2});
 const s=(n)=>String(n??'');
 function selectorsToRows(kind,municipios,candidatos,metrica,first,second){
@@ -147,7 +147,7 @@ export default function ComparisonPanel({topic='investigacoes',mode='snapshot',c
    {choices.length>1&&<div className="compare-tabs" role="group" aria-label="Tipos de comparação">{choices.map(k=><button type="button" key={k} aria-pressed={kind===k} className={kind===k?'active':''} onClick={()=>setKind(k)}>{TITLES[k]}</button>)}</div>}
    <div className="compare-document"><div className="compare-doc-cap"><span>◉ {TITLES[kind]}</span><span>{caption}</span></div>
     <div className="compare-filters" aria-label="Filtros da comparação">
-      {['legenda','cadeiras','propaganda'].includes(kind)&&<Combo title="Cargo (mesma disputa)" selected={cargo} onChange={setCargo} options={officeOptions}/>}
+      {['legenda','cadeiras','propaganda'].includes(kind)&&<Combo title="Cargo (mesma disputa)" selected={cargo} onChange={setCargo} options={kind==='legenda'?officeOptions.filter(o=>o.value!=='PRESIDENTE'):officeOptions}/>}
       {['legenda','cadeiras','propaganda','patrimonio','escolaridade'].includes(kind)&&<Combo title="Estado" selected={uf} onChange={setUf} options={UFOPTIONS}/>}
       {kind==='legenda'&&<><Combo title="Partido / série 1" selected={firstParty} onChange={v=>{setFirstParty(v);if(!v||v===secondParty)setSecondParty('')}} options={partiesOptions}/>
        {firstParty&&<Combo title="Comparar com" selected={secondParty} onChange={setSecondParty} options={[{value:'',label:'Sem segunda série'},...partiesOptions.filter(p=>p.value&&p.value!==firstParty)]}/>}</>}

@@ -31,7 +31,7 @@ class MotherDuckConnectionTests(unittest.TestCase):
             with self.subTest(path=path):
                 app._con = None
                 self.con.reset_mock()
-                self.con.execute.return_value.fetchall.return_value = [(1, 'v3', path)]
+                self.con.execute.return_value.fetchall.return_value = [(1, 'v4', path)]
                 self.assertIs(app._open(), self.con)
                 self.con.execute.assert_called_once_with('PRAGMA database_list')
 
@@ -44,8 +44,8 @@ class MotherDuckConnectionTests(unittest.TestCase):
         self.assertEqual(len(attaches), 1)
         self.assertIn('(READ_ONLY)', attaches[0].args[0])
 
-    def test_wrong_database_under_v3_is_not_reused(self):
-        self.con.execute.return_value.fetchall.return_value = [(1, 'v3', '_share/other/other-id')]
+    def test_wrong_database_under_v4_is_not_reused(self):
+        self.con.execute.return_value.fetchall.return_value = [(1, 'v4', '_share/other/other-id')]
         with self.assertRaisesRegex(RuntimeError, 'outro banco'):
             app._open()
         self.con.close.assert_called_once()
@@ -62,7 +62,7 @@ class MotherDuckConnectionTests(unittest.TestCase):
         self.assertEqual(self.connect.call_count, 2)
 
     def test_invalid_share_is_rejected_before_connecting(self):
-        with patch.dict(os.environ, {'MOTHERDUCK_SHARE_URL': "md:_share/invalid'; DROP DATABASE v3;"}):
+        with patch.dict(os.environ, {'MOTHERDUCK_SHARE_URL': "md:_share/invalid'; DROP DATABASE v4;"}):
             with self.assertRaisesRegex(RuntimeError, 'inválida'):
                 app._open()
         self.connect.assert_not_called()

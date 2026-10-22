@@ -7,7 +7,7 @@ class IntegrationTests(unittest.TestCase):
   import sys
   sys.path.insert(0,str(ROOT/'server'))
   import app
-  paths={r.path for r in app.app.routes}
+  paths={route.path for r in app.app.routes for route in (r.original_router.routes if hasattr(r, 'original_router') else [r])}
   for kind in ['legenda','abstencao','cadeiras','escolaridade','propaganda','patrimonio']:
    self.assertIn('/api/comparacoes/'+kind,paths)
  def test_pages_reuse_panel_without_new_menu(self):

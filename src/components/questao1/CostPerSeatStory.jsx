@@ -23,7 +23,7 @@ import {
 import './questao1.css';
 
 const UFS = ['', 'CE', 'MA', 'MS', 'RJ', 'RN', 'RS'];
-const CARGOS = ['VEREADOR', 'DEPUTADO ESTADUAL', 'DEPUTADO FEDERAL'];
+const CARGOS = ['VEREADOR', 'DEPUTADO ESTADUAL', 'DEPUTADO FEDERAL', 'PRESIDENTE'];
 
 const money = (n) =>
   n == null ? '—' : Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -80,6 +80,9 @@ export default function CostPerSeatStory({
       setAno(2024);
     } else {
       setAno(2022);
+    }
+    if (novoCargo === 'PRESIDENTE') {
+      setUf('');
     }
     setRankingPage(1);
     setSelectedCandidate(null);
@@ -225,6 +228,7 @@ export default function CostPerSeatStory({
             <option value="VEREADOR">Vereador (Eleições Municipais)</option>
             <option value="DEPUTADO ESTADUAL">Deputado Estadual (Eleições Gerais)</option>
             <option value="DEPUTADO FEDERAL">Deputado Federal (Eleições Gerais)</option>
+            <option value="PRESIDENTE">Presidente da República (Eleições Gerais)</option>
           </select>
         </div>
 
@@ -256,14 +260,21 @@ export default function CostPerSeatStory({
           <label>Unidade Federativa</label>
           <select
             className="q1-select"
-            value={uf}
+            value={cargo === 'PRESIDENTE' ? '' : uf}
             onChange={(e) => handleUfChange(e.target.value)}
+            disabled={cargo === 'PRESIDENTE'}
             aria-label="Selecionar estado"
           >
-            <option value="">Todas as 6 UFs do Acervo</option>
-            {UFS.filter(Boolean).map((u) => (
-              <option key={u} value={u}>{u}</option>
-            ))}
+            {cargo === 'PRESIDENTE' ? (
+              <option value="">Brasil (Território Nacional)</option>
+            ) : (
+              <>
+                <option value="">Todas as 6 UFs do Acervo</option>
+                {UFS.filter(Boolean).map((u) => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+              </>
+            )}
           </select>
         </div>
 
@@ -352,7 +363,7 @@ export default function CostPerSeatStory({
         )}
 
         <div className="q1-badge-coverage">
-          {uf ? `UF: ${uf}` : '6 UFs Auditadas (CE, MA, MS, RJ, RN, RS)'}
+          {cargo === 'PRESIDENTE' ? 'Eleição Presidencial · Território Nacional' : uf ? `UF: ${uf}` : '6 UFs Auditadas (CE, MA, MS, RJ, RN, RS)'}
         </div>
       </div>
 

@@ -5,7 +5,7 @@ import useMotionPreference from '../hooks/useMotionPreference.js';
 import './escolaridade-dossie.css';
 
 const UFS=['CE','MA','MS','RJ','RN','RS'];
-const SCOPES=[['2024','VEREADOR'],['2020','VEREADOR'],['2022','DEPUTADO ESTADUAL'],['2018','DEPUTADO ESTADUAL'],['2022','DEPUTADO FEDERAL'],['2018','DEPUTADO FEDERAL']];
+const SCOPES=[['2024','VEREADOR'],['2020','VEREADOR'],['2022','DEPUTADO ESTADUAL'],['2018','DEPUTADO ESTADUAL'],['2022','DEPUTADO FEDERAL'],['2018','DEPUTADO FEDERAL'],['2022','PRESIDENTE'],['2018','PRESIDENTE']];
 const MEDIO='ENSINO MÉDIO COMPLETO',SUPERIOR='SUPERIOR COMPLETO';
 const count=n=>Number(n||0).toLocaleString('pt-BR');
 const pct=n=>Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';
@@ -22,6 +22,13 @@ export default function EscolaridadeDossie(){
  const [ano,cargo]=scope.split('|');
  useEffect(()=>{let active=true;setLoading(true);setResult(null);setStates({});
    const params={ano,cargo};
+   if (cargo === 'PRESIDENTE') {
+     getComparison('escolaridade',params).then(out=>{
+       if(!active)return;
+       setResult(out);
+     }).finally(()=>{if(active)setLoading(false)});
+     return()=>{active=false};
+   }
    Promise.allSettled([getComparison('escolaridade',params),...UFS.map(state=>getComparison('escolaridade',{...params,uf:state}))])
      .then(out=>{if(!active)return;
        if(out[0].status==='fulfilled')setResult(out[0].value);
@@ -48,7 +55,7 @@ export default function EscolaridadeDossie(){
    (totals.candidaturas!==84953||totals.eleitos!==13139||totals.definidos!==82163||totals.excluidos!==2790);
  return <div className="school-dossier">
    <div className="school-intro"><span>DOSSIÊ 04 / ESCOLARIDADE E URNAS</span><p>Entre quem disputa uma eleição, como a escolaridade se relaciona com a possibilidade de ocupar uma cadeira?</p></div>
-   <div className="school-controls"><label>Ano e cargo<select value={scope} onChange={e=>{setScope(e.target.value);setUf('')}}>{SCOPES.map(([year,office])=><option key={year+office} value={`${year}|${office}`}>{year} · {office==='VEREADOR'?'Vereador':office==='DEPUTADO ESTADUAL'?'Deputado estadual':'Deputado federal'}</option>)}</select></label><label>Território<select value={uf} onChange={e=>setUf(e.target.value)}><option value="">Seis estados disponíveis</option>{UFS.map(state=><option key={state}>{state}</option>)}</select></label></div>
+   <div className="school-controls"><label>Ano e cargo<select value={scope} onChange={e=>{setScope(e.target.value);setUf('')}}>{SCOPES.map(([year,office])=><option key={year+office} value={`${year}|${office}`}>{year} · {office==='VEREADOR'?'Vereador':office==='DEPUTADO ESTADUAL'?'Deputado estadual':office==='DEPUTADO FEDERAL'?'Deputado federal':'Presidente da República'}</option>)}</select></label><label>Território<select value={cargo==='PRESIDENTE'?'':uf} disabled={cargo==='PRESIDENTE'} onChange={e=>setUf(e.target.value)}>{cargo==='PRESIDENTE'?<option value="">Território Nacional (Brasil)</option>:<><option value="">Seis estados disponíveis</option>{UFS.map(state=><option key={state}>{state}</option>)}</>}</select></label></div>
    <p className="school-source">{source} · {ano} · {cargo.toLowerCase()} · pleitos suplementares excluídos · CE, MA, MS, RJ, RN e RS.{loading?' Consultando a base…':''}</p>
    {mismatch&&<p className="school-alert">A consulta diverge dos totais de referência. Confira a classificação e os registros de resultado antes de interpretar este recorte.</p>}
    {archivedPartial&&<p className="school-alert">O recorte arquivado contém apenas as categorias registradas no snapshot. Os totais abaixo são subtotais dessas categorias; consulte a base para conferir todas as candidaturas e comparar estados.</p>}

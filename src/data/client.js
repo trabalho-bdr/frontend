@@ -26,3 +26,78 @@ export async function getComparison(kind, params={}){
   const q=new URLSearchParams(params);
   return request(`/comparacoes/${kind}?${q.toString()}`);
 }
+
+export async function getQ3Municipios(uf, ano) {
+  try {
+    return await request(`/q3/${encodeURIComponent(uf)}/${encodeURIComponent(ano)}`);
+  } catch (err) {
+    return null;
+  }
+}
+
+export async function getAnosQ3() {
+  try {
+    const res = await request('/anos');
+    return res.anos || [2024, 2022];
+  } catch {
+    return [2024, 2022];
+  }
+}
+import {patrimonioSnapshot} from './patrimonioSnapshot.js';
+
+export async function getQ2Opcoes(){
+  try{
+    return await request('/q2/opcoes');
+  }catch{
+    return patrimonioSnapshot.opcoes;
+  }
+}
+
+export async function getQ2Municipios({ano=2024,cargo='VEREADOR',uf=''}={}){
+  try{
+    const q=new URLSearchParams();
+    if(ano)q.set('ano',String(ano));
+    if(cargo)q.set('cargo',cargo);
+    if(uf)q.set('uf',uf);
+    return await request('/q2/municipios?'+q.toString());
+  }catch{
+    if(uf && patrimonioSnapshot.municipios_por_uf[uf]){
+      return patrimonioSnapshot.municipios_por_uf[uf];
+    }
+    return patrimonioSnapshot.municipios_br;
+  }
+}
+
+export async function getQ2Patrimonio({ano=2024,cargo='VEREADOR',uf='',municipio=''}={}){
+  try{
+    const q=new URLSearchParams();
+    if(ano)q.set('ano',String(ano));
+    if(cargo)q.set('cargo',cargo);
+    if(uf)q.set('uf',uf);
+    if(municipio)q.set('municipio',municipio);
+    return await request('/q2/patrimonio?'+q.toString());
+  }catch{
+    if(!uf){
+      return patrimonioSnapshot.resumo_br;
+    }
+    if(!municipio && patrimonioSnapshot.resumos_uf[uf]){
+      return patrimonioSnapshot.resumos_uf[uf];
+    }
+    // Caso de município específico
+    const muns = patrimonioSnapshot.municipios_por_uf[uf]?.municipios || [];
+    const m = muns.find(x => x.id_municipio === municipio);
+    if(m){
+      return {
+        ano, cargo, uf, municipio, ufs_cobertas: ['CE','MA','MS','RJ','RN','RS'],
+        resumo_situacao: [
+          {situacao: 'eleito', candidaturas: m.eleitos, patrimonio_medio: m.patrimonio_mediano_eleitos, patrimonio_mediano: m.patrimonio_mediano_eleitos},
+          {situacao: 'nao_eleito', candidaturas: m.analisadas - m.eleitos, patrimonio_medio: m.patrimonio_mediano_nao_eleitos, patrimonio_mediano: m.patrimonio_mediano_nao_eleitos}
+        ],
+        correlacao: {linear: null, log: null, candidaturas: m.analisadas},
+        decis: [],
+        cobertura: {total: m.candidaturas, validos: m.analisadas, negativos: 0, sem_resultado_definido: 0, cobertura_pct: 100.0 * m.analisadas / m.candidaturas}
+      };
+    }
+    return patrimonioSnapshot.resumos_uf[uf] || patrimonioSnapshot.resumo_br;
+  }
+}

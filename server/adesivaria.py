@@ -6,6 +6,7 @@ from fastapi import HTTPException
 UFS={'CE','MA','MS','RJ','RN','RS'}
 OFFICES={'VEREADOR','PREFEITO','DEPUTADO ESTADUAL','DEPUTADO FEDERAL','SENADOR','GOVERNADOR'}
 TYPES={'adesivos':'Adesivos','santinhos':'Santinhos','bandeiras':'Bandeiras','todos':''}
+DB = 'v4'
 # Anchored product nouns, optional purchase/production prefix. No substring
 # matching: removal, installation, staff, generic printing and mixed types stay out.
 TEXT="UPPER(TRIM(strip_accents(COALESCE(d.categoria,''))))"
@@ -51,7 +52,7 @@ def scope_cte(scope):
     # A municipal ID is accepted only inside its actual UF. Never attribute a
     # state or federal campaign's budget to its registry municipality.
     if scope['municipio']:
-        town=read('SELECT nome FROM v3.main.Municipio WHERE CAST(id_municipio AS VARCHAR)=? AND uf=?',[scope['municipio'],scope['uf']])
+        town=read(f'SELECT nome FROM {DB}.main.Municipio WHERE CAST(id_municipio AS VARCHAR)=? AND uf=?',[scope['municipio'],scope['uf']])
         if not town:raise HTTPException(400,'Município não pertence à UF selecionada')
         scope={**scope,'municipio_nome':town[0]['nome']}
     args=[scope['ano'],scope['cargo'],scope['uf'],scope['uf'],scope['partido'],scope['partido'],scope['municipio'],scope['municipio'],TYPES[scope['material']],TYPES[scope['material']]]
@@ -60,14 +61,14 @@ def scope_cte(scope):
        e.ano,UPPER(e.cargo) cargo,CASE WHEN UPPER(e.cargo) IN ('VEREADOR','PREFEITO') THEN m.nome END municipio,
        CASE WHEN UPPER(e.cargo) IN ('VEREADOR','PREFEITO') THEN CAST(c.id_municipio AS VARCHAR) END municipio_id,
        c.gastos_campanha_total gastos,c.patrimonio
-      FROM v3.main.Candidatura c JOIN v3.main.Eleicao e USING(id_eleicao)
-      LEFT JOIN v3.main.Partido pt USING(id_partido) LEFT JOIN v3.main.Municipio m USING(id_municipio)
+      FROM {DB}.main.Candidatura c JOIN {DB}.main.Eleicao e USING(id_eleicao)
+      LEFT JOIN {DB}.main.Partido pt USING(id_partido) LEFT JOIN {DB}.main.Municipio m USING(id_municipio)
       WHERE e.ano=? AND UPPER(e.cargo)=? AND e.turno=1 AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
        AND c.uf IN ('CE','MA','MS','RJ','RN','RS') AND (?='' OR c.uf=?)
        AND (?='' OR UPPER(pt.sigla)=UPPER(?)) AND (?='' OR CAST(c.id_municipio AS VARCHAR)=?)
     ), raw AS (
       SELECT d.id_despesa,d.id_candidatura id,d.categoria,d.valor,{MATERIAL_CASE} tipo
-      FROM v3.main.Despesa_Candidatura d WHERE EXISTS(SELECT 1 FROM scoped s WHERE s.id=d.id_candidatura)
+      FROM {DB}.main.Despesa_Candidatura d WHERE EXISTS(SELECT 1 FROM scoped s WHERE s.id=d.id_candidatura)
     ), selected AS (SELECT * FROM raw WHERE tipo IS NOT NULL AND (?='' OR tipo=?)),
     expense AS (
       SELECT id,COUNT(*) lancamentos,COUNT(valor) valores_informados,ROUND(SUM(valor),2) gastos_classificados
@@ -77,7 +78,7 @@ def scope_cte(scope):
        CASE WHEN COUNT(DISTINCT r.votos)=1 THEN MAX(r.votos) END votos,
        CASE WHEN COUNT(DISTINCT r.resultado)=1 THEN MAX(r.resultado) END resultado,
        COUNT(DISTINCT r.votos)>1 OR COUNT(DISTINCT r.resultado)>1 conflito_resultado
-      FROM v3.main.Resultado_Candidatura r WHERE r.turno=1 AND EXISTS(SELECT 1 FROM scoped s WHERE s.id=r.id_candidatura)
+      FROM {DB}.main.Resultado_Candidatura r WHERE r.turno=1 AND EXISTS(SELECT 1 FROM scoped s WHERE s.id=r.id_candidatura)
       GROUP BY r.id_candidatura
     ), enriched AS (
       SELECT s.*,x.gastos_classificados,COALESCE(x.lancamentos,0) lancamentos,

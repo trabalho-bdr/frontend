@@ -9,7 +9,7 @@ export const FACETS = [
 export const COLORS = ['#e5bb4e','#ba4a3a','#24669b','#23816b','#d28d55','#8a648d'];
 export const YEARS = ['2024','2022','2020','2018','2016','2014','2012','2010','2008','2006','2004','2002'];
 export const PARTIES = ['AGIR','AVANTE','CIDADANIA','DC','DEM','DEMOCRATA','MDB','MOBILIZA','NOVO','PAN','PATRI','PATRIOTA','PC DO B','PCB','PCO','PDT','PFL','PGT','PHS','PL','PMB','PMDB','PMN','PODE','PP','PPB','PPL','PPS','PR','PRB','PRD','PRONA','PROS','PRP','PRTB','PSB','PSC','PSD','PSDB','PSDC','PSL','PSOL','PST','PSTU','PT','PT DO B','PTB','PTC','PTN','PV','REDE','REPUBLICANOS','SD','SOLIDARIEDADE','UNIÃO','UP'];
-export const OFFICES = ['VEREADOR','PREFEITO','DEPUTADO ESTADUAL','DEPUTADO FEDERAL','GOVERNADOR','SENADOR'];
+export const OFFICES = ['PRESIDENTE','VEREADOR','PREFEITO','DEPUTADO ESTADUAL','DEPUTADO FEDERAL','GOVERNADOR','SENADOR'];
 export const STATES = ['CE','MA','MS','RJ','RN','RS'];
 export function optionsForFacet(facet){
   if(facet==='ano')return YEARS;

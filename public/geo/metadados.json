@@ -1,0 +1,43 @@
+{
+  "fonte": "IBGE — API de Malhas v3 e API de Localidades v1",
+  "baixado_em": "2026-10-13",
+  "versao_territorial": "malha municipal vigente na data do download (confirmar no IBGE)",
+  "aviso": "Malha atual: pode não refletir a divisão territorial de 2018/2020 em todos os casos.",
+  "qualidade": {
+    "ufs": "minima",
+    "municipios": "intermediaria"
+  },
+  "arquivos": {
+    "br_ufs.json": 31464,
+    "CE.json": 91138,
+    "MA.json": 136443,
+    "MS.json": 93977,
+    "RJ.json": 47806,
+    "RN.json": 48057,
+    "RS.json": 248679
+  },
+  "CE": {
+    "municipios_catalogo": 184,
+    "geometrias": 184
+  },
+  "MA": {
+    "municipios_catalogo": 217,
+    "geometrias": 217
+  },
+  "MS": {
+    "municipios_catalogo": 79,
+    "geometrias": 79
+  },
+  "RJ": {
+    "municipios_catalogo": 92,
+    "geometrias": 92
+  },
+  "RN": {
+    "municipios_catalogo": 167,
+    "geometrias": 167
+  },
+  "RS": {
+    "municipios_catalogo": 497,
+    "geometrias": 497
+  }
+}

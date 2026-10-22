@@ -14,7 +14,7 @@ class ComparisonsTests(unittest.TestCase):
    self.assertEqual(sql.count('?'),len(params))
    self.assertTrue(sql.lstrip().upper().startswith(('SELECT','WITH')))
    self.assertNotIn('DELETE ',sql.upper())
-   self.assertIn('v3.main.',sql)
+   self.assertIn('v4.main.',sql)
    self.queries.append((sql,params))
    return [{'ano':2024,'serie':'Teste','valor':10}]
   app._rows=fake
@@ -34,7 +34,7 @@ class ComparisonsTests(unittest.TestCase):
  def test_escolaridade_denominador_nao_inclui_indefinidos(self):
   escolaridade(ano=2024,cargo='VEREADOR',uf='RS')
   self.assertIn("'SUPLENTE'",self.queries[0][0])
-  self.assertEqual(self.queries[0][1],[2024,'VEREADOR','RS','RS'])
+  self.assertEqual(self.queries[0][1],[2024,'VEREADOR','RS','RS','RS'])
  def test_gastos_prop_sem_tudo_e_filtro_de_partido(self):
   propaganda(cargo='VEREADOR',uf='RJ',partido='PL')
   self.assertIn("LIKE 'ADESIV%'",self.queries[0][0])
@@ -42,6 +42,14 @@ class ComparisonsTests(unittest.TestCase):
  def test_quartis_patrimonio_condicionam_resultado(self):
   patrimonio(ano=2024,cargo='VEREADOR',uf='')
   self.assertIn('NTILE(4)',self.queries[0][0]);self.assertIn('eleito IS NOT NULL',self.queries[0][0])
+ def test_presidente_anos_e_restricoes(self):
+  cadeiras(cargo='PRESIDENTE')
+  self.assertEqual(self.queries[0][1],[2018,2022,'PRESIDENTE','',''])
+  escolaridade(ano=2022,cargo='PRESIDENTE')
+  patrimonio(ano=2018,cargo='PRESIDENTE')
+  with self.assertRaises(HTTPException):escolaridade(ano=2024,cargo='PRESIDENTE')
+  with self.assertRaises(HTTPException):patrimonio(ano=2020,cargo='PRESIDENTE')
+  with self.assertRaises(HTTPException):legenda(cargo='PRESIDENTE')
  def test_bloqueia_sql_livre_e_ufs_fora_do_acervo(self):
   with self.assertRaises(HTTPException):legenda(uf='SP')
   with self.assertRaises(HTTPException):legenda(primeiro="PT'); DROP TABLE --")

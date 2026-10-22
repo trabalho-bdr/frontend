@@ -1,0 +1,334 @@
+/* ==========================================================================
+   DOSSIÊ 01 / DADOS REAIS — QUANTO CUSTA UMA CADEIRA?
+   Suíte Analítica de 7 Gráficos (Categorias, Distribuição/Dispersão, Custo-Benefício)
+   ========================================================================== */
+
+.ccd-dossier {
+  color: #193b3a;
+  font-family: var(--br-body, 'DM Sans', system-ui, sans-serif);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.ccd-intro {
+  border-top: 5px solid #174a8b;
+  background: #e8eef5;
+  padding: 18px 22px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.ccd-intro-text span {
+  font: 800 10px var(--br-mono, monospace);
+  letter-spacing: 0.08em;
+  color: #174a8b;
+  text-transform: uppercase;
+}
+
+.ccd-intro-text p {
+  font: 500 14px/1.55 var(--br-body, sans-serif);
+  max-width: 680px;
+  margin: 6px 0 0;
+  color: #1e293b;
+}
+
+.ccd-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: #fffcf5;
+  border: 1.5px solid #8ea99a;
+  padding: 14px 16px;
+  border-radius: 4px;
+  align-items: flex-end;
+}
+
+.ccd-controls label {
+  display: grid;
+  gap: 5px;
+  flex: 1 1 180px;
+  font: 700 10px var(--br-mono, monospace);
+  text-transform: uppercase;
+  color: #334155;
+}
+
+.ccd-controls select {
+  padding: 9px 11px;
+  background: #ffffff;
+  border: 1.5px solid #475569;
+  border-radius: 3px;
+  color: #0f172a;
+  font: 600 12px var(--br-body, sans-serif);
+  min-height: 38px;
+}
+
+.ccd-nav-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ccd-nav-pills button {
+  padding: 8px 13px;
+  background: #f1f5f9;
+  border: 1px solid #94a3b8;
+  border-radius: 3px;
+  font: 700 10px var(--br-mono, monospace);
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+}
+
+.ccd-nav-pills button.active,
+.ccd-nav-pills button:hover {
+  background: #174a8b;
+  color: #ffffff;
+  border-color: #174a8b;
+}
+
+.ccd-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: #94a3b8;
+  border: 1.5px solid #475569;
+}
+
+.ccd-summary > div {
+  padding: 14px 16px;
+  background: #fffcf5;
+  display: grid;
+  gap: 4px;
+}
+
+.ccd-summary b {
+  font: 900 clamp(20px, 2.4vw, 30px) var(--br-display, 'Cinzel', serif);
+  color: #174a8b;
+}
+
+.ccd-summary span {
+  font: 700 10px var(--br-mono, monospace);
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.ccd-summary small {
+  font: 500 11px var(--br-body, sans-serif);
+  color: #64748b;
+}
+
+.ccd-category-block {
+  border-top: 3px solid #1e293b;
+  padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.ccd-category-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ccd-category-header span {
+  font: 800 11px var(--br-mono, monospace);
+  color: #c84d38;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ccd-category-header h3 {
+  font: 900 clamp(22px, 2.8vw, 30px) var(--br-display, 'Cinzel', serif);
+  color: #0f172a;
+  margin: 2px 0 0;
+}
+
+.ccd-panel {
+  background: #fffcf5;
+  border: 1.5px solid #64748b;
+  box-shadow: 3px 4px 0 #cbd5e1;
+  padding: clamp(14px, 2.5vw, 24px);
+  border-radius: 3px;
+}
+
+.ccd-panel-head {
+  border-bottom: 2px solid #174a8b;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ccd-panel-head span {
+  font: 800 10px var(--br-mono, monospace);
+  letter-spacing: 0.08em;
+  color: #176b50;
+  text-transform: uppercase;
+}
+
+.ccd-panel-head h4 {
+  font: 800 clamp(18px, 2.2vw, 24px) var(--br-display, 'Cinzel', serif);
+  color: #174a8b;
+  margin: 4px 0;
+}
+
+.ccd-panel-head p {
+  font: 500 12px/1.55 var(--br-body, sans-serif);
+  color: #334155;
+  margin: 0;
+  max-width: 680px;
+}
+
+.ccd-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.ccd-btn-group {
+  display: inline-flex;
+  background: #e2e8f0;
+  padding: 2px;
+  border-radius: 3px;
+  border: 1px solid #94a3b8;
+}
+
+.ccd-btn-group button {
+  border: none;
+  background: transparent;
+  padding: 6px 11px;
+  font: 700 10px var(--br-mono, monospace);
+  color: #334155;
+  cursor: pointer;
+  border-radius: 2px;
+  text-transform: uppercase;
+}
+
+.ccd-btn-group button.active {
+  background: #174a8b;
+  color: #ffffff;
+}
+
+.ccd-legend-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  font: 600 11px var(--br-mono, monospace);
+  color: #334155;
+  margin-bottom: 10px;
+}
+
+.ccd-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ccd-swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.ccd-tooltip {
+  background: #fffcf5;
+  border: 1.5px solid #174a8b;
+  box-shadow: 3px 3px 0 rgba(23, 74, 139, 0.25);
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #0f172a;
+  max-width: 280px;
+  z-index: 40;
+}
+
+.ccd-tooltip h5 {
+  margin: 0 0 4px;
+  font: 800 13px var(--br-mono, monospace);
+  color: #174a8b;
+  border-bottom: 1px solid #cbd5e1;
+  padding-bottom: 4px;
+}
+
+.ccd-tooltip p {
+  margin: 3px 0;
+  font: 500 11.5px var(--br-body, sans-serif);
+}
+
+.ccd-caption {
+  font: 500 11px/1.6 var(--br-mono, monospace);
+  color: #475569;
+  margin-top: 12px;
+  border-top: 1px dashed #cbd5e1;
+  padding-top: 8px;
+}
+
+/* Treemap Custom Styles */
+.ccd-treemap-scale {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 700 10px var(--br-mono, monospace);
+  color: #334155;
+  margin-bottom: 10px;
+}
+
+.ccd-treemap-gradient {
+  width: 140px;
+  height: 10px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #176b50 0%, #edbf42 50%, #c84d38 100%);
+  border: 1px solid #475569;
+}
+
+/* Boxplot Custom SVG Styles */
+.ccd-boxplot-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.ccd-boxplot-row:hover rect.ccd-box-bg {
+  fill: #eef2ff;
+}
+
+/* Insight Callouts */
+.ccd-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.ccd-stat-card {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-left: 3px solid #174a8b;
+  padding: 9px 12px;
+  font-size: 11.5px;
+}
+
+.ccd-stat-card strong {
+  display: block;
+  font: 800 11px var(--br-mono, monospace);
+  color: #174a8b;
+  margin-bottom: 2px;
+}
+
+@media (max-width: 720px) {
+  .ccd-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

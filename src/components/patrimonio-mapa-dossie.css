@@ -1,0 +1,827 @@
+/* ==========================================================================
+   DOSSIÊ 02: PATRIMÔNIO AJUDA A ELEGER?
+   Paleta Editorial Oficial: Azul Tinta (#174a8b, #24669b), Tijolo Quente (#ba4a3a),
+   Âmbar/Ouro (#d99b26), Pergaminho (#fbf8f4, #f8f6f0), Linhas (#cbd5e1, #e2dcd2).
+   Sem cores neon (sem rosa/roxo de pipeline_bdr).
+   ========================================================================== */
+
+.pmd-dossier {
+  color: #0f172a;
+  font-family: var(--br-body, 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 10px;
+}
+
+/* --- Cabeçalho e Contexto Territorial --- */
+.pmd-header {
+  border-top: 4px solid #174a8b;
+  background: #f1f5f9;
+  border-radius: 4px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border: 1px solid #cbd5e1;
+  border-top-width: 4px;
+}
+
+.pmd-header-main {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.pmd-heading-group span {
+  font: 800 11px var(--br-mono, monospace);
+  letter-spacing: 0.08em;
+  color: #174a8b;
+  text-transform: uppercase;
+}
+
+.pmd-heading-group h3 {
+  font: 700 20px/1.25 var(--br-heading, 'Merriweather', serif);
+  color: #0f172a;
+  margin: 3px 0 0;
+}
+
+.pmd-location-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  padding: 8px 14px;
+  border-radius: 4px;
+  border: 1.5px solid #94a3b8;
+}
+
+.pmd-location-info small {
+  display: block;
+  font: 700 9px var(--br-mono, monospace);
+  letter-spacing: 0.06em;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.pmd-location-info strong {
+  display: block;
+  font: 700 14px var(--br-body, sans-serif);
+  color: #1e293b;
+}
+
+.pmd-btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  background: #174a8b;
+  color: #ffffff;
+  border: none;
+  border-radius: 3px;
+  font: 700 11px var(--br-mono, monospace);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.pmd-btn-back:hover {
+  background: #0f294a;
+}
+
+/* --- Barra de Filtros --- */
+.pmd-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  padding: 12px 16px;
+  border-radius: 4px;
+  align-items: flex-end;
+}
+
+.pmd-controls label {
+  display: grid;
+  gap: 5px;
+  flex: 1 1 160px;
+  font: 700 10px var(--br-mono, monospace);
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.pmd-controls select {
+  padding: 8px 10px;
+  background: #ffffff;
+  border: 1.5px solid #64748b;
+  border-radius: 3px;
+  color: #0f172a;
+  font: 600 12px var(--br-body, sans-serif);
+  min-height: 36px;
+}
+
+.pmd-controls button.pmd-btn-reset {
+  padding: 8px 14px;
+  background: #f8fafc;
+  border: 1px solid #94a3b8;
+  color: #334155;
+  border-radius: 3px;
+  font: 700 11px var(--br-mono, monospace);
+  text-transform: uppercase;
+  cursor: pointer;
+  height: 36px;
+  transition: all 0.15s;
+}
+
+.pmd-controls button.pmd-btn-reset:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* --- Banner de Destaque Nacional (quando nenhum estado foi selecionado) --- */
+.pmd-national-prompt {
+  background: #fbf8f4;
+  border: 2px dashed #94a3b8;
+  border-radius: 6px;
+  padding: 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.pmd-prompt-pill {
+  font: 800 10px var(--br-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: #174a8b;
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 3px;
+}
+
+.pmd-national-prompt h4 {
+  font: 700 18px var(--br-heading, 'Merriweather', serif);
+  color: #0f172a;
+  margin: 0;
+}
+
+.pmd-national-prompt p {
+  font: 500 13px/1.6 var(--br-body, sans-serif);
+  color: #334155;
+  max-width: 680px;
+  margin: 0;
+}
+
+.pmd-state-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.pmd-state-card-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 18px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  min-width: 100px;
+}
+
+.pmd-state-card-btn strong {
+  font: 800 18px var(--br-mono, monospace);
+  color: #174a8b;
+}
+
+.pmd-state-card-btn span {
+  font: 600 11px var(--br-body, sans-serif);
+  color: #334155;
+}
+
+.pmd-state-card-btn small {
+  font: 500 10px var(--br-mono, monospace);
+  color: #64748b;
+  margin-top: 3px;
+}
+
+.pmd-state-card-btn:hover {
+  border-color: #174a8b;
+  background: #eff6ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(23, 74, 139, 0.1);
+}
+
+/* --- Cartões KPI do Recorte (Visíveis apenas quando um estado é clicado) --- */
+.pmd-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.pmd-kpi {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.pmd-kpi::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+.pmd-kpi.tone-navy::after { background: #174a8b; }
+.pmd-kpi.tone-slate::after { background: #24669b; }
+.pmd-kpi.tone-brick::after { background: #ba4a3a; }
+.pmd-kpi.tone-gold::after { background: #d99b26; }
+
+.pmd-kpi span {
+  font: 700 10px var(--br-mono, monospace);
+  letter-spacing: 0.05em;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.pmd-kpi strong {
+  font: 800 20px/1.2 var(--br-heading, serif);
+  color: #0f172a;
+}
+
+.pmd-kpi small {
+  font: 500 11px var(--br-body, sans-serif);
+  color: #64748b;
+}
+
+/* --- Grade do Mapa e Ficha Lateral --- */
+.pmd-map-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) 320px;
+  gap: 14px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 14px;
+}
+
+.pmd-map-stage.full-width {
+  grid-template-columns: 1fr;
+}
+
+/* Viewport do Mapa SVG */
+.pmd-map-container {
+  position: relative;
+  min-height: 480px;
+  height: 520px;
+  background: #fbf8f4;
+  border: 1px solid #e2dcd2;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.pmd-map-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Elementos SVG do Mapa */
+.pmd-map-svg path.uf-path {
+  cursor: pointer;
+  stroke: #ffffff;
+  stroke-width: 1px;
+  transition: opacity 0.15s;
+}
+
+.pmd-map-svg path.uf-path.cob {
+  fill: #174a8b;
+  cursor: pointer;
+}
+
+.pmd-map-svg path.uf-path.cob:hover {
+  fill: #ba4a3a;
+  stroke: #ffffff;
+  stroke-width: 2px;
+}
+
+.pmd-map-svg path.uf-path.fora {
+  fill: #e8e4d5;
+  stroke: #d0cbbe;
+  cursor: default;
+}
+
+.pmd-map-svg path.mun-path {
+  cursor: pointer;
+  stroke: rgba(255, 255, 255, 0.4);
+  stroke-width: 0.5px;
+  transition: stroke 0.15s, stroke-width 0.15s;
+}
+
+.pmd-map-svg path.mun-path:hover {
+  stroke: #ffffff;
+  stroke-width: 1.8px;
+}
+
+.pmd-map-svg path.mun-path.is-selected {
+  stroke: #ba4a3a;
+  stroke-width: 2.8px;
+  filter: drop-shadow(0 0 4px rgba(186, 74, 58, 0.6));
+}
+
+/* Rótulos de estados cobertos */
+.pmd-state-label rect {
+  fill: #174a8b;
+  rx: 3px;
+}
+
+.pmd-state-label text {
+  font: 800 11px var(--br-mono, monospace);
+  fill: #ffffff;
+  pointer-events: none;
+}
+
+/* Busca rápida sobre o mapa */
+.pmd-map-search {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 5;
+  width: min(280px, calc(100% - 24px));
+}
+
+.pmd-search-box {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1.5px solid #64748b;
+  border-radius: 4px;
+  padding: 4px 8px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+}
+
+.pmd-search-box input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font: 500 12px var(--br-body, sans-serif);
+  color: #0f172a;
+}
+
+.pmd-search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.15);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.pmd-search-dropdown button {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
+  background: transparent;
+  font: 600 11px var(--br-body, sans-serif);
+  color: #1e293b;
+  cursor: pointer;
+  text-align: left;
+}
+
+.pmd-search-dropdown button:hover {
+  background: #eff6ff;
+  color: #174a8b;
+}
+
+/* Controles de Zoom */
+.pmd-zoomctl {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 5;
+}
+
+.pmd-zoomctl button {
+  width: 32px;
+  height: 32px;
+  border-radius: 3px;
+  background: #ffffff;
+  border: 1.5px solid #64748b;
+  color: #1e293b;
+  font: 800 16px var(--br-mono, monospace);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: all 0.12s;
+}
+
+.pmd-zoomctl button:hover {
+  background: #f1f5f9;
+  border-color: #174a8b;
+  color: #174a8b;
+}
+
+/* Legenda do Mapa */
+.pmd-map-legend {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: min(260px, calc(100% - 70px));
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(4px);
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 10px 12px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+  font: 500 11px var(--br-body, sans-serif);
+  color: #334155;
+  z-index: 5;
+}
+
+.pmd-map-legend strong {
+  display: block;
+  font: 700 11px var(--br-mono, monospace);
+  color: #0f172a;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.pmd-legend-bar {
+  height: 8px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+.pmd-legend-ticks {
+  display: flex;
+  justify-content: space-between;
+  font: 700 10px var(--br-mono, monospace);
+  color: #64748b;
+}
+
+/* Readout / Dica ao passar o mouse */
+.pmd-map-readout {
+  position: absolute;
+  left: 12px;
+  bottom: 54px;
+  background: rgba(15, 23, 42, 0.88);
+  color: #f8fafc;
+  padding: 5px 10px;
+  border-radius: 3px;
+  font: 600 11px var(--br-body, sans-serif);
+  pointer-events: none;
+  max-width: 320px;
+  z-index: 5;
+}
+
+/* --- Ficha Lateral Territorial (Aside) --- */
+.pmd-aside {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  max-height: 520px;
+}
+
+.pmd-aside-heading span {
+  font: 800 10px var(--br-mono, monospace);
+  letter-spacing: 0.06em;
+  color: #174a8b;
+  text-transform: uppercase;
+}
+
+.pmd-aside-heading h4 {
+  font: 700 17px/1.2 var(--br-heading, serif);
+  color: #0f172a;
+  margin: 3px 0 0;
+}
+
+.pmd-aside-heading p {
+  font: 500 11px var(--br-body, sans-serif);
+  color: #64748b;
+  margin: 3px 0 0;
+}
+
+.pmd-record-dl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
+  font-size: 12px;
+  margin: 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.pmd-record-dl dt {
+  color: #475569;
+}
+
+.pmd-record-dl dd {
+  font-weight: 700;
+  color: #0f172a;
+  text-align: right;
+  margin: 0;
+  font-family: var(--br-mono, monospace);
+}
+
+.pmd-aside-btn-clear {
+  padding: 7px 12px;
+  background: #f1f5f9;
+  border: 1px solid #94a3b8;
+  color: #1e293b;
+  border-radius: 3px;
+  font: 700 11px var(--br-mono, monospace);
+  text-transform: uppercase;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: all 0.15s;
+}
+
+.pmd-aside-btn-clear:hover {
+  background: #e2e8f0;
+}
+
+/* --- Grade de Gráficos Analíticos (Apenas após clicar em um estado) --- */
+.pmd-charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.pmd-chart-card {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pmd-chart-card h4 {
+  font: 700 16px var(--br-heading, serif);
+  color: #0f172a;
+  margin: 0;
+}
+
+.pmd-chart-card p.card-desc {
+  font: 500 12px/1.5 var(--br-body, sans-serif);
+  color: #475569;
+  margin: 0;
+}
+
+/* Gráfico de Decis de Patrimônio */
+.pmd-deciles-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 8px;
+  height: 180px;
+  padding: 10px 4px 0;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.pmd-decile-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  flex: 1;
+  gap: 4px;
+}
+
+.pmd-decile-bar-container {
+  width: 100%;
+  height: 130px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.pmd-decile-bar {
+  width: 80%;
+  background: #174a8b;
+  border-radius: 3px 3px 0 0;
+  transition: height 0.3s ease, background 0.15s;
+  min-height: 4px;
+}
+
+.pmd-decile-bar.top-tier {
+  background: #ba4a3a;
+}
+
+.pmd-decile-col:hover .pmd-decile-bar {
+  opacity: 0.85;
+}
+
+.pmd-decile-pct {
+  font: 700 10px var(--br-mono, monospace);
+  color: #1e293b;
+}
+
+.pmd-decile-label {
+  font: 700 10px var(--br-mono, monospace);
+  color: #64748b;
+}
+
+.pmd-axis-labels {
+  display: flex;
+  justify-content: space-between;
+  font: 700 10px var(--br-mono, monospace);
+  color: #64748b;
+}
+
+/* Gráfico de Ranking de Municípios */
+.pmd-ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.pmd-ranking-item {
+  display: grid;
+  grid-template-columns: 120px 1fr 90px;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+  text-align: left;
+  font-size: 12px;
+  color: #1e293b;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.pmd-ranking-item:hover span.name {
+  color: #174a8b;
+  font-weight: 700;
+}
+
+.pmd-ranking-item span.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.pmd-ranking-track {
+  height: 9px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.pmd-ranking-fill {
+  height: 100%;
+  background: #174a8b;
+  border-radius: 4px;
+}
+
+.pmd-ranking-item strong {
+  text-align: right;
+  font-family: var(--br-mono, monospace);
+  font-size: 11px;
+}
+
+/* Comparativo Eleitos x Não Eleitos */
+.pmd-comparison-box {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pmd-comparison-box h4 {
+  font: 700 16px var(--br-heading, serif);
+  color: #0f172a;
+  margin: 0;
+}
+
+.pmd-comparison-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pmd-comp-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 130px;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.pmd-comp-row span {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.pmd-comp-track {
+  height: 18px;
+  background: #f1f5f9;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.pmd-comp-fill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.pmd-comp-fill.elected {
+  background: #ba4a3a;
+}
+
+.pmd-comp-fill.not-elected {
+  background: #24669b;
+}
+
+.pmd-comp-row strong {
+  text-align: right;
+  font-family: var(--br-mono, monospace);
+  font-size: 12px;
+  color: #0f172a;
+}
+
+/* Nota Metodológica */
+.pmd-method {
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #f8fafc;
+  padding: 14px 18px;
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.pmd-method summary {
+  font: 700 12px var(--br-mono, monospace);
+  color: #174a8b;
+  cursor: pointer;
+}
+
+.pmd-method p {
+  margin: 8px 0 0;
+}
+
+/* Responsividade */
+@media (max-width: 900px) {
+  .pmd-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .pmd-map-stage {
+    grid-template-columns: 1fr;
+  }
+  .pmd-charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 550px) {
+  .pmd-kpis {
+    grid-template-columns: 1fr;
+  }
+}

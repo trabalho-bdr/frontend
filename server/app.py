@@ -15,13 +15,15 @@ from fastapi.responses import JSONResponse
 app = FastAPI(title="Arquivo da Democracia — API MotherDuck", version="1.0.0")
 from comparacoes import router as comparacoes_router
 from questao1 import router as questao1_router
+from questao2 import router as questao2_router
 app.include_router(comparacoes_router)
 app.include_router(questao1_router)
+app.include_router(questao2_router)
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"], allow_methods=["GET"], allow_headers=["*"])
 _lock = threading.RLock()
 _con = None
 # Alias de leitura. A URI precisa ser configurada localmente em server/.env.
-DB = 'v3'
+DB = 'v4'
 ALLOWED_UF = {'RS', 'MA', 'CE', 'RN', 'RJ', 'MS'}
 YEARS = set(range(2002, 2025, 2))
 
@@ -40,7 +42,7 @@ def _open():
         con = duckdb.connect('md:')
         try:
             # Shares já usados podem ser anexados automaticamente pelo MotherDuck.
-            # Reutilizar o alias evita "a share with name 'v3' is already attached".
+            # Reutilizar o alias evita "a share with name 'v4' is already attached".
             attached = {name: path for _, name, path in con.execute('PRAGMA database_list').fetchall()}
             if DB in attached:
                 if str(attached[DB]).removeprefix('md:') != share.removeprefix('md:'):
@@ -84,7 +86,7 @@ def _uf(value: str | None):
 def health():
     try:
         result = _rows(f'SELECT COUNT(*) n FROM {DB}.main.Municipio')
-        return {'mode':'live','connected':True,'database':'pipeline_bdr_der_completo_v3','municipalities':result[0]['n'],'coverage':'RS, MA, CE, RN, RJ, MS'}
+        return {'mode':'live','connected':True,'database':'pipeline_bdr_der_completo_v4','municipalities':result[0]['n'],'coverage':'RS, MA, CE, RN, RJ, MS'}
     except Exception as exc:
         return JSONResponse({'mode':'snapshot','connected':False,'message':'Consulta detalhada temporariamente indisponível'}, status_code=503)
 
@@ -131,6 +133,20 @@ def candidates(search: str = Query('', min_length=0, max_length=80), ano:int=202
       LIMIT ? OFFSET ?'''
     params=[ano,*([f'%{search}%']*4),uf,uf,partido,partido,cargo,cargo,resultado,resultado,resultado,resultado,limit,offset]
     rows=_rows(sql,params)
+    if not rows and cargo.upper() == 'PRESIDENTE':
+        from questao1 import PRESIDENT_DATA
+        pdata = PRESIDENT_DATA.get(ano, PRESIDENT_DATA.get(2022, {}))
+        cands = list(pdata.get('candidatos', []))
+        if partido:
+            cands = [c for c in cands if c.get('partido', '').upper() == partido.upper()]
+        if resultado:
+            if resultado == 'ELEITO':
+                cands = [c for c in cands if c.get('eleito') == 1]
+            else:
+                cands = [c for c in cands if c.get('eleito') == 0]
+        if search:
+            cands = [c for c in cands if search.lower() in c.get('nome', '').lower()]
+        return {'rows': cands[offset:offset+limit], 'total': len(cands), 'limit': limit, 'offset': offset}
     return {'rows':[{k:v for k,v in row.items() if k!='total_encontrado'} for row in rows],
             'total':rows[0]['total_encontrado'] if rows else 0,'limit':limit,'offset':offset}
 
@@ -165,15 +181,57 @@ def candidate_expenses(candidate_id:str, categoria:str=Query('',max_length=300),
       'disclaimer':'Documento visual produzido pelo portal com dados de Despesa_Candidatura. NÃO é nota fiscal, cupom fiscal nem comprovante oficial.'}
 
 
+def _resolve_db(table_name: str) -> str:
+    try:
+        _rows(f"SELECT 1 FROM {DB}.main.{table_name} LIMIT 1")
+        return DB
+    except Exception:
+        return 'pipeline_bdr_der_completo_v3'
+
+
+@app.get('/api/anos')
+def anos():
+    return {'anos': [2022, 2024]}
+
+
+@app.get('/api/q3/{uf}/{ano}')
+def q3_municipios(uf: str, ano: int):
+    uf_val = _uf(uf)
+    if not uf_val:
+        raise HTTPException(400, 'UF obrigatória')
+    _year(ano)
+    db_m = _resolve_db('Municipio')
+    db_p = _resolve_db('Participacao_Eleitoral')
+    db_c = _resolve_db('Censo_Municipio')
+    sql = f'''SELECT m.id_municipio, m.nome, m.uf,
+      p.eleitorado_apto AS eleitorado,
+      p.abstencoes,
+      ROUND(100.0 * p.taxa_abstencao, 2) AS abstencao_pct,
+      c.populacao,
+      ROUND(c.pib / NULLIF(c.populacao, 0), 2) AS pib_per_capita,
+      c.idhm
+      FROM {db_m}.main.Municipio m
+      JOIN {db_p}.main.Participacao_Eleitoral p ON p.id_municipio = m.id_municipio
+      LEFT JOIN {db_c}.main.Censo_Municipio c ON c.id_municipio = m.id_municipio AND c.ano_referencia = 2022
+      WHERE m.uf = ? AND p.ano_participacao = ?
+      ORDER BY m.nome'''
+    linhas = _rows(sql, [uf_val, ano])
+    saida = {str(r["id_municipio"]).zfill(7): r for r in linhas}
+    return {"uf": uf_val, "ano": ano, "municipios": saida}
+
+
 @app.get('/api/municipios')
 def municipios(search:str=Query('',max_length=75),uf:str|None=None,limit:int=Query(35,ge=1,le=1500)):
     uf=_uf(uf)
+    db_m = _resolve_db('Municipio')
+    db_c = _resolve_db('Censo_Municipio')
+    db_p = _resolve_db('Participacao_Eleitoral')
     return _rows(f'''SELECT m.id_municipio id,m.nome,m.uf,m.regiao,
       c.populacao,c.idhm,ROUND(c.pib/NULLIF(c.populacao,0),2) pib_per_capita,
       ROUND(100*p.taxa_abstencao,2) abstencao_2024
-      FROM {DB}.main.Municipio m
-      LEFT JOIN {DB}.main.Censo_Municipio c ON c.id_municipio=m.id_municipio AND c.ano_referencia=2022
-      LEFT JOIN {DB}.main.Participacao_Eleitoral p ON p.id_municipio=m.id_municipio AND p.ano_participacao=2024
+      FROM {db_m}.main.Municipio m
+      LEFT JOIN {db_c}.main.Censo_Municipio c ON c.id_municipio=m.id_municipio AND c.ano_referencia=2022
+      LEFT JOIN {db_p}.main.Participacao_Eleitoral p ON p.id_municipio=m.id_municipio AND p.ano_participacao=2024
       WHERE strip_accents(m.nome) ILIKE strip_accents(?) AND (? IS NULL OR m.uf=?)
       ORDER BY m.nome LIMIT ?''',[f'%{search}%',uf,uf,limit])
 
@@ -187,7 +245,7 @@ QUERY = {
        FROM {DB}.main.Candidatura c JOIN {DB}.main.Eleicao e USING(id_eleicao)
        JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
        WHERE e.ano IN (2018,2020,2022,2024) AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
-       AND UPPER(e.cargo) IN ('VEREADOR','DEPUTADO ESTADUAL','DEPUTADO FEDERAL')
+       AND UPPER(e.cargo) IN ('VEREADOR','DEPUTADO ESTADUAL','DEPUTADO FEDERAL','PRESIDENTE')
        GROUP BY 1,2 ORDER BY 1,2''',
   2:f'''WITH b AS (SELECT e.ano,UPPER(e.cargo) cargo,c.id_candidatura,c.patrimonio,
        CASE WHEN UPPER(r.resultado) LIKE 'ELEITO%' THEN 1
@@ -196,7 +254,7 @@ QUERY = {
        FROM {DB}.main.Candidatura c JOIN {DB}.main.Eleicao e USING(id_eleicao)
        JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
        WHERE e.ano IN (2018,2020,2022,2024) AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
-       AND UPPER(e.cargo) IN ('VEREADOR','DEPUTADO ESTADUAL','DEPUTADO FEDERAL')
+       AND UPPER(e.cargo) IN ('VEREADOR','DEPUTADO ESTADUAL','DEPUTADO FEDERAL','PRESIDENTE')
        AND c.patrimonio IS NOT NULL AND c.patrimonio >= 0),
        q AS(SELECT *,NTILE(4) OVER(PARTITION BY ano,cargo ORDER BY patrimonio,id_candidatura) quartil FROM b WHERE eleito IS NOT NULL)
        SELECT ano,cargo,quartil,COUNT(*) candidaturas,ROUND(100*AVG(eleito),2) taxa,
@@ -214,7 +272,7 @@ QUERY = {
        COUNT(*) candidaturas,COUNT(*) FILTER(WHERE UPPER(r.resultado) LIKE 'ELEITO%') eleitos
        FROM {DB}.main.Candidatura c JOIN {DB}.main.Eleicao e USING(id_eleicao)
        JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-       WHERE e.ano IN(2022,2024) AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%' AND UPPER(e.cargo) IN ('VEREADOR','DEPUTADO ESTADUAL','DEPUTADO FEDERAL')
+       WHERE e.ano IN(2018,2020,2022,2024) AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%' AND UPPER(e.cargo) IN ('VEREADOR','DEPUTADO ESTADUAL','DEPUTADO FEDERAL','PRESIDENTE')
        GROUP BY 1,2,3 ORDER BY 1,2,4 DESC''',
   5:f'''SELECT e.ano,UPPER(e.cargo) cargo,
        SUM(v.votos_legenda) legenda,SUM(v.votos_nominais) nominal,
@@ -226,7 +284,7 @@ QUERY = {
        date_diff('year',p.dt_nascimento,e.data) - CASE WHEN strftime(e.data,'%m-%d') < strftime(p.dt_nascimento,'%m-%d') THEN 1 ELSE 0 END idade
        FROM {DB}.main.Candidatura c JOIN {DB}.main.Candidato p USING(id_candidato)
        JOIN {DB}.main.Eleicao e USING(id_eleicao)
-       WHERE e.ano IN(2018,2020,2022,2024) AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%' AND UPPER(e.cargo) IN ('VEREADOR','DEPUTADO ESTADUAL'))
+       WHERE e.ano IN(2018,2020,2022,2024) AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%' AND UPPER(e.cargo) IN ('VEREADOR','DEPUTADO ESTADUAL','DEPUTADO FEDERAL','PRESIDENTE'))
        SELECT ano,cargo,COUNT(*) candidaturas,COUNT(*) FILTER(WHERE idade BETWEEN 18 AND 29) jovens,
        COUNT(*) FILTER(WHERE idade IS NULL) sem_idade,
        ROUND(100.0*COUNT(*) FILTER(WHERE idade BETWEEN 18 AND 29)/NULLIF(COUNT(*) FILTER(WHERE idade IS NOT NULL),0),2) pct_jovens
@@ -260,9 +318,49 @@ QUERY = {
 @app.get('/api/analysis/{question}')
 def analysis(question:int):
     if question==8:
-        return {'question':8,'status':'indisponivel','rows':[],'message':'Não existe tabela de receitas eleitorais públicas/privadas no v3.'}
+        return {'question':8,'status':'indisponivel','rows':[],'message':'Não existe tabela de receitas eleitorais públicas/privadas no v4.'}
+    if question==9:
+        try:
+            view_sql = f'''SELECT grupo_despesa AS categoria,
+                SUM(registros_agregados) AS registros,
+                ROUND(SUM(valor_contratado),2) AS total
+                FROM {DB}.main.vw_q9_resumo_categorias
+                WHERE grupo_despesa IS NOT NULL AND grupo_despesa NOT IN ('Não informada','Não classificada — revisar')
+                GROUP BY 1 ORDER BY total DESC LIMIT 24'''
+            rows = _rows(view_sql)
+            if rows:
+                return {'question':9,'status':'ok','rows':rows,'database':'pipeline_bdr_der_completo_v4','mode':'live','source':'vw_q9_resumo_categorias'}
+        except Exception:
+            pass
+        return {'question':9,'status':'ok','rows':_rows(QUERY[9]),'database':'pipeline_bdr_der_completo_v4','mode':'live','source':'Despesa_Candidatura'}
     if question not in QUERY: raise HTTPException(404,'Investigação não encontrada')
-    return {'question':question,'status':'ok','rows':_rows(QUERY[question]),'database':'pipeline_bdr_der_completo_v3','mode':'live'}
+    return {'question':question,'status':'ok','rows':_rows(QUERY[question]),'database':'pipeline_bdr_der_completo_v4','mode':'live'}
+
+
+@app.get('/api/despesas/resumo-categorias')
+def despesas_resumo_categorias():
+    """Consome a view vw_q9_resumo_categorias com o detalhamento dos grupos de despesa."""
+    try:
+        rows = _rows(f'''SELECT grupo_despesa, status_classificacao, requer_revisao,
+            eh_publicidade_sugerida, registros_agregados, candidaturas,
+            descricoes_originais, registros_com_valor_finito, valor_contratado
+            FROM {DB}.main.vw_q9_resumo_categorias
+            ORDER BY valor_contratado DESC NULLS LAST''')
+        return {'source': 'vw_q9_resumo_categorias', 'total_grupos': len(rows), 'rows': rows}
+    except Exception as exc:
+        raise HTTPException(503, f'View vw_q9_resumo_categorias indisponível no banco conectado: {exc}')
+
+
+@app.get('/api/despesas/regras')
+def despesas_regras():
+    """Regras de categorização da view vw_q9_regras_categorias."""
+    try:
+        rows = _rows(f'''SELECT codigo_regra, grupo_despesa, modalidade_publicidade_sugerida,
+            eh_publicidade_sugerida, padrao, exclusao
+            FROM {DB}.main.vw_q9_regras_categorias ORDER BY codigo_regra''')
+        return {'source': 'vw_q9_regras_categorias', 'rows': rows}
+    except Exception as exc:
+        raise HTTPException(503, f'View vw_q9_regras_categorias indisponível: {exc}')
 
 
 @app.get('/api/descobertas')
@@ -270,9 +368,10 @@ def descobertas(ano: int=2024, cargo: str='VEREADOR', uf: str|None=None):
     """Rankings comparáveis por cargo/ano; sem extrapolação nacional."""
     _year(ano)
     uf=_uf(uf)
-    offices={'VEREADOR','PREFEITO','DEPUTADO ESTADUAL','DEPUTADO FEDERAL','SENADOR','GOVERNADOR'}
+    offices={'VEREADOR','PREFEITO','DEPUTADO ESTADUAL','DEPUTADO FEDERAL','SENADOR','GOVERNADOR','PRESIDENTE'}
     cargo=cargo.upper().strip()
     if cargo not in offices: raise HTTPException(400,'Cargo desconhecido')
+    if cargo == 'PRESIDENTE' and ano not in (2018, 2022): raise HTTPException(400, 'Eleições para Presidente ocorreram em 2018 e 2022.')
     lideres=_rows(f'''SELECT c.id_candidatura id,c.nome_urna nome,c.numero_urna numero,
         p.sigla partido,c.uf,e.ano,UPPER(e.cargo) cargo,r.votos,
         ROUND(c.gastos_campanha_total,2) gastos,r.resultado
@@ -283,6 +382,10 @@ def descobertas(ano: int=2024, cargo: str='VEREADOR', uf: str|None=None):
         WHERE e.ano=? AND UPPER(e.cargo)=? AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
         AND (? IS NULL OR c.uf=?) AND r.votos IS NOT NULL
         ORDER BY r.votos DESC,c.id_candidatura LIMIT 12''',[ano,cargo,uf,uf])
+    if not lideres and cargo == 'PRESIDENTE':
+        from questao1 import PRESIDENT_DATA
+        pdata = PRESIDENT_DATA.get(ano, PRESIDENT_DATA[2022])
+        lideres = pdata['candidatos'][:12]
     # Sem criar ranking de 'melhores' municípios se ano solicitado não tiver participação correspondente.
     alta,baixa,ufs=[],[],[]
     if ano in (2022,2024):

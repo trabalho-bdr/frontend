@@ -7,7 +7,7 @@ from fastapi import HTTPException
 # Adicionar diretório server ao path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'server'))
 import app
-from questao1 import get_overview, get_ranking, get_dispersao, _valida_recorte
+from questao1 import get_overview, get_ranking, get_dispersao, get_dossie, _valida_recorte
 
 
 class Questao1Tests(unittest.TestCase):
@@ -21,7 +21,7 @@ class Questao1Tests(unittest.TestCase):
             self.assertNotIn('DELETE ', sql.upper())
             self.assertNotIn('DROP ', sql.upper())
             self.assertNotIn('UPDATE ', sql.upper())
-            self.assertIn('v3.main.', sql)
+            self.assertIn('v4.main.', sql)
             self.captured_queries.append((sql, list(params)))
 
             # Retorno simulado realista
@@ -85,6 +85,8 @@ class Questao1Tests(unittest.TestCase):
                     'eleito': 1,
                     'custo_voto': 6.25
                 }]
+            if 'b1' in sql and 'b7' in sql:
+                return [{'b1': 100, 'b2': 200, 'b3': 150, 'b4': 80, 'b5': 30, 'b6': 10, 'b7': 5}]
             return []
 
         app._rows = mock_rows
@@ -152,6 +154,40 @@ class Questao1Tests(unittest.TestCase):
         # Checar que consulta stats usa log10 e Pearson
         stats_sql, _ = self.captured_queries[0]
         self.assertIn("CORR(log10(c.gastos_campanha_total), log10(r.votos))", stats_sql)
+
+    def test_dossie_retorna_agregacoes_dos_sete_graficos(self):
+        res = get_dossie(ano=2024, cargo='VEREADOR', uf='CE')
+        self.assertEqual(res['ano'], 2024)
+        self.assertEqual(res['cargo'], 'VEREADOR')
+        self.assertEqual(res['uf'], 'CE')
+        self.assertIn('por_partido', res)
+        self.assertIn('por_uf', res)
+        self.assertIn('comparacao_cargos', res)
+        self.assertEqual(len(res['histograma_eleitos']), 7)
+
+    def test_presidente_anos_e_endpoints(self):
+        ano, cargo, uf, mun = _valida_recorte(2022, 'PRESIDENTE')
+        self.assertEqual((ano, cargo, uf, mun), (2022, 'PRESIDENTE', '', ''))
+        ano, cargo, uf, mun = _valida_recorte(2018, 'PRESIDENTE')
+        self.assertEqual((ano, cargo, uf, mun), (2018, 'PRESIDENTE', '', ''))
+        with self.assertRaises(HTTPException):
+            _valida_recorte(2024, 'PRESIDENTE')
+        with self.assertRaises(HTTPException):
+            _valida_recorte(2020, 'PRESIDENTE')
+        ov = get_overview(ano=2022, cargo='PRESIDENTE')
+        self.assertEqual(ov['cargo'], 'PRESIDENTE')
+        self.assertEqual(ov['data']['eleitos'], 1)
+        self.assertGreater(ov['data']['total_despesas'], 300000000)
+        rk = get_ranking(ano=2022, cargo='PRESIDENTE', ordem='gastos')
+        self.assertGreaterEqual(rk['total'], 11)
+        self.assertEqual(rk['rows'][0]['partido'], 'PT')
+        dp = get_dispersao(ano=2022, cargo='PRESIDENTE')
+        self.assertEqual(dp['total_exibido'], len(dp['pontos']))
+        ds = get_dossie(ano=2022, cargo='PRESIDENTE')
+        self.assertIn('por_partido', ds)
+        self.assertIn('por_uf', ds)
+        self.assertIn('comparacao_cargos', ds)
+        self.assertEqual(len(ds['histograma_eleitos']), 7)
 
     def test_bloqueia_parametros_maliciosos(self):
         with self.assertRaises(HTTPException):

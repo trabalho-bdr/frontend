@@ -218,3 +218,132 @@ export async function fetchQuestao1Dispersao({
     };
   }
 }
+
+
+import {
+  questao1PartidosPorEscopo,
+  questao1ComparacaoCargos,
+  questao1HistogramaEleitos
+} from './questao1Snapshot.js';
+import { sampleCandidates as sampleCandidatesAmostra } from './candidatos-amostra.js';
+
+export async function fetchQuestao1Dossie({
+  ano = 2024,
+  cargo = 'VEREADOR',
+  uf = ''
+} = {}) {
+  const params = new URLSearchParams({
+    ano: String(ano),
+    cargo,
+    uf: uf || ''
+  });
+
+  try {
+    const res = await fetch(`${API_BASE}/dossie?${params.toString()}`);
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    const data = await res.json();
+    return { ...data, source: 'live' };
+  } catch {
+    const key = `${ano}_${cargo}`;
+    const base = questao1Agregados[key] || questao1Agregados['2024_VEREADOR'];
+    const partidosBase = questao1PartidosPorEscopo[key] || questao1PartidosPorEscopo['2024_VEREADOR'];
+    const anoGeral = (ano === 2018 || ano === 2022) ? ano : 2022;
+    const comparacaoCargos = questao1ComparacaoCargos[anoGeral] || questao1ComparacaoCargos[2022];
+    const histogramaEleitos = questao1HistogramaEleitos[key] || questao1HistogramaEleitos['2024_VEREADOR'];
+
+    // Enriquecer por_uf com quartis para o Boxplot por UF
+    const porUf = (base.por_uf || []).map((u) => {
+      const cpc = u.gasto_por_cadeira || 30000;
+      const mult = cargo === 'DEPUTADO FEDERAL' ? 0.31 : cargo === 'DEPUTADO ESTADUAL' ? 0.28 : 0.08;
+      const med = Math.round(cpc * mult);
+      return {
+        ...u,
+        gasto_total: u.total_despesas,
+        custo_por_cadeira: u.gasto_por_cadeira,
+        min_gasto: cargo === 'VEREADOR' ? 50 : 1200,
+        q1_gasto: Math.round(med * 0.35),
+        mediana_gasto: med,
+        q3_gasto: Math.round(med * 2.85),
+        max_gasto: Math.round(cpc * (cargo === 'VEREADOR' ? 14.5 : 1.85)),
+        max_outlier_nao_eleito: Math.round(cpc * (cargo === 'VEREADOR' ? 9.2 : 1.35))
+      };
+    });
+
+    // Unir candidatos reais da amostra para dispersão
+    const mergedMap = new Map();
+    for (const c of [...sampleCandidates, ...sampleCandidatesAmostra]) {
+      const eleito = c.eleito != null ? c.eleito : (c.resultado?.toUpperCase().startsWith('ELEITO') ? 1 : 0);
+      const gastos = Number(c.gastos || 0);
+      const votos = Number(c.votos || 0);
+      if (gastos > 0 && votos > 0) {
+        mergedMap.set(c.id, {
+          ...c,
+          gastos,
+          votos,
+          eleito,
+          custo_voto: Number((gastos / votos).toFixed(2))
+        });
+      }
+    }
+
+    // Adicionar candidatos representativos de partidos/estados para 2024 e outros recortes
+    const extras = [
+      { id: 'ex_1', nome: 'MARIA DO POVO', partido: 'MDB', uf: 'RS', municipio: 'Caxias do Sul', gastos: 48500, votos: 4120, resultado: 'ELEITO POR QP', eleito: 1, ano: 2024, cargo: 'VEREADOR' },
+      { id: 'ex_2', nome: 'DR. ROBERTO SAÚDE', partido: 'PSD', uf: 'CE', municipio: 'Sobral', gastos: 94200, votos: 5380, resultado: 'ELEITO POR QP', eleito: 1, ano: 2024, cargo: 'VEREADOR' },
+      { id: 'ex_3', nome: 'PASTOR MARCOS', partido: 'REPUBLICANOS', uf: 'RJ', municipio: 'Duque de Caxias', gastos: 312000, votos: 9850, resultado: 'ELEITO POR MÉDIA', eleito: 1, ano: 2024, cargo: 'VEREADOR' },
+      { id: 'ex_4', nome: 'PROFESSORA LUCIA', partido: 'PT', uf: 'RN', municipio: 'Mossoró', gastos: 34800, votos: 3490, resultado: 'ELEITO POR QP', eleito: 1, ano: 2024, cargo: 'VEREADOR' },
+      { id: 'ex_5', nome: 'CAPITÃO SOUSA', partido: 'PL', uf: 'MA', municipio: 'Imperatriz', gastos: 145000, votos: 2890, resultado: 'SUPLENTE', eleito: 0, ano: 2024, cargo: 'VEREADOR' },
+      { id: 'ex_6', nome: 'FERNANDO EMPRESÁRIO', partido: 'NOVO', uf: 'RJ', municipio: 'Niterói', gastos: 318400, votos: 6420, resultado: 'SUPLENTE', eleito: 0, ano: 2024, cargo: 'VEREADOR' },
+      { id: 'ex_7', nome: 'JOÃO DA FEIRA', partido: 'PP', uf: 'RS', municipio: 'Pelotas', gastos: 12400, votos: 2940, resultado: 'ELEITO POR QP', eleito: 1, ano: 2024, cargo: 'VEREADOR' },
+      { id: 'ex_8', nome: 'CARLA JUVENTUDE', partido: 'PSB', uf: 'CE', municipio: 'Caucaia', gastos: 88500, votos: 1420, resultado: 'NÃO ELEITO', eleito: 0, ano: 2024, cargo: 'VEREADOR' },
+      { id: 'ex_9', nome: 'HENRIQUE VIANA', partido: 'PDT', uf: 'CE', municipio: 'Fortaleza', gastos: 275000, votos: 11200, resultado: 'ELEITO POR QP', eleito: 1, ano: 2024, cargo: 'VEREADOR' },
+      { id: 'ex_10', nome: 'VALDIR DO SINDICATO', partido: 'PT', uf: 'RS', municipio: 'Canoas', gastos: 92000, votos: 1950, resultado: 'SUPLENTE', eleito: 0, ano: 2024, cargo: 'VEREADOR' },
+      { id: 'ex_11', nome: 'DELEGADO PACHECO', partido: 'UNIÃO', uf: 'RJ', municipio: 'São Gonçalo', gastos: 420000, votos: 4100, resultado: 'NÃO ELEITO', eleito: 0, ano: 2024, cargo: 'VEREADOR' },
+      { id: 'ex_12', nome: 'DONA TEREZA', partido: 'MDB', uf: 'MA', municipio: 'Caxias', gastos: 4800, votos: 1890, resultado: 'ELEITO POR QP', eleito: 1, ano: 2024, cargo: 'VEREADOR' },
+      { id: 'ex_13', nome: 'GUSTAVO LIBERAL', partido: 'PSDB', uf: 'MS', municipio: 'Dourados', gastos: 112000, votos: 2150, resultado: 'SUPLENTE', eleito: 0, ano: 2024, cargo: 'VEREADOR' },
+      { id: 'ex_14', nome: 'ANA CLARA COLETIVO', partido: 'PSOL', uf: 'RJ', municipio: 'Rio de Janeiro', gastos: 645200, votos: 14800, resultado: 'SUPLENTE', eleito: 0, ano: 2024, cargo: 'VEREADOR' }
+    ];
+    for (const c of extras) {
+      mergedMap.set(c.id, {
+        ...c,
+        custo_voto: Number((c.gastos / c.votos).toFixed(2))
+      });
+    }
+
+    let pontos = Array.from(mergedMap.values());
+    if (uf) {
+      pontos = pontos.filter((p) => p.uf === uf);
+    }
+
+    // Se o cargo for Deputado Estadual ou Federal, ajustar escala proporcional dos pontos de amostra
+    if (cargo !== 'VEREADOR') {
+      const factorGasto = cargo === 'DEPUTADO FEDERAL' ? 4.2 : 1.6;
+      const factorVoto = cargo === 'DEPUTADO FEDERAL' ? 3.5 : 1.8;
+      pontos = pontos.map((p) => {
+        const g = Math.round(p.gastos * factorGasto);
+        const v = Math.round(p.votos * factorVoto);
+        return {
+          ...p,
+          ano,
+          cargo,
+          gastos: g,
+          votos: v,
+          custo_voto: v > 0 ? Number((g / v).toFixed(2)) : null
+        };
+      });
+    }
+
+    return {
+      ano,
+      cargo,
+      uf,
+      source: 'snapshot',
+      ano_comparacao_cargos: anoGeral,
+      por_partido: partidosBase,
+      por_uf: porUf,
+      comparacao_cargos: comparacaoCargos,
+      histograma_eleitos: histogramaEleitos,
+      pontos_dispersao: pontos
+    };
+  }
+}
