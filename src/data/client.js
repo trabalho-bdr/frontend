@@ -26,3 +26,28 @@ export async function getComparison(kind, params={}){
   const q=new URLSearchParams(params);
   return request(`/comparacoes/${kind}?${q.toString()}`);
 }
+
+export async function getJuventudeOverview(params={}){
+  const q=new URLSearchParams(params);
+  return request('/questao6/overview?'+q.toString());
+}
+
+export async function getJuventudePartidos(params={}){
+  const q=new URLSearchParams(params);
+  return request('/questao6/partidos?'+q.toString());
+}
+
+export async function getJuventudeMunicipios(params={}){
+  const q=new URLSearchParams(params);
+  return request('/questao6/municipios?'+q.toString());
+}
+
+export async function getJuventudeEvolucao(params={}){
+  const q=new URLSearchParams(params);
+  return request('/questao6/evolucao?'+q.toString());
+}
+
+export async function getJuventudeCandidatos(params={}){
+  const q=new URLSearchParams(params);
+  return request('/questao6/candidatos?'+q.toString());
+}
