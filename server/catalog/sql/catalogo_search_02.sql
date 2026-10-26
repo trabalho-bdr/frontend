@@ -1,0 +1,1 @@
+SELECT COUNT(*) total FROM b WHERE

@@ -11,6 +11,7 @@ Metodologia rigorosa:
 - Disponível para Presidente nos anos de eleição presidencial (2018 e 2022).
 """
 from __future__ import annotations
+from core.sql import query_sql
 import math
 import re
 from fastapi import APIRouter, HTTPException, Query
@@ -74,12 +75,7 @@ def get_partidos(ano: int = 2024, cargo: str = 'VEREADOR', uf: str = ''):
     ano, cargo, uf, _ = _valida_recorte(ano, cargo, uf)
     if cargo == 'PRESIDENTE':
         return {'partidos': []}
-    sql = f"""SELECT DISTINCT p.sigla partido FROM {DB}.main.Candidatura c
-        JOIN {DB}.main.Eleicao e USING(id_eleicao)
-        JOIN {DB}.main.Partido p USING(id_partido)
-        WHERE e.ano=? AND UPPER(e.cargo)=? AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
-          AND c.uf IN ('CE','MA','MS','RJ','RN','RS') AND (?='' OR c.uf=?)
-        ORDER BY p.sigla"""
+    sql = query_sql('questions/q01_custo_cadeira/sql/compatibility/questao1_get_partidos_01.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB)
     return {'partidos': [row['partido'] for row in _rows(sql, [ano, cargo, uf, uf])]}
 
 
@@ -111,18 +107,7 @@ def get_eleitos(ano: int = 2024, cargo: str = 'VEREADOR', uf: str = '', municipi
             raise HTTPException(400, 'Perfil selecionado inválido')
         filtros.append(f"({PERFIL_EXPRESSIONS[perfil]}) = ?")
         params.append(grupo)
-    sql = f"""SELECT DISTINCT c.id_candidatura id, c.id_candidato, c.id_municipio municipio_id, c.nome_urna nome, p.sigla partido,
-        c.uf, m.nome municipio, r.votos, r.resultado,
-        c.gastos_campanha_total gastos, c.patrimonio, c.idade_eleicao idade,
-        c.escolaridade_candidatura escolaridade, e.ano, UPPER(e.cargo) cargo
-        FROM {DB}.main.Candidatura c
-        JOIN {DB}.main.Eleicao e USING(id_eleicao)
-        JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-        LEFT JOIN {DB}.main.Partido p USING(id_partido)
-        LEFT JOIN {DB}.main.Municipio m USING(id_municipio)
-        WHERE {' AND '.join(filtros)}
-        ORDER BY r.votos DESC NULLS LAST, c.id_candidatura
-        LIMIT ?"""
+    sql = query_sql('questions/q01_custo_cadeira/sql/compatibility/questao1_get_eleitos_01.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB, fragment_3=DB, fragment_4=DB, fragment_5=' AND '.join(filtros))
     rows = _rows(sql, [*params, limit])
     return {'rows': rows, 'limit': limit, 'criterio': 'Candidaturas eleitas do recorte, ordenadas por votos nominais. Lista limitada para a maquete.'}
 
@@ -173,28 +158,7 @@ def get_explorar(ano: int = 2024, cargo: str = 'VEREADOR', uf: str = '',
         'evolucao': 'cast(e.ano AS VARCHAR)',
         'perfil': PERFIL_EXPRESSIONS[perfil],
     }[visao]
-    sql = f"""WITH base AS (
-        SELECT {dimension} AS grupo, c.id_municipio municipio_id, c.id_candidatura,
-          CASE WHEN isfinite(c.gastos_campanha_total) AND c.gastos_campanha_total >= 0
-            THEN c.gastos_campanha_total END AS gasto,
-          CASE WHEN UPPER(r.resultado) LIKE 'ELEITO%' THEN 1 ELSE 0 END AS eleito,
-          CASE WHEN UPPER(r.resultado) LIKE 'ELEITO%' OR UPPER(r.resultado) IN
-            ('NÃO ELEITO','NAO ELEITO','SUPLENTE') THEN 1 ELSE 0 END AS definido
-        FROM {DB}.main.Candidatura c
-        JOIN {DB}.main.Eleicao e USING(id_eleicao)
-        LEFT JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-        LEFT JOIN {DB}.main.Partido p USING(id_partido)
-        LEFT JOIN {DB}.main.Municipio m USING(id_municipio)
-        WHERE {' AND '.join(filters)}
-    ) SELECT grupo, {'municipio_id' if visao == 'municipio' else 'MIN(municipio_id)'} municipio_id,
-        COUNT(*) candidaturas,
-        COUNT(gasto) com_gasto, COUNT(*) FILTER (WHERE gasto IS NULL) sem_gasto,
-        SUM(eleito) eleitos, SUM(definido) resultado_definido,
-        ROUND(SUM(gasto),2) total_despesas,
-        ROUND(SUM(gasto)/NULLIF(SUM(eleito),0),2) gasto_por_cadeira,
-        ROUND(MEDIAN(gasto) FILTER (WHERE eleito=1),2) mediana_eleitos,
-        ROUND(100.0*SUM(eleito)/NULLIF(SUM(definido),0),2) taxa_eleicao
-      FROM base GROUP BY grupo{', municipio_id' if visao == 'municipio' else ''} ORDER BY grupo LIMIT 1200"""
+    sql = query_sql('questions/q01_custo_cadeira/sql/compatibility/questao1_get_explorar_01.sql', fragment_0=dimension, fragment_1=DB, fragment_2=DB, fragment_3=DB, fragment_4=DB, fragment_5=DB, fragment_6=' AND '.join(filters), fragment_7='municipio_id' if visao == 'municipio' else 'MIN(municipio_id)', fragment_8=', municipio_id' if visao == 'municipio' else '')
     rows = _rows(sql, params)
     for row in rows:
         row['valor'] = row[{'agregado': 'gasto_por_cadeira', 'mediana': 'mediana_eleitos', 'taxa': 'taxa_eleicao'}[indicador]]
@@ -229,28 +193,7 @@ def get_overview(
     where_clause = " AND ".join(filtros)
 
     # 1. Agregação principal
-    sql_main = f"""
-        SELECT 
-          COUNT(*) total_candidaturas,
-          COUNT(c.gastos_campanha_total) candidaturas_com_gasto,
-          COUNT(*) FILTER (WHERE c.gastos_campanha_total = 0) candidaturas_gasto_zero,
-          COUNT(*) FILTER (WHERE c.gastos_campanha_total > 0) candidaturas_gasto_positivo,
-          COUNT(*) FILTER (WHERE UPPER(r.resultado) LIKE 'ELEITO%') eleitos,
-          COUNT(*) FILTER (WHERE UPPER(r.resultado) IN ('NÃO ELEITO', 'NAO ELEITO', 'SUPLENTE')) nao_eleitos,
-          COUNT(*) FILTER (WHERE r.votos IS NOT NULL AND r.votos > 0) com_votos,
-          ROUND(SUM(c.gastos_campanha_total), 2) total_despesas,
-          ROUND(SUM(c.gastos_campanha_total) / NULLIF(COUNT(*) FILTER (WHERE UPPER(r.resultado) LIKE 'ELEITO%'), 0), 2) gasto_por_cadeira,
-          ROUND(MEDIAN(c.gastos_campanha_total) FILTER (WHERE UPPER(r.resultado) LIKE 'ELEITO%'), 2) mediana_gastos_eleitos,
-          ROUND(MEDIAN(c.gastos_campanha_total) FILTER (WHERE UPPER(r.resultado) IN ('NÃO ELEITO', 'NAO ELEITO', 'SUPLENTE')), 2) mediana_gastos_nao_eleitos,
-          ROUND(MEDIAN(r.votos) FILTER (WHERE UPPER(r.resultado) LIKE 'ELEITO%'), 2) mediana_votos_eleitos,
-          ROUND(MEDIAN(r.votos) FILTER (WHERE UPPER(r.resultado) IN ('NÃO ELEITO', 'NAO ELEITO', 'SUPLENTE')), 2) mediana_votos_nao_eleitos,
-          ROUND(MEDIAN(c.gastos_campanha_total / NULLIF(r.votos, 0)) FILTER (WHERE UPPER(r.resultado) LIKE 'ELEITO%' AND c.gastos_campanha_total > 0 AND r.votos > 0), 2) mediana_custo_voto_eleitos,
-          ROUND(MEDIAN(c.gastos_campanha_total / NULLIF(r.votos, 0)) FILTER (WHERE UPPER(r.resultado) IN ('NÃO ELEITO', 'NAO ELEITO', 'SUPLENTE') AND c.gastos_campanha_total > 0 AND r.votos > 0), 2) mediana_custo_voto_nao_eleitos
-        FROM {DB}.main.Candidatura c
-        JOIN {DB}.main.Eleicao e USING(id_eleicao)
-        LEFT JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-        WHERE {where_clause}
-    """
+    sql_main = query_sql('questions/q01_custo_cadeira/sql/compatibility/questao1_get_overview_01.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB, fragment_3=where_clause)
     res = _rows(sql_main, params)
     data = res[0] if res else {}
 
@@ -265,60 +208,20 @@ def get_overview(
         serie_filtros.append("c.id_municipio = ?")
         serie_params.append(municipio_id)
 
-    sql_serie = f"""
-        SELECT e.ano,
-          ROUND(SUM(c.gastos_campanha_total) / NULLIF(COUNT(*) FILTER (WHERE UPPER(r.resultado) LIKE 'ELEITO%'), 0), 2) gasto_por_cadeira,
-          ROUND(SUM(c.gastos_campanha_total), 2) total_despesas,
-          COUNT(*) FILTER (WHERE UPPER(r.resultado) LIKE 'ELEITO%') eleitos,
-          COUNT(*) total_candidaturas,
-          ROUND(MEDIAN(c.gastos_campanha_total) FILTER (WHERE UPPER(r.resultado) LIKE 'ELEITO%'), 2) mediana_eleitos
-        FROM {DB}.main.Candidatura c
-        JOIN {DB}.main.Eleicao e USING(id_eleicao)
-        LEFT JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-        WHERE {' AND '.join(serie_filtros)}
-        GROUP BY 1 ORDER BY 1
-    """
+    sql_serie = query_sql('questions/q01_custo_cadeira/sql/compatibility/questao1_get_overview_02.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB, fragment_3=' AND '.join(serie_filtros))
     serie_rows = _rows(sql_serie, serie_params)
 
     # 3. Distribuição territorial por UF (quando não filtrado por município)
     por_uf = []
     if not municipio_id:
-        sql_uf = f"""
-            SELECT c.uf,
-              COUNT(*) candidaturas,
-              COUNT(*) FILTER (WHERE UPPER(r.resultado) LIKE 'ELEITO%') eleitos,
-              ROUND(SUM(c.gastos_campanha_total), 2) total_despesas,
-              ROUND(SUM(c.gastos_campanha_total) / NULLIF(COUNT(*) FILTER (WHERE UPPER(r.resultado) LIKE 'ELEITO%'), 0), 2) gasto_por_cadeira
-            FROM {DB}.main.Candidatura c
-            JOIN {DB}.main.Eleicao e USING(id_eleicao)
-            LEFT JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-            WHERE e.ano = ? AND UPPER(e.cargo) = ? AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
-              AND c.uf IN ('CE','MA','MS','RJ','RN','RS')
-              AND (? = '' OR c.uf = ?)
-            GROUP BY 1 ORDER BY gasto_por_cadeira DESC
-        """
+        sql_uf = query_sql('questions/q01_custo_cadeira/sql/compatibility/questao1_get_overview_05.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB)
         por_uf = _rows(sql_uf, [ano, cargo, uf, uf])
 
     # 4. Descobertas dinâmicas ("O que os números revelam?")
     insights = []
 
     # Descoberta A: Eleito mais econômico por voto
-    sql_econ = f"""
-        SELECT c.nome_urna nome, p.sigla partido, c.uf, m.nome municipio,
-          c.gastos_campanha_total gastos, r.votos,
-          ROUND(c.gastos_campanha_total / NULLIF(r.votos, 0), 2) custo_voto
-        FROM {DB}.main.Candidatura c
-        JOIN {DB}.main.Eleicao e USING(id_eleicao)
-        LEFT JOIN {DB}.main.Partido p USING(id_partido)
-        LEFT JOIN {DB}.main.Municipio m USING(id_municipio)
-        JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-        WHERE {where_clause}
-          AND c.gastos_campanha_total IS NOT NULL AND c.gastos_campanha_total > 0
-          AND r.votos IS NOT NULL AND r.votos > 0
-          AND UPPER(r.resultado) LIKE 'ELEITO%'
-        ORDER BY custo_voto ASC, r.votos DESC
-        LIMIT 1
-    """
+    sql_econ = query_sql('questions/q01_custo_cadeira/sql/compatibility/questao1_get_overview_03.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB, fragment_3=DB, fragment_4=DB, fragment_5=where_clause)
     r_econ = _rows(sql_econ, params)
     if r_econ:
         cand = r_econ[0]
@@ -334,21 +237,7 @@ def get_overview(
         })
 
     # Descoberta B: Não eleito que mais gastou
-    sql_nao_eleito_top = f"""
-        SELECT c.nome_urna nome, p.sigla partido, c.uf, m.nome municipio,
-          c.gastos_campanha_total gastos, r.votos, r.resultado,
-          ROUND(c.gastos_campanha_total / NULLIF(r.votos, 0), 2) custo_voto
-        FROM {DB}.main.Candidatura c
-        JOIN {DB}.main.Eleicao e USING(id_eleicao)
-        LEFT JOIN {DB}.main.Partido p USING(id_partido)
-        LEFT JOIN {DB}.main.Municipio m USING(id_municipio)
-        JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-        WHERE {where_clause}
-          AND c.gastos_campanha_total IS NOT NULL
-          AND UPPER(r.resultado) IN ('NÃO ELEITO', 'NAO ELEITO', 'SUPLENTE')
-        ORDER BY c.gastos_campanha_total DESC
-        LIMIT 1
-    """
+    sql_nao_eleito_top = query_sql('questions/q01_custo_cadeira/sql/compatibility/questao1_get_overview_04.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB, fragment_3=DB, fragment_4=DB, fragment_5=where_clause)
     r_nao = _rows(sql_nao_eleito_top, params)
     if r_nao:
         cand = r_nao[0]
@@ -478,31 +367,7 @@ def get_ranking(
 
     where_clause = " AND ".join(filtros)
 
-    sql = f"""
-        SELECT 
-          c.id_candidatura id,
-          c.nome_urna nome,
-          c.numero_urna numero,
-          p.sigla partido,
-          c.uf,
-          m.nome municipio,
-          UPPER(e.cargo) cargo,
-          e.ano,
-          c.gastos_campanha_total gastos,
-          r.votos,
-          r.resultado,
-          CASE WHEN UPPER(r.resultado) LIKE 'ELEITO%' THEN 1 ELSE 0 END eleito,
-          ROUND(c.gastos_campanha_total / NULLIF(r.votos, 0), 2) custo_voto,
-          COUNT(*) OVER() total_encontrado
-        FROM {DB}.main.Candidatura c
-        JOIN {DB}.main.Eleicao e USING(id_eleicao)
-        LEFT JOIN {DB}.main.Partido p USING(id_partido)
-        LEFT JOIN {DB}.main.Municipio m USING(id_municipio)
-        JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-        WHERE {where_clause}
-        ORDER BY {ordens[ordem]}, c.nome_urna, c.id_candidatura
-        LIMIT ? OFFSET ?
-    """
+    sql = query_sql('questions/q01_custo_cadeira/sql/compatibility/questao1_get_ranking_01.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB, fragment_3=DB, fragment_4=DB, fragment_5=where_clause, fragment_6=ordens[ordem])
     params.extend([limit, offset])
     rows = _rows(sql, params)
 
@@ -565,22 +430,7 @@ def get_dispersao(
     where_clause = " AND ".join(filtros)
 
     # 1. Estatísticas de correlação, medianas e contagens de exclusão
-    sql_stats = f"""
-        SELECT 
-          COUNT(*) total_universo,
-          COUNT(*) FILTER (WHERE c.gastos_campanha_total > 0 AND r.votos > 0) validos_scatter,
-          COUNT(*) FILTER (WHERE c.gastos_campanha_total IS NULL OR c.gastos_campanha_total <= 0 OR r.votos IS NULL OR r.votos <= 0) excluidos_zero_ou_nulo,
-          ROUND(CORR(c.gastos_campanha_total, r.votos) FILTER (WHERE c.gastos_campanha_total > 0 AND r.votos > 0), 4) r_linear,
-          ROUND(CORR(log10(c.gastos_campanha_total), log10(r.votos)) FILTER (WHERE c.gastos_campanha_total > 0 AND r.votos > 0), 4) r_log,
-          ROUND(POW(CORR(log10(c.gastos_campanha_total), log10(r.votos)) FILTER (WHERE c.gastos_campanha_total > 0 AND r.votos > 0), 2), 4) r2_log,
-          ROUND(MEDIAN(c.gastos_campanha_total) FILTER (WHERE c.gastos_campanha_total > 0 AND r.votos > 0), 2) mediana_gastos_scatter,
-          ROUND(MEDIAN(r.votos) FILTER (WHERE c.gastos_campanha_total > 0 AND r.votos > 0), 2) mediana_votos_scatter
-        FROM {DB}.main.Candidatura c
-        JOIN {DB}.main.Eleicao e USING(id_eleicao)
-        LEFT JOIN {DB}.main.Partido p USING(id_partido)
-        JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-        WHERE {where_clause}
-    """
+    sql_stats = query_sql('questions/q01_custo_cadeira/sql/compatibility/questao1_get_dispersao_01.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB, fragment_3=DB, fragment_4=where_clause)
     stats_res = _rows(sql_stats, params)
     stats = stats_res[0] if stats_res else {}
 
@@ -590,39 +440,7 @@ def get_dispersao(
     cota_eleitos = max_pontos // 2
     cota_nao_eleitos = max_pontos - cota_eleitos
 
-    sql_pontos = f"""
-        WITH base AS (
-          SELECT 
-            c.id_candidatura id,
-            c.nome_urna nome,
-            c.numero_urna numero,
-            p.sigla partido,
-            c.uf,
-            m.nome municipio,
-            ROUND(c.gastos_campanha_total, 2) gastos,
-            r.votos,
-            r.resultado,
-            CASE WHEN UPPER(r.resultado) LIKE 'ELEITO%' THEN 1 ELSE 0 END eleito,
-            ROUND(c.gastos_campanha_total / NULLIF(r.votos, 0), 2) custo_voto
-          FROM {DB}.main.Candidatura c
-          JOIN {DB}.main.Eleicao e USING(id_eleicao)
-          LEFT JOIN {DB}.main.Partido p USING(id_partido)
-          LEFT JOIN {DB}.main.Municipio m USING(id_municipio)
-          JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-          WHERE {where_clause}
-            AND c.gastos_campanha_total IS NOT NULL AND c.gastos_campanha_total > 0
-            AND r.votos IS NOT NULL AND r.votos > 0
-        ),
-        ranked AS (
-          SELECT *,
-            ROW_NUMBER() OVER(PARTITION BY eleito ORDER BY hash(id)) rn
-          FROM base
-        )
-        SELECT id, nome, numero, partido, uf, municipio, gastos, votos, resultado, eleito, custo_voto
-        FROM ranked
-        WHERE (eleito = 1 AND rn <= ?) OR (eleito = 0 AND rn <= ?)
-        ORDER BY eleito DESC, gastos DESC
-    """
+    sql_pontos = query_sql('questions/q01_custo_cadeira/sql/compatibility/questao1_get_dispersao_02.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB, fragment_3=DB, fragment_4=DB, fragment_5=where_clause)
     pontos = _rows(sql_pontos, [*params, cota_eleitos, cota_nao_eleitos])
 
     return {
@@ -670,79 +488,16 @@ def get_dossie(
     where_clause = " AND ".join(filtros)
 
     # 1. Por partido
-    sql_partido = f"""
-        SELECT 
-          p.sigla partido,
-          COUNT(*) candidaturas,
-          COUNT(*) FILTER (WHERE UPPER(r.resultado) LIKE 'ELEITO%') eleitos,
-          COUNT(*) FILTER (WHERE UPPER(r.resultado) IN ('NÃO ELEITO', 'NAO ELEITO', 'SUPLENTE')) nao_eleitos,
-          ROUND(SUM(c.gastos_campanha_total), 2) gasto_total,
-          ROUND(SUM(c.gastos_campanha_total) / NULLIF(COUNT(*) FILTER (WHERE UPPER(r.resultado) LIKE 'ELEITO%'), 0), 2) custo_por_cadeira,
-          ROUND(MIN(c.gastos_campanha_total) FILTER (WHERE c.gastos_campanha_total > 0), 2) min_gasto,
-          ROUND(PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY c.gastos_campanha_total) FILTER (WHERE c.gastos_campanha_total > 0), 2) q1_gasto,
-          ROUND(MEDIAN(c.gastos_campanha_total) FILTER (WHERE c.gastos_campanha_total > 0), 2) mediana_gasto,
-          ROUND(PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY c.gastos_campanha_total) FILTER (WHERE c.gastos_campanha_total > 0), 2) q3_gasto,
-          ROUND(MAX(c.gastos_campanha_total), 2) max_gasto,
-          ROUND(MAX(c.gastos_campanha_total) FILTER (WHERE UPPER(r.resultado) IN ('NÃO ELEITO', 'NAO ELEITO', 'SUPLENTE')), 2) max_outlier_nao_eleito
-        FROM {DB}.main.Candidatura c
-        JOIN {DB}.main.Eleicao e USING(id_eleicao)
-        JOIN {DB}.main.Partido p USING(id_partido)
-        LEFT JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-        WHERE {where_clause}
-        GROUP BY 1
-        ORDER BY custo_por_cadeira DESC NULLS LAST
-    """
+    sql_partido = query_sql('questions/q01_custo_cadeira/sql/compatibility/questao1_get_dossie_01.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB, fragment_3=DB, fragment_4=where_clause)
     por_partido = _rows(sql_partido, params)
 
     # 2. Por UF
-    sql_uf = f"""
-        SELECT c.uf,
-          COUNT(*) candidaturas,
-          COUNT(*) FILTER (WHERE UPPER(r.resultado) LIKE 'ELEITO%') eleitos,
-          ROUND(SUM(c.gastos_campanha_total), 2) gasto_total,
-          ROUND(SUM(c.gastos_campanha_total) / NULLIF(COUNT(*) FILTER (WHERE UPPER(r.resultado) LIKE 'ELEITO%'), 0), 2) custo_por_cadeira,
-          ROUND(MIN(c.gastos_campanha_total) FILTER (WHERE c.gastos_campanha_total > 0), 2) min_gasto,
-          ROUND(PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY c.gastos_campanha_total) FILTER (WHERE c.gastos_campanha_total > 0), 2) q1_gasto,
-          ROUND(MEDIAN(c.gastos_campanha_total) FILTER (WHERE c.gastos_campanha_total > 0), 2) mediana_gasto,
-          ROUND(PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY c.gastos_campanha_total) FILTER (WHERE c.gastos_campanha_total > 0), 2) q3_gasto,
-          ROUND(MAX(c.gastos_campanha_total), 2) max_gasto,
-          ROUND(MAX(c.gastos_campanha_total) FILTER (WHERE UPPER(r.resultado) IN ('NÃO ELEITO', 'NAO ELEITO', 'SUPLENTE')), 2) max_outlier_nao_eleito
-        FROM {DB}.main.Candidatura c
-        JOIN {DB}.main.Eleicao e USING(id_eleicao)
-        LEFT JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-        WHERE e.ano = ? AND UPPER(e.cargo) = ? AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
-        GROUP BY 1 ORDER BY custo_por_cadeira DESC NULLS LAST
-    """
+    sql_uf = query_sql('questions/q01_custo_cadeira/sql/compatibility/questao1_get_dossie_02.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB)
     por_uf = _rows(sql_uf, [ano, cargo])
 
     # 3. Comparação de cargos (Deputado Estadual vs Deputado Federal no ano geral)
     ano_geral = ano if ano in (2018, 2022) else 2022
-    sql_comp = f"""
-        WITH est AS (
-          SELECT p.sigla partido,
-            COUNT(*) FILTER (WHERE UPPER(r.resultado) LIKE 'ELEITO%') eleitos_estadual,
-            ROUND(SUM(c.gastos_campanha_total) / NULLIF(COUNT(*) FILTER (WHERE UPPER(r.resultado) LIKE 'ELEITO%'), 0), 2) custo_estadual
-          FROM {DB}.main.Candidatura c
-          JOIN {DB}.main.Eleicao e USING(id_eleicao)
-          JOIN {DB}.main.Partido p USING(id_partido)
-          LEFT JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-          WHERE e.ano = ? AND UPPER(e.cargo) = 'DEPUTADO ESTADUAL' AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
-          GROUP BY 1
-        ), fed AS (
-          SELECT p.sigla partido,
-            COUNT(*) FILTER (WHERE UPPER(r.resultado) LIKE 'ELEITO%') eleitos_federal,
-            ROUND(SUM(c.gastos_campanha_total) / NULLIF(COUNT(*) FILTER (WHERE UPPER(r.resultado) LIKE 'ELEITO%'), 0), 2) custo_federal
-          FROM {DB}.main.Candidatura c
-          JOIN {DB}.main.Eleicao e USING(id_eleicao)
-          JOIN {DB}.main.Partido p USING(id_partido)
-          LEFT JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-          WHERE e.ano = ? AND UPPER(e.cargo) = 'DEPUTADO FEDERAL' AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
-          GROUP BY 1
-        )
-        SELECT est.partido, est.custo_estadual, est.eleitos_estadual, fed.custo_federal, fed.eleitos_federal
-        FROM est JOIN fed USING(partido)
-        ORDER BY fed.custo_federal DESC NULLS LAST
-    """
+    sql_comp = query_sql('questions/q01_custo_cadeira/sql/compatibility/questao1_get_dossie_03.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB, fragment_3=DB, fragment_4=DB, fragment_5=DB, fragment_6=DB, fragment_7=DB)
     comparacao_cargos = _rows(sql_comp, [ano_geral, ano_geral])
 
     # 4. Histograma dos eleitos em 7 faixas
@@ -763,20 +518,7 @@ def get_dossie(
         ('R$ 2 mi–3,5 mi', 2000000, 3500000),
         ('Acima de R$ 3,5 mi', 3500000, 999999999)
     ]
-    sql_hist = f"""
-        SELECT 
-          COUNT(*) FILTER (WHERE c.gastos_campanha_total <= ?) b1,
-          COUNT(*) FILTER (WHERE c.gastos_campanha_total > ? AND c.gastos_campanha_total <= ?) b2,
-          COUNT(*) FILTER (WHERE c.gastos_campanha_total > ? AND c.gastos_campanha_total <= ?) b3,
-          COUNT(*) FILTER (WHERE c.gastos_campanha_total > ? AND c.gastos_campanha_total <= ?) b4,
-          COUNT(*) FILTER (WHERE c.gastos_campanha_total > ? AND c.gastos_campanha_total <= ?) b5,
-          COUNT(*) FILTER (WHERE c.gastos_campanha_total > ? AND c.gastos_campanha_total <= ?) b6,
-          COUNT(*) FILTER (WHERE c.gastos_campanha_total > ?) b7
-        FROM {DB}.main.Candidatura c
-        JOIN {DB}.main.Eleicao e USING(id_eleicao)
-        JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-        WHERE {where_clause} AND UPPER(r.resultado) LIKE 'ELEITO%'
-    """
+    sql_hist = query_sql('questions/q01_custo_cadeira/sql/compatibility/questao1_get_dossie_04.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB, fragment_3=where_clause)
     hist_params = [
         *params,
         faixas[0][2],
@@ -800,29 +542,7 @@ def get_dossie(
     ]
 
     # 5. Pontos para dispersão
-    sql_pontos = f"""
-        SELECT 
-          c.id_candidatura id,
-          c.nome_urna nome,
-          c.numero_urna numero,
-          p.sigla partido,
-          c.uf,
-          m.nome municipio,
-          ROUND(c.gastos_campanha_total, 2) gastos,
-          r.votos,
-          r.resultado,
-          CASE WHEN UPPER(r.resultado) LIKE 'ELEITO%' THEN 1 ELSE 0 END eleito,
-          ROUND(c.gastos_campanha_total / NULLIF(r.votos, 0), 2) custo_voto
-        FROM {DB}.main.Candidatura c
-        JOIN {DB}.main.Eleicao e USING(id_eleicao)
-        LEFT JOIN {DB}.main.Partido p USING(id_partido)
-        LEFT JOIN {DB}.main.Municipio m USING(id_municipio)
-        JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-        WHERE {where_clause}
-          AND c.gastos_campanha_total IS NOT NULL AND c.gastos_campanha_total > 0
-          AND r.votos IS NOT NULL AND r.votos > 0
-        LIMIT 200
-    """
+    sql_pontos = query_sql('questions/q01_custo_cadeira/sql/compatibility/questao1_get_dossie_05.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB, fragment_3=DB, fragment_4=DB, fragment_5=where_clause)
     pontos_dispersao = _rows(sql_pontos, params)
 
     return {

@@ -14,6 +14,7 @@ Cada candidatura entra uma única vez, com o resultado do último turno.
 O ano vem de Eleicao.ano. Só PREFEITO e VEREADOR têm município
 (Candidatura.id_municipio); os demais cargos são estaduais.
 """
+from core.sql import query_sql
 import re
 
 from fastapi import HTTPException
@@ -51,35 +52,14 @@ def _base(ano, cargo, uf, municipio):
         if valor:
             filtros.append(condicao)
             params.append(valor)
-    sql = f'''
-        WITH ultimo AS (
-            SELECT id_candidatura, resultado
-            FROM "Resultado_Candidatura"
-            QUALIFY row_number() OVER (PARTITION BY id_candidatura ORDER BY turno DESC) = 1
-        ), base AS (
-            SELECT c.id_candidatura, c.id_municipio, c.uf, c.patrimonio,
-                   CASE WHEN starts_with(upper(u.resultado), 'ELEITO') THEN 1
-                        WHEN upper(u.resultado) IN ({_marcas(len(INSUCESSO))}) THEN 0
-                   END AS eleito
-            FROM "Candidatura" c
-            JOIN "Cargo" cg ON cg.id_candidatura = c.id_candidatura
-            JOIN "Eleicao" e ON e.id_eleicao = c.id_eleicao
-            LEFT JOIN ultimo u ON u.id_candidatura = c.id_candidatura
-            WHERE {' AND '.join(filtros)}
-        )'''
+    sql = query_sql('questions/q02_patrimonio_sucesso/sql/bdr/q2__base_01.sql', fragment_0=_marcas(len(INSUCESSO)), fragment_1=' AND '.join(filtros))
     # ordem dos '?' no texto: INSUCESSO (SELECT) e depois os filtros (WHERE)
     return sql, list(INSUCESSO) + params
 
 
 def opcoes(consultar):
     """Pares (ano, cargo) que existem no banco, dentro do recorte de anos e cargos."""
-    rows = consultar(f'''
-        SELECT DISTINCT e.ano AS ano, upper(cg.nome) AS cargo
-        FROM "Candidatura" c
-        JOIN "Cargo" cg ON cg.id_candidatura = c.id_candidatura
-        JOIN "Eleicao" e ON e.id_eleicao = c.id_eleicao
-        WHERE upper(cg.nome) IN ({_marcas(len(CARGOS))}) AND e.ano IN ({_marcas(len(ANOS))})
-    ''', list(CARGOS) + list(ANOS))
+    rows = consultar(query_sql('questions/q02_patrimonio_sucesso/sql/bdr/q2_opcoes_01.sql', fragment_0=_marcas(len(CARGOS)), fragment_1=_marcas(len(ANOS))), list(CARGOS) + list(ANOS))
     ordem = {c: i for i, c in enumerate(CARGOS)}
     pares = sorted(({'ano': int(r['ano']), 'cargo': r['cargo']} for r in rows),
                    key=lambda o: (-o['ano'], ordem[o['cargo']]))

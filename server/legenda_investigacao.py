@@ -1,4 +1,5 @@
 """Consultas de leitura para a investigação sobre votos de legenda (Q5)."""
+from core.sql import query_sql
 from fastapi import APIRouter, HTTPException
 from datetime import datetime, timezone
 
@@ -38,21 +39,7 @@ def serie(cargo: str = 'VEREADOR', uf: str = '', partido: str = '', municipio: s
     cargo, uf, partido, municipio = validate(cargo, uf, partido, municipio)
     # Primeiro agregamos as linhas da própria tabela de votos. Cada voto entra
     # uma única vez; percentual só é calculado após somar legenda e nominais.
-    sql = '''SELECT e.ano, SUM(v.votos_legenda) legenda,
-      SUM(v.votos_nominais) nominais,
-      SUM(v.votos_legenda + v.votos_nominais) total,
-      100.0*SUM(v.votos_legenda)/NULLIF(SUM(v.votos_legenda + v.votos_nominais),0) percentual,
-      COUNT(DISTINCT v.id_municipio) municipios
-      FROM {db}.main.Votos_Partido_Municipio v
-      JOIN {db}.main.Eleicao e USING(id_eleicao)
-      JOIN {db}.main.Municipio m USING(id_municipio)
-      JOIN {db}.main.Partido p USING(id_partido)
-      WHERE e.ano IN (?,?) AND UPPER(e.cargo)=? AND e.turno=1 AND v.turno=1
-      AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
-      AND m.uf IN ('CE','MA','MS','RJ','RN','RS')
-      AND (?='' OR m.uf=?) AND (?='' OR p.sigla=?)
-      AND (?='' OR CAST(m.id_municipio AS VARCHAR)=?)
-      GROUP BY e.ano ORDER BY e.ano'''
+    sql = query_sql('questions/q05_votos_legenda/sql/compatibility/legenda_investigacao_serie_01.sql')
     years = YEARS[cargo]
     rows = read(sql, [*years, cargo, uf, uf, partido, partido, municipio, municipio])
     return {'rows': rows, 'scope': {'cargo': cargo, 'anos': years, 'uf': uf,

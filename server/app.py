@@ -2,6 +2,7 @@
 Nunca envie token ao navegador. O serviço expõe apenas consultas parametrizadas.
 """
 from __future__ import annotations
+from core.sql import query_sql
 import os
 import re
 import threading
@@ -59,7 +60,7 @@ def diagnostico():
 @app.get('/api/health')
 def health():
     try:
-        result = _rows(f'SELECT COUNT(*) n FROM {DB}.main.Municipio')
+        result = _rows(query_sql('compatibility/sql/app/app_health_01.sql', fragment_0=DB))
         return {'mode':'live','connected':True,'database':'pipeline_bdr_der_completo_v4','municipalities':result[0]['n'],'coverage':'RS, MA, CE, RN, RJ, MS'}
     except Exception as exc:
         return JSONResponse({'mode':'unavailable','connected':False,'message':'Consulta detalhada temporariamente indisponível'}, status_code=503)
@@ -68,7 +69,7 @@ def health():
 @app.get('/api/overview')
 def overview():
     tables = {'applications':'Candidatura','people':'Candidato','expenses':'Despesa_Candidatura','patrimony':'Patrimonio_Candidato','partyVotes':'Votos_Partido_Municipio','coverage':'Municipio'}
-    parts = [f'''SELECT '{k}' field, COUNT(*) AS "value" FROM {DB}.main.{table}''' for k,table in tables.items()]
+    parts = [query_sql('compatibility/sql/app/app_overview_01.sql', fragment_0=k, fragment_1=DB, fragment_2=table) for k,table in tables.items()]
     rows = _rows(' UNION ALL '.join(parts))
     return {'source':'live','values':{r['field']:r['value'] for r in rows},'states':6,'disclaimer':'Cobertura parcial de 6 UFs, não nacional.'}
 
@@ -87,29 +88,7 @@ def candidates(search: str = Query('', min_length=0, max_length=80), ano:int=202
     if ordem not in orders: raise HTTPException(400, 'Ordenação desconhecida')
     order=orders[ordem]
     # Busca completa paginada; filtros como parâmetros preparados.
-    sql=f'''
-      SELECT c.id_candidatura id,c.id_candidato,c.id_municipio,c.nome_urna nome,c.numero_urna numero,p.sigla partido,
-       UPPER(e.cargo) cargo,e.ano,c.uf,m.nome municipio,c.escolaridade_candidatura escolaridade,
-       c.patrimonio patrimonio,c.gastos_campanha_total gastos,r.resultado resultado,r.votos votos,
-       COUNT(*) OVER() total_encontrado
-      FROM {DB}.main.Candidatura c
-      JOIN {DB}.main.Eleicao e ON c.id_eleicao=e.id_eleicao
-      LEFT JOIN {DB}.main.Partido p ON c.id_partido=p.id_partido
-      LEFT JOIN {DB}.main.Municipio m ON c.id_municipio=m.id_municipio
-      LEFT JOIN {DB}.main.Resultado_Candidatura r ON c.id_candidatura=r.id_candidatura
-      WHERE e.ano=? AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
-        AND e.turno=1 AND (r.turno=1 OR r.turno IS NULL)
-        AND c.uf IN ('CE','MA','MS','RJ','RN','RS')
-        AND (strip_accents(COALESCE(c.nome_urna,'')) ILIKE strip_accents(?) OR strip_accents(COALESCE(m.nome,'')) ILIKE strip_accents(?) OR strip_accents(COALESCE(p.sigla,'')) ILIKE strip_accents(?) OR CAST(c.numero_urna AS VARCHAR) ILIKE ?)
-        AND (? IS NULL OR c.uf=?)
-        AND (?='' OR UPPER(p.sigla)=UPPER(?))
-        AND (?='' OR UPPER(e.cargo)=UPPER(?))
-        AND (?='' OR (?='ELEITO' AND UPPER(COALESCE(r.resultado,'')) LIKE 'ELEITO%')
-             OR (?='NÃO ELEITO' AND UPPER(COALESCE(r.resultado,'')) IN ('NÃO ELEITO','NAO ELEITO'))
-             OR (?='SUPLENTE' AND UPPER(COALESCE(r.resultado,''))='SUPLENTE'))
-      ORDER BY {order},c.nome_urna,c.id_candidatura
-      LIMIT ? OFFSET ?'''
-    sql=sql.replace('      ORDER BY',"        AND (?='' OR c.id_municipio=?)\n      ORDER BY")
+    sql=query_sql('compatibility/sql/app/app_candidates_01.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB, fragment_3=DB, fragment_4=DB, fragment_5=order)
     params=[ano,*([f'%{search}%']*4),uf,uf,partido,partido,cargo,cargo,resultado,resultado,resultado,resultado,municipio,municipio,limit,offset]
     rows=_rows(sql,params)
     return {'rows':[{k:v for k,v in row.items() if k!='total_encontrado'} for row in rows],
@@ -121,25 +100,12 @@ def candidate_expenses(candidate_id:str, categoria:str=Query('',max_length=300),
     """Livro de lançamentos da candidatura. Não são arquivos de notas fiscais."""
     if not re.fullmatch(r'[0-9a-f]{32}',candidate_id):
         raise HTTPException(400, 'Identificador inválido')
-    person=_rows(f'''SELECT c.id_candidatura id,c.nome_urna nome,c.numero_urna numero,
-       p.sigla partido,e.ano,UPPER(e.cargo) cargo,c.uf,m.nome municipio,
-       c.gastos_campanha_total gastos,r.votos,r.resultado
-       FROM {DB}.main.Candidatura c JOIN {DB}.main.Eleicao e USING (id_eleicao)
-       LEFT JOIN {DB}.main.Partido p USING (id_partido)
-       LEFT JOIN {DB}.main.Municipio m USING (id_municipio)
-       LEFT JOIN {DB}.main.Resultado_Candidatura r USING (id_candidatura)
-       WHERE c.id_candidatura=? LIMIT 1''',[candidate_id])
+    person=_rows(query_sql('compatibility/sql/app/app_candidate_expenses_01.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB, fragment_3=DB, fragment_4=DB),[candidate_id])
     if not person: raise HTTPException(404, 'Candidatura não encontrada')
-    summary=_rows(f'''SELECT categoria, COUNT(*) quantidade, ROUND(SUM(valor),2) valor
-        FROM {DB}.main.Despesa_Candidatura WHERE id_candidatura=?
-        GROUP BY categoria ORDER BY valor DESC NULLS LAST LIMIT 24''',[candidate_id])
-    stats=_rows(f'''SELECT COUNT(*) quantidade,ROUND(SUM(valor),2) total
-        FROM {DB}.main.Despesa_Candidatura WHERE id_candidatura=?''',[candidate_id])
-    selected=_rows(f'''SELECT COUNT(*) quantidade FROM {DB}.main.Despesa_Candidatura
-        WHERE id_candidatura=? AND (?='' OR categoria=?)''',[candidate_id,categoria,categoria])
-    entries=_rows(f'''SELECT id_despesa id,categoria,ROUND(valor,2) valor
-        FROM {DB}.main.Despesa_Candidatura WHERE id_candidatura=? AND (?='' OR categoria=?)
-        ORDER BY valor DESC NULLS LAST,id_despesa LIMIT ? OFFSET ?''',[candidate_id,categoria,categoria,limit,offset])
+    summary=_rows(query_sql('compatibility/sql/app/app_candidate_expenses_02.sql', fragment_0=DB),[candidate_id])
+    stats=_rows(query_sql('compatibility/sql/app/app_candidate_expenses_03.sql', fragment_0=DB),[candidate_id])
+    selected=_rows(query_sql('compatibility/sql/app/app_candidate_expenses_04.sql', fragment_0=DB),[candidate_id,categoria,categoria])
+    entries=_rows(query_sql('compatibility/sql/app/app_candidate_expenses_05.sql', fragment_0=DB),[candidate_id,categoria,categoria,limit,offset])
     return {'candidate':person[0], 'categories':summary, 'entries':entries,
       'stats':stats[0], 'total_filtered':selected[0]['quantidade'], 'limit':limit,'offset':offset,
       'document_type':'EXTRATO_VISUAL',
@@ -147,7 +113,7 @@ def candidate_expenses(candidate_id:str, categoria:str=Query('',max_length=300),
 
 
 def _resolve_db(table_name: str) -> str:
-    _rows(f"SELECT 1 FROM {DB}.main.{table_name} LIMIT 1")
+    _rows(query_sql('compatibility/sql/app/app__resolve_db_01.sql', fragment_0=DB, fragment_1=table_name))
     return DB
 
 
@@ -165,18 +131,7 @@ def q3_municipios(uf: str, ano: int):
     db_m = _resolve_db('Municipio')
     db_p = _resolve_db('Participacao_Eleitoral')
     db_c = _resolve_db('Censo_Municipio')
-    sql = f'''SELECT m.id_municipio, m.nome, m.uf,
-      p.eleitorado_apto AS eleitorado,
-      p.abstencoes,
-      ROUND(100.0 * p.taxa_abstencao, 2) AS abstencao_pct,
-      c.populacao,
-      ROUND(c.pib / NULLIF(c.populacao, 0), 2) AS pib_per_capita,
-      c.idhm
-      FROM {db_m}.main.Municipio m
-      JOIN {db_p}.main.Participacao_Eleitoral p ON p.id_municipio = m.id_municipio
-      LEFT JOIN {db_c}.main.Censo_Municipio c ON c.id_municipio = m.id_municipio AND c.ano_referencia = 2022
-      WHERE m.uf = ? AND p.ano_participacao = ?
-      ORDER BY m.nome'''
+    sql = query_sql('compatibility/sql/app/app_q3_municipios_01.sql', fragment_0=db_m, fragment_1=db_p, fragment_2=db_c)
     linhas = _rows(sql, [uf_val, ano])
     saida = {str(r["id_municipio"]).zfill(7): r for r in linhas}
     return {"uf": uf_val, "ano": ano, "municipios": saida}
@@ -188,93 +143,20 @@ def municipios(search:str=Query('',max_length=75),uf:str|None=None,limit:int=Que
     db_m = _resolve_db('Municipio')
     db_c = _resolve_db('Censo_Municipio')
     db_p = _resolve_db('Participacao_Eleitoral')
-    return _rows(f'''SELECT m.id_municipio id,m.nome,m.uf,m.regiao,
-      c.populacao,c.idhm,ROUND(c.pib/NULLIF(c.populacao,0),2) pib_per_capita,
-      ROUND(100*p.taxa_abstencao,2) abstencao_2024
-      FROM {db_m}.main.Municipio m
-      LEFT JOIN {db_c}.main.Censo_Municipio c ON c.id_municipio=m.id_municipio AND c.ano_referencia=2022
-      LEFT JOIN {db_p}.main.Participacao_Eleitoral p ON p.id_municipio=m.id_municipio AND p.ano_participacao=2024
-      WHERE strip_accents(m.nome) ILIKE strip_accents(?) AND (? IS NULL OR m.uf=?)
-      ORDER BY m.nome LIMIT ?''',[f'%{search}%',uf,uf,limit])
+    return _rows(query_sql('compatibility/sql/app/app_municipios_01.sql', fragment_0=db_m, fragment_1=db_c, fragment_2=db_p),[f'%{search}%',uf,uf,limit])
 
 
 # Todos os templates SQL abaixo são fixos. Os filtros de ano nunca são interpolados na instrução SQL.
 QUERY = {
-  1:f'''SELECT e.ano,UPPER(e.cargo) cargo,COUNT(*) candidaturas,
-       COUNT(*) FILTER(WHERE UPPER(r.resultado) LIKE 'ELEITO%') eleitos,
-       ROUND(SUM(c.gastos_campanha_total),2) gasto_total,
-       ROUND(SUM(c.gastos_campanha_total)/NULLIF(COUNT(*) FILTER(WHERE UPPER(r.resultado) LIKE 'ELEITO%'),0),2) valor
-       FROM {DB}.main.Candidatura c JOIN {DB}.main.Eleicao e USING(id_eleicao)
-       JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-       WHERE e.ano IN (2018,2020,2022,2024) AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
-       AND UPPER(e.cargo) IN ('VEREADOR','DEPUTADO ESTADUAL','DEPUTADO FEDERAL','PRESIDENTE')
-       GROUP BY 1,2 ORDER BY 1,2''',
-  2:f'''WITH b AS (SELECT e.ano,UPPER(e.cargo) cargo,c.id_candidatura,c.patrimonio,
-       CASE WHEN UPPER(r.resultado) LIKE 'ELEITO%' THEN 1
-            WHEN UPPER(r.resultado) IN ('NÃO ELEITO','NAO ELEITO','SUPLENTE') THEN 0
-            ELSE NULL END eleito
-       FROM {DB}.main.Candidatura c JOIN {DB}.main.Eleicao e USING(id_eleicao)
-       JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-       WHERE e.ano IN (2018,2020,2022,2024) AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
-       AND UPPER(e.cargo) IN ('VEREADOR','DEPUTADO ESTADUAL','DEPUTADO FEDERAL','PRESIDENTE')
-       AND c.patrimonio IS NOT NULL AND c.patrimonio >= 0),
-       q AS(SELECT *,NTILE(4) OVER(PARTITION BY ano,cargo ORDER BY patrimonio,id_candidatura) quartil FROM b WHERE eleito IS NOT NULL)
-       SELECT ano,cargo,quartil,COUNT(*) candidaturas,ROUND(100*AVG(eleito),2) taxa,
-       ROUND(MEDIAN(patrimonio),2) mediana FROM q GROUP BY 1,2,3 ORDER BY 1,2,3''',
-  3:f'''WITH b AS (SELECT a.ano_participacao ano,m.uf,c.idhm,
-       c.pib/NULLIF(c.populacao,0) pib_pc, c.populacao,a.taxa_abstencao
-       FROM {DB}.main.Participacao_Eleitoral a
-       JOIN {DB}.main.Censo_Municipio c ON c.id_municipio=a.id_municipio AND c.ano_referencia=2022
-       JOIN {DB}.main.Municipio m ON m.id_municipio=a.id_municipio)
-       SELECT ano,uf,COUNT(*) municipios,ROUND(CORR(idhm,taxa_abstencao),4) r_idhm,
-       ROUND(CORR(pib_pc,taxa_abstencao),4) r_pib_pc,
-       ROUND(AVG(taxa_abstencao)*100,2) abstencao_media
-       FROM b GROUP BY 1,2 ORDER BY 1,2''',
-  4:f'''SELECT e.ano, UPPER(e.cargo) cargo,c.escolaridade_candidatura escolaridade,
-       COUNT(*) candidaturas,COUNT(*) FILTER(WHERE UPPER(r.resultado) LIKE 'ELEITO%') eleitos
-       FROM {DB}.main.Candidatura c JOIN {DB}.main.Eleicao e USING(id_eleicao)
-       JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-       WHERE e.ano IN(2018,2020,2022,2024) AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%' AND UPPER(e.cargo) IN ('VEREADOR','DEPUTADO ESTADUAL','DEPUTADO FEDERAL','PRESIDENTE')
-       GROUP BY 1,2,3 ORDER BY 1,2,4 DESC''',
-  5:f'''SELECT e.ano,UPPER(e.cargo) cargo,
-       SUM(v.votos_legenda) legenda,SUM(v.votos_nominais) nominal,
-       ROUND(100*SUM(v.votos_legenda)/NULLIF(SUM(v.votos_legenda+v.votos_nominais),0),2) pct_legenda
-       FROM {DB}.main.Votos_Partido_Municipio v JOIN {DB}.main.Eleicao e USING(id_eleicao)
-       WHERE UPPER(e.cargo) IN ('VEREADOR','DEPUTADO ESTADUAL','DEPUTADO FEDERAL') AND v.turno=1 AND e.turno=1
-       GROUP BY 1,2 ORDER BY 1,2''',
-  6:f'''WITH x AS (SELECT e.ano,UPPER(e.cargo) cargo,
-       date_diff('year',p.dt_nascimento,e.data) - CASE WHEN strftime(e.data,'%m-%d') < strftime(p.dt_nascimento,'%m-%d') THEN 1 ELSE 0 END idade
-       FROM {DB}.main.Candidatura c JOIN {DB}.main.Candidato p USING(id_candidato)
-       JOIN {DB}.main.Eleicao e USING(id_eleicao)
-       WHERE e.ano IN(2018,2020,2022,2024) AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%' AND UPPER(e.cargo) IN ('VEREADOR','DEPUTADO ESTADUAL','DEPUTADO FEDERAL','PRESIDENTE'))
-       SELECT ano,cargo,COUNT(*) candidaturas,COUNT(*) FILTER(WHERE idade BETWEEN 18 AND 29) jovens,
-       COUNT(*) FILTER(WHERE idade IS NULL) sem_idade,
-       ROUND(100.0*COUNT(*) FILTER(WHERE idade BETWEEN 18 AND 29)/NULLIF(COUNT(*) FILTER(WHERE idade IS NOT NULL),0),2) pct_jovens
-       FROM x GROUP BY 1,2 ORDER BY 1,2''',
-  7:f'''WITH votos AS(SELECT e.ano,v.id_municipio,v.id_partido,SUM(v.votos_nominais+v.votos_legenda) total
-       FROM {DB}.main.Votos_Partido_Municipio v JOIN {DB}.main.Eleicao e USING(id_eleicao)
-       WHERE e.ano IN(2020,2024) AND UPPER(e.cargo)='VEREADOR' AND v.turno=1 GROUP BY 1,2,3),
-       top AS(SELECT *,ROW_NUMBER() OVER(PARTITION BY ano,id_municipio ORDER BY total DESC,id_partido) rn FROM votos),
-       prev AS(SELECT id_municipio,id_partido FROM top WHERE ano=2020 AND rn=1),
-       curr AS(SELECT id_municipio,id_partido FROM top WHERE ano=2024 AND rn=1)
-       SELECT COUNT(*) municipios,COUNT(*) FILTER(WHERE prev.id_partido=curr.id_partido) estaveis,
-       ROUND(100.0*COUNT(*) FILTER(WHERE prev.id_partido=curr.id_partido)/NULLIF(COUNT(*),0),2) pct_estaveis
-       FROM prev JOIN curr USING(id_municipio)''',
-  9:f'''SELECT categoria,COUNT(*) registros,ROUND(SUM(valor),2) total
-       FROM {DB}.main.Despesa_Candidatura
-       WHERE categoria ILIKE '%SANTINH%' OR categoria ILIKE '%ADESIV%'
-       OR categoria ILIKE '%BANDEIRA%' OR categoria ILIKE '%IMPRESS%'
-       GROUP BY 1 ORDER BY total DESC LIMIT 24''',
-  10:f'''WITH s AS(SELECT c.id_candidato,COUNT(DISTINCT e.ano) n_anos,
-       COUNT(DISTINCT c.id_partido) n_partidos,
-       SUM(CASE WHEN UPPER(r.resultado) LIKE 'ELEITO%' THEN 1 ELSE 0 END) vitorias
-       FROM {DB}.main.Candidatura c JOIN {DB}.main.Eleicao e USING(id_eleicao)
-       JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-       WHERE e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%' GROUP BY 1)
-       SELECT COUNT(*) pessoas,COUNT(*) FILTER(WHERE n_anos>1) multi_anos,
-       COUNT(*) FILTER(WHERE n_anos>=3) tres_anos,
-       COUNT(*) FILTER(WHERE n_partidos>1) multi_partidos,
-       COUNT(*) FILTER(WHERE vitorias>=2) multi_vitorias FROM s'''
+  1:query_sql('compatibility/sql/app/app_definitions_01.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB),
+  2:query_sql('compatibility/sql/app/app_definitions_02.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB),
+  3:query_sql('compatibility/sql/app/app_definitions_03.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB),
+  4:query_sql('compatibility/sql/app/app_definitions_04.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB),
+  5:query_sql('compatibility/sql/app/app_definitions_05.sql', fragment_0=DB, fragment_1=DB),
+  6:query_sql('compatibility/sql/app/app_definitions_06.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB),
+  7:query_sql('compatibility/sql/app/app_definitions_07.sql', fragment_0=DB, fragment_1=DB),
+  9:query_sql('compatibility/sql/app/app_definitions_08.sql', fragment_0=DB),
+  10:query_sql('compatibility/sql/app/app_definitions_09.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB)
 }
 
 @app.get('/api/analysis/{question}')
@@ -283,12 +165,7 @@ def analysis(question:int):
         return {'question':8,'status':'indisponivel','rows':[],'message':'Não existe tabela de receitas eleitorais públicas/privadas no v4.'}
     if question==9:
         try:
-            view_sql = f'''SELECT grupo_despesa AS categoria,
-                SUM(registros_agregados) AS registros,
-                ROUND(SUM(valor_contratado),2) AS total
-                FROM {DB}.main.vw_q9_resumo_categorias
-                WHERE grupo_despesa IS NOT NULL AND grupo_despesa NOT IN ('Não informada','Não classificada — revisar')
-                GROUP BY 1 ORDER BY total DESC LIMIT 24'''
+            view_sql = query_sql('compatibility/sql/app/app_analysis_01.sql', fragment_0=DB)
             rows = _rows(view_sql)
             if rows:
                 return {'question':9,'status':'ok','rows':rows,'database':'pipeline_bdr_der_completo_v4','mode':'live','source':'vw_q9_resumo_categorias'}
@@ -303,11 +180,7 @@ def analysis(question:int):
 def despesas_resumo_categorias():
     """Consome a view vw_q9_resumo_categorias com o detalhamento dos grupos de despesa."""
     try:
-        rows = _rows(f'''SELECT grupo_despesa, status_classificacao, requer_revisao,
-            eh_publicidade_sugerida, registros_agregados, candidaturas,
-            descricoes_originais, registros_com_valor_finito, valor_contratado
-            FROM {DB}.main.vw_q9_resumo_categorias
-            ORDER BY valor_contratado DESC NULLS LAST''')
+        rows = _rows(query_sql('compatibility/sql/app/app_despesas_resumo_categorias_01.sql', fragment_0=DB))
         return {'source': 'vw_q9_resumo_categorias', 'total_grupos': len(rows), 'rows': rows}
     except Exception as exc:
         raise HTTPException(503, f'View vw_q9_resumo_categorias indisponível no banco conectado: {exc}')
@@ -317,9 +190,7 @@ def despesas_resumo_categorias():
 def despesas_regras():
     """Regras de categorização da view vw_q9_regras_categorias."""
     try:
-        rows = _rows(f'''SELECT codigo_regra, grupo_despesa, modalidade_publicidade_sugerida,
-            eh_publicidade_sugerida, padrao, exclusao
-            FROM {DB}.main.vw_q9_regras_categorias ORDER BY codigo_regra''')
+        rows = _rows(query_sql('compatibility/sql/app/app_despesas_regras_01.sql', fragment_0=DB))
         return {'source': 'vw_q9_regras_categorias', 'rows': rows}
     except Exception as exc:
         raise HTTPException(503, f'View vw_q9_regras_categorias indisponível: {exc}')
@@ -334,29 +205,13 @@ def descobertas(ano: int=2024, cargo: str='VEREADOR', uf: str|None=None):
     cargo=cargo.upper().strip()
     if cargo not in offices: raise HTTPException(400,'Cargo desconhecido')
     if cargo == 'PRESIDENTE' and ano not in (2018, 2022): raise HTTPException(400, 'Eleições para Presidente ocorreram em 2018 e 2022.')
-    lideres=_rows(f'''SELECT c.id_candidatura id,c.nome_urna nome,c.numero_urna numero,
-        p.sigla partido,c.uf,e.ano,UPPER(e.cargo) cargo,r.votos,
-        ROUND(c.gastos_campanha_total,2) gastos,r.resultado
-        FROM {DB}.main.Candidatura c
-        JOIN {DB}.main.Eleicao e USING(id_eleicao)
-        JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-        LEFT JOIN {DB}.main.Partido p USING(id_partido)
-        WHERE e.ano=? AND UPPER(e.cargo)=? AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
-        AND (? IS NULL OR c.uf=?) AND r.votos IS NOT NULL
-        ORDER BY r.votos DESC,c.id_candidatura LIMIT 12''',[ano,cargo,uf,uf])
+    lideres=_rows(query_sql('compatibility/sql/app/app_descobertas_01.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB, fragment_3=DB),[ano,cargo,uf,uf])
     # Sem criar ranking de 'melhores' municípios se ano solicitado não tiver participação correspondente.
     alta,baixa,ufs=[],[],[]
     if ano in (2022,2024):
-        base=f'''SELECT m.nome,m.uf,p.eleitorado_apto eleitorado,
-         ROUND(100*p.taxa_abstencao,2) percentual
-         FROM {DB}.main.Participacao_Eleitoral p JOIN {DB}.main.Municipio m USING(id_municipio)
-         WHERE p.ano_participacao=? AND p.eleitorado_apto>=10000 AND (? IS NULL OR m.uf=?)
-         ORDER BY p.taxa_abstencao {{order}},m.nome LIMIT 10'''
+        base=query_sql('compatibility/sql/app/app_descobertas_02.sql', fragment_0=DB, fragment_1=DB)
         alta=_rows(base.format(order='DESC'),[ano,uf,uf]);baixa=_rows(base.format(order='ASC'),[ano,uf,uf])
-        ufs=_rows(f'''SELECT m.uf,COUNT(*) municipios,
-            ROUND(100.0*SUM(p.abstencoes)/NULLIF(SUM(p.eleitorado_apto),0),2) percentual
-            FROM {DB}.main.Participacao_Eleitoral p JOIN {DB}.main.Municipio m USING(id_municipio)
-            WHERE p.ano_participacao=? AND (? IS NULL OR m.uf=?) GROUP BY m.uf ORDER BY percentual DESC''',[ano,uf,uf])
+        ufs=_rows(query_sql('compatibility/sql/app/app_descobertas_03.sql', fragment_0=DB, fragment_1=DB),[ano,uf,uf])
     return {'ano':ano,'cargo':cargo,'uf':uf,'leaders':lideres,'abstencaoAlta':alta,'abstencaoBaixa':baixa,
             'porEstado':ufs,'limiar_eleitores':10000,'coverage':'CE, MA, MS, RJ, RN, RS',
             'methodology':'Votos por candidatura e cargo, pleitos ordinários. Abstenção municipal com >= 10 mil eleitores aptos. Percentuais estaduais ponderados por eleitorado.'}

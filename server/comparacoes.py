@@ -4,6 +4,7 @@ Retornam sempre somente recortes das seis UFs do acervo, nunca universo nacional
 Sem SQL enviado por clientes, sem interpolação de entradas livres em identificadores.
 """
 from __future__ import annotations
+from core.sql import query_sql
 import re
 from fastapi import APIRouter, HTTPException, Query
 
@@ -49,16 +50,7 @@ def legenda(cargo:str='VEREADOR',uf:str='',primeiro:str='',segundo:str=''):
     party_clause = ' AND p.sigla IN (?,?) ' if primeiro and segundo else (' AND p.sigla=? ' if primeiro else '')
     party_label = 'p.sigla' if primeiro else "'Todos os partidos'"
     years = (2020,2024) if cargo=='VEREADOR' else (2018,2022)
-    sql=f'''SELECT e.ano ano, {party_label} serie,
-      ROUND(100.0*SUM(v.votos_legenda)/NULLIF(SUM(v.votos_legenda+v.votos_nominais),0),2) valor,
-      SUM(v.votos_legenda) legenda,SUM(v.votos_nominais) nominais
-      FROM {DB}.main.Votos_Partido_Municipio v
-      JOIN {DB}.main.Eleicao e USING(id_eleicao)
-      JOIN {DB}.main.Partido p USING(id_partido)
-      JOIN {DB}.main.Municipio m USING(id_municipio)
-      WHERE UPPER(e.cargo)=? AND e.ano IN (?,?) AND v.turno=1 AND e.turno=1
-      AND (?='' OR m.uf=?) {party_clause}
-      GROUP BY 1,2 ORDER BY 1,2'''
+    sql=query_sql('compatibility/sql/comparacoes/comparacoes_legenda_01.sql', fragment_0=party_label, fragment_1=DB, fragment_2=DB, fragment_3=DB, fragment_4=DB, fragment_5=party_clause)
     params=[cargo,*years,uf,uf]+([primeiro,segundo] if primeiro and segundo else [primeiro] if primeiro else [])
     return {'rows':_rows(sql,params),'unidade':'%','titulo':'Participação dos votos de legenda',
       'metodo':'Votos de legenda ÷ (votos de legenda + nominais); primeiro turno, cargo proporcional, somente UFs cobertas.',
@@ -71,13 +63,7 @@ def abstencao(ufs: str = 'RJ,RS'):
     if not parts: parts=sorted(UF_VALIDAS)
     if len(parts)>6 or len(set(parts))!=len(parts) or any(v not in UF_VALIDAS for v in parts):
         raise HTTPException(400,'Selecione até seis UFs diferentes do recorte disponível')
-    sql=f'''SELECT p.ano_participacao ano,m.uf serie,COUNT(*) municipios,
-      ROUND(100.0*SUM(p.abstencoes)/NULLIF(SUM(p.eleitorado_apto),0),2) valor,
-      SUM(p.abstencoes) abstencoes,SUM(p.eleitorado_apto) aptos
-      FROM {DB}.main.Participacao_Eleitoral p
-      JOIN {DB}.main.Municipio m USING(id_municipio)
-      WHERE p.ano_participacao IN (2022,2024) AND m.uf IN ({','.join('?' for _ in parts)})
-      GROUP BY 1,2 ORDER BY 1,2'''
+    sql=query_sql('compatibility/sql/comparacoes/comparacoes_abstencao_01.sql', fragment_0=DB, fragment_1=DB, fragment_2=','.join(('?' for _ in parts)))
     return {'rows':_rows(sql,parts),'unidade':'%','titulo':'Abstenção eleitoral por UF',
       'metodo':'Soma das abstenções ÷ soma dos eleitores aptos. Índice ponderado; eleições gerais em 2022 e municipais em 2024 não são pleitos equivalentes.',
       'escopo':'2022 e 2024 · municípios disponíveis em cada UF', 'source':'consulta'}
@@ -87,17 +73,7 @@ def abstencao(ufs: str = 'RJ,RS'):
 def cadeiras(cargo:str='VEREADOR',uf:str=''):
     uf,cargo,_=_select(uf,cargo,None)
     years=(2020,2024) if cargo=='VEREADOR' else (2018,2022)
-    sql=f'''SELECT e.ano ano,UPPER(e.cargo) serie,
-      ROUND(SUM(c.gastos_campanha_total)/NULLIF(COUNT(*) FILTER(WHERE UPPER(r.resultado) LIKE 'ELEITO%'),0),2) valor,
-      ROUND(SUM(c.gastos_campanha_total),2) gasto_total,
-      COUNT(*) FILTER(WHERE UPPER(r.resultado) LIKE 'ELEITO%') eleitos,
-      COUNT(*) FILTER(WHERE c.gastos_campanha_total IS NOT NULL) gastos_informados,
-      COUNT(*) candidaturas
-      FROM {DB}.main.Candidatura c
-      JOIN {DB}.main.Eleicao e USING(id_eleicao)
-      JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-      WHERE e.ano IN (?,?) AND UPPER(e.cargo)=? AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
-      AND (?='' OR c.uf=?) GROUP BY 1,2 ORDER BY 1'''
+    sql=query_sql('compatibility/sql/comparacoes/comparacoes_cadeiras_01.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB)
     rows = _rows(sql,[*years,cargo,uf,uf])
     return {'rows':rows,'unidade':'R$','titulo':'Gasto agregado por eleito',
       'metodo':'Soma das despesas declaradas de todas as candidaturas (inclusive não eleitas) ÷ total de eleitos. Valores nominais; ausentes não são zero.',
@@ -110,24 +86,7 @@ def escolaridade(ano:int=2024,cargo:str='VEREADOR',uf:str=''):
     valid=(ano in (2020,2024) and cargo=='VEREADOR') or (ano in (2018,2022) and cargo in ('DEPUTADO ESTADUAL','DEPUTADO FEDERAL','PRESIDENTE'))
     if not valid: raise HTTPException(400,'Ano e cargo incompatíveis neste recorte')
     # Uma linha por candidatura impede que múltiplos registros de resultado inflem os totais.
-    sql=f'''WITH base AS (
-      SELECT c.id_candidatura,c.uf,COALESCE(NULLIF(TRIM(c.escolaridade_candidatura),''),'NÃO INFORMADA') serie,
-        MAX(CASE WHEN UPPER(TRIM(r.resultado)) LIKE 'ELEITO%' THEN 1 ELSE 0 END) eleita,
-        MAX(CASE WHEN UPPER(TRIM(r.resultado)) LIKE 'ELEITO%'
-          OR UPPER(TRIM(r.resultado)) IN ('NÃO ELEITO','NAO ELEITO','SUPLENTE') THEN 1 ELSE 0 END) definida
-      FROM {DB}.main.Candidatura c JOIN {DB}.main.Eleicao e USING(id_eleicao)
-      LEFT JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-      WHERE e.ano=? AND UPPER(e.cargo)=? AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
-        AND (c.uf IN ('CE','MA','MS','RJ','RN','RS') OR c.uf='BR')
-      GROUP BY 1,2,3
-    ), grupos AS (
-      SELECT CASE WHEN ?='' THEN 'SEIS UFS' ELSE uf END uf,serie,
-        COUNT(*) candidaturas,SUM(eleita) eleitos,SUM(definida) definidos,
-        COUNT(*)-SUM(definida) excluidos
-      FROM base WHERE ?='' OR uf=? GROUP BY 1,2
-    ) SELECT uf,serie,candidaturas,eleitos,definidos,excluidos,
-      ROUND(100.0*eleitos/NULLIF(definidos,0),2) valor
-      FROM grupos ORDER BY candidaturas DESC,serie'''
+    sql=query_sql('compatibility/sql/comparacoes/comparacoes_escolaridade_01.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB)
     rows=_rows(sql,[ano,cargo,uf,uf,uf])
     return {'rows':rows,'unidade':'%','titulo':'Escolaridade e taxa de eleição',
       'metodo':'Eleitos ÷ candidaturas com resultado definido da mesma escolaridade. Não mede escolaridade dos eleitores e não demonstra causalidade.',
@@ -138,18 +97,7 @@ def escolaridade(ano:int=2024,cargo:str='VEREADOR',uf:str=''):
 def propaganda(cargo:str='VEREADOR',uf:str='',partido:str=''):
     uf,cargo,partido=_select(uf,cargo,None,partido)
     years=(2020,2024) if cargo=='VEREADOR' else (2018,2022)
-    sql=f'''WITH base AS (
-      SELECT e.ano,CASE WHEN UPPER(TRIM(d.categoria)) LIKE 'SANTINH%' THEN 'Santinhos'
-       WHEN UPPER(TRIM(d.categoria)) LIKE 'ADESIV%' THEN 'Adesivos'
-       WHEN UPPER(TRIM(d.categoria)) LIKE 'BANDEIRA%' THEN 'Bandeiras' END serie,d.valor
-      FROM {DB}.main.Despesa_Candidatura d
-      JOIN {DB}.main.Candidatura c USING(id_candidatura)
-      JOIN {DB}.main.Eleicao e USING(id_eleicao)
-      JOIN {DB}.main.Partido p USING(id_partido)
-      WHERE e.ano IN (?,?) AND UPPER(e.cargo)=? AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
-        AND (?='' OR c.uf=?) AND (?='' OR p.sigla=?)
-    ) SELECT ano,serie,COUNT(*) lancamentos,ROUND(SUM(valor),2) valor
-      FROM base WHERE serie IS NOT NULL GROUP BY 1,2 ORDER BY 1,2'''
+    sql=query_sql('compatibility/sql/comparacoes/comparacoes_propaganda_01.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB, fragment_3=DB)
     rows=_rows(sql,[*years,cargo,uf,uf,partido,partido])
     return {'rows':rows,'unidade':'R$','titulo':'Gastos com materiais de propaganda',
       'metodo':'Lançamentos cujas categorias começam por SANTINH, ADESIV ou BANDEIRA. Não incluem toda a publicidade e são valores nominais.',
@@ -161,19 +109,7 @@ def patrimonio(ano:int=2024,cargo:str='VEREADOR',uf:str=''):
     uf,cargo,_=_select(uf,cargo,ano)
     valid=(ano in (2020,2024) and cargo=='VEREADOR') or (ano in (2018,2022) and cargo in ('DEPUTADO ESTADUAL','DEPUTADO FEDERAL','PRESIDENTE'))
     if not valid: raise HTTPException(400,'Cargo/ano não disponível para comparar patrimônio')
-    sql=f'''WITH b AS (
-      SELECT c.id_candidatura,c.patrimonio,
-       CASE WHEN UPPER(r.resultado) LIKE 'ELEITO%' THEN 1
-            WHEN UPPER(r.resultado) IN ('NÃO ELEITO','NAO ELEITO','SUPLENTE') THEN 0 ELSE NULL END eleito
-      FROM {DB}.main.Candidatura c JOIN {DB}.main.Eleicao e USING(id_eleicao)
-      JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
-      WHERE e.ano=? AND UPPER(e.cargo)=? AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
-        AND c.patrimonio IS NOT NULL AND c.patrimonio>=0 AND (?='' OR c.uf=?)
-    ), q AS (SELECT *,NTILE(4) OVER(ORDER BY patrimonio,id_candidatura) quartil
-      FROM b WHERE eleito IS NOT NULL)
-    SELECT quartil,CONCAT('Quartil ',CAST(quartil AS VARCHAR)) serie,COUNT(*) candidaturas,
-      COUNT(*) FILTER(WHERE eleito=1) eleitos,ROUND(100.0*AVG(eleito),2) valor,
-      ROUND(MEDIAN(patrimonio),2) mediana FROM q GROUP BY 1 ORDER BY 1'''
+    sql=query_sql('compatibility/sql/comparacoes/comparacoes_patrimonio_01.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB)
     rows=_rows(sql,[ano,cargo,uf,uf])
     return {'rows':rows,'unidade':'%','titulo':'Patrimônio e êxito eleitoral',
       'metodo':'Quartis entre candidaturas com patrimônio informado e resultado definido. A taxa é descritiva, não causal.',

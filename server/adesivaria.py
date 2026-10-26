@@ -1,4 +1,5 @@
 """Read-only rankings. Aggregate expenses before joining one result per candidacy."""
+from core.sql import query_sql
 import re
 import json
 from fastapi import HTTPException
@@ -52,44 +53,11 @@ def scope_cte(scope):
     # A municipal ID is accepted only inside its actual UF. Never attribute a
     # state or federal campaign's budget to its registry municipality.
     if scope['municipio']:
-        town=read(f'SELECT nome FROM {DB}.main.Municipio WHERE CAST(id_municipio AS VARCHAR)=? AND uf=?',[scope['municipio'],scope['uf']])
+        town=read(query_sql('questions/q09_publicidade/sql/materials/adesivaria_scope_cte_02.sql', fragment_0=DB),[scope['municipio'],scope['uf']])
         if not town:raise HTTPException(400,'Município não pertence à UF selecionada')
         scope={**scope,'municipio_nome':town[0]['nome']}
     args=[scope['ano'],scope['cargo'],scope['uf'],scope['uf'],scope['partido'],scope['partido'],scope['municipio'],scope['municipio'],TYPES[scope['material']],TYPES[scope['material']]]
-    cte=f'''WITH scoped AS (
-      SELECT c.id_candidatura id,c.nome_urna nome,c.numero_urna numero,c.uf,pt.sigla partido,
-       e.ano,UPPER(e.cargo) cargo,CASE WHEN UPPER(e.cargo) IN ('VEREADOR','PREFEITO') THEN m.nome END municipio,
-       CASE WHEN UPPER(e.cargo) IN ('VEREADOR','PREFEITO') THEN CAST(c.id_municipio AS VARCHAR) END municipio_id,
-       c.gastos_campanha_total gastos,c.patrimonio
-      FROM {DB}.main.Candidatura c JOIN {DB}.main.Eleicao e USING(id_eleicao)
-      LEFT JOIN {DB}.main.Partido pt USING(id_partido) LEFT JOIN {DB}.main.Municipio m USING(id_municipio)
-      WHERE e.ano=? AND UPPER(e.cargo)=? AND e.turno=1 AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
-       AND c.uf IN ('CE','MA','MS','RJ','RN','RS') AND (?='' OR c.uf=?)
-       AND (?='' OR UPPER(pt.sigla)=UPPER(?)) AND (?='' OR CAST(c.id_municipio AS VARCHAR)=?)
-    ), raw AS (
-      SELECT d.id_despesa,d.id_candidatura id,d.categoria,d.valor,{MATERIAL_CASE} tipo
-      FROM {DB}.main.Despesa_Candidatura d WHERE EXISTS(SELECT 1 FROM scoped s WHERE s.id=d.id_candidatura)
-    ), selected AS (SELECT * FROM raw WHERE tipo IS NOT NULL AND (?='' OR tipo=?)),
-    expense AS (
-      SELECT id,COUNT(*) lancamentos,COUNT(valor) valores_informados,ROUND(SUM(valor),2) gastos_classificados
-      FROM selected GROUP BY id
-    ), result AS (
-      SELECT r.id_candidatura id,
-       CASE WHEN COUNT(DISTINCT r.votos)=1 THEN MAX(r.votos) END votos,
-       CASE WHEN COUNT(DISTINCT r.resultado)=1 THEN MAX(r.resultado) END resultado,
-       COUNT(DISTINCT r.votos)>1 OR COUNT(DISTINCT r.resultado)>1 conflito_resultado
-      FROM {DB}.main.Resultado_Candidatura r WHERE r.turno=1 AND EXISTS(SELECT 1 FROM scoped s WHERE s.id=r.id_candidatura)
-      GROUP BY r.id_candidatura
-    ), enriched AS (
-      SELECT s.*,x.gastos_classificados,COALESCE(x.lancamentos,0) lancamentos,
-       COALESCE(x.valores_informados,0) valores_informados,r.votos,r.resultado,
-       COALESCE(r.conflito_resultado,FALSE) conflito_resultado
-      FROM scoped s LEFT JOIN expense x USING(id) LEFT JOIN result r USING(id)
-    ), ranked AS (
-      SELECT *,CASE WHEN gastos_classificados IS NOT NULL THEN ROW_NUMBER() OVER(ORDER BY gastos_classificados DESC NULLS LAST,nome,id) END posicao_gastos,
-       CASE WHEN votos IS NOT NULL THEN ROW_NUMBER() OVER(ORDER BY votos DESC NULLS LAST,nome,id) END posicao_votos
-      FROM enriched
-    ) '''
+    cte=query_sql('questions/q09_publicidade/sql/materials/adesivaria_scope_cte_01.sql', fragment_0=DB, fragment_1=DB, fragment_2=DB, fragment_3=DB, fragment_4=MATERIAL_CASE, fragment_5=DB, fragment_6=DB)
     return cte,args,scope
 
 
@@ -97,41 +65,14 @@ def summary(ano=2024,uf='',partido='',cargo='VEREADOR',abrangencia='',municipio=
     if not 1<=limit<=24 or min(offset,offset_votos,offset_categorias)<0 or max(offset,offset_votos,offset_categorias)>1000000:raise HTTPException(400,'Página inválida')
     scope=validate(ano,uf,partido,cargo,abrangencia,municipio,material)
     cte,args,scope=scope_cte(scope)
-    stats_sql='''SELECT COUNT(*) candidaturas,COUNT(*) FILTER(WHERE lancamentos>0) candidaturas_material,
-      COUNT(gastos_classificados) candidaturas_valor,COUNT(votos) candidaturas_votos,
-      MAX(votos) maior_votacao,
-      (SELECT id FROM ranked WHERE posicao_votos=1) lider_votos_id,
-      (SELECT nome FROM ranked WHERE posicao_votos=1) lider_votos_nome,
-      COUNT(*) FILTER(WHERE conflito_resultado) resultados_conflitantes,
-      ROUND(SUM(gastos_classificados),2) valor,COALESCE(SUM(lancamentos),0) lancamentos,
-      COALESCE(SUM(valores_informados),0) valores_informados,
-      (SELECT COUNT(*) FROM raw) lancamentos_recorte,
-      (SELECT COUNT(*) FROM raw WHERE tipo IS NULL) lancamentos_nao_classificados,
-      (SELECT COUNT(*) FROM raw WHERE tipo IS NOT NULL) lancamentos_classificados,
-      (SELECT COUNT(DISTINCT id) FROM raw WHERE tipo IS NOT NULL) candidaturas_classificadas,
-      (SELECT COUNT(*) FROM (SELECT tipo,categoria FROM selected GROUP BY 1,2)) categorias
-      FROM enriched'''
-    groups_sql='''SELECT tipo,COUNT(*) registros,COUNT(valor) valores_informados,
-      ROUND(SUM(valor),2) valor,COUNT(DISTINCT id) candidaturas
-      FROM raw WHERE tipo IS NOT NULL GROUP BY tipo ORDER BY valor DESC NULLS LAST,tipo'''
-    rankings_sql='''SELECT 'despesas' ranking,* FROM (
-       SELECT * FROM ranked WHERE posicao_gastos IS NOT NULL ORDER BY posicao_gastos LIMIT ? OFFSET ?)
-      UNION ALL SELECT 'votos' ranking,* FROM (
-       SELECT * FROM ranked WHERE posicao_votos IS NOT NULL ORDER BY posicao_votos LIMIT ? OFFSET ?)
-      UNION ALL SELECT 'podio' ranking,* FROM (
-       SELECT * FROM ranked WHERE posicao_gastos IS NOT NULL ORDER BY posicao_gastos LIMIT 3)'''
-    parties_sql='''SELECT COALESCE(partido,'Não informado') partido,COUNT(*) candidaturas_recorte,
-      COUNT(*) FILTER(WHERE lancamentos>0) candidaturas,COUNT(gastos_classificados) valores_informados,
-      SUM(lancamentos) lancamentos,ROUND(SUM(gastos_classificados),2) valor
-      FROM enriched GROUP BY partido HAVING SUM(lancamentos)>0 ORDER BY valor DESC NULLS LAST,partido'''
-    categories_sql='''SELECT tipo,categoria,COUNT(*) registros,COUNT(valor) valores_informados,
-      ROUND(SUM(valor),2) valor,COUNT(DISTINCT id) candidaturas
-      FROM selected GROUP BY tipo,categoria ORDER BY valor DESC NULLS LAST,categoria,tipo LIMIT 25 OFFSET ?'''
-    cloud_sql='''SELECT tipo,categoria,COUNT(*) registros,COUNT(valor) valores_informados,
-      ROUND(SUM(valor),2) valor FROM selected GROUP BY tipo,categoria
-      HAVING SUM(valor)>0 ORDER BY valor DESC,categoria,tipo LIMIT 100'''
+    stats_sql=query_sql('questions/q09_publicidade/sql/materials/adesivaria_summary_01.sql')
+    groups_sql=query_sql('questions/q09_publicidade/sql/materials/adesivaria_summary_02.sql')
+    rankings_sql=query_sql('questions/q09_publicidade/sql/materials/adesivaria_summary_03.sql')
+    parties_sql=query_sql('questions/q09_publicidade/sql/materials/adesivaria_summary_04.sql')
+    categories_sql=query_sql('questions/q09_publicidade/sql/materials/adesivaria_summary_05.sql')
+    cloud_sql=query_sql('questions/q09_publicidade/sql/materials/adesivaria_summary_06.sql')
     sections={'stats':stats_sql,'groups':groups_sql,'rankings':rankings_sql,'parties':parties_sql,'categories':categories_sql,'cloud':cloud_sql}
-    packed=' UNION ALL '.join(f"SELECT '{key}' section,to_json(t) payload FROM ({sql}) t" for key,sql in sections.items())
+    packed=' UNION ALL '.join(query_sql('questions/q09_publicidade/sql/materials/adesivaria_summary_07.sql', fragment_0=key, fragment_1=sql) for key,sql in sections.items())
     records=read(cte+packed,[*args,limit,offset,limit,offset_votos,offset_categorias])
     values={key:[] for key in sections}
     for row in records:
@@ -175,11 +116,9 @@ def candidate(candidate_id,ano=2024,uf='',partido='',cargo='VEREADOR',abrangenci
     if not re.fullmatch(r'[0-9a-f]{32}',candidate_id):raise HTTPException(400,'Identificador inválido')
     if not 1<=limit<=50 or not 0<=offset<=1000000:raise HTTPException(400,'Página inválida')
     cte,args,scope=scope_cte(validate(ano,uf,partido,cargo,abrangencia,municipio,material))
-    person=read(cte+'SELECT * FROM ranked WHERE id=?',[*args,candidate_id])
+    person=read(cte+query_sql('questions/q09_publicidade/sql/materials/adesivaria_candidate_01.sql'),[*args,candidate_id])
     if not person:raise HTTPException(404,'Candidatura fora do recorte')
-    groups=read(cte+'''SELECT tipo,COUNT(*) registros,COUNT(valor) valores_informados,ROUND(SUM(valor),2) valor
-      FROM raw WHERE id=? AND tipo IS NOT NULL GROUP BY tipo ORDER BY tipo''',[*args,candidate_id])
-    entries=read(cte+'''SELECT id_despesa id,categoria,tipo,valor FROM selected WHERE id=?
-      ORDER BY valor DESC NULLS LAST,id_despesa LIMIT ? OFFSET ?''',[*args,candidate_id,limit,offset])
+    groups=read(cte+query_sql('questions/q09_publicidade/sql/materials/adesivaria_candidate_02.sql'),[*args,candidate_id])
+    entries=read(cte+query_sql('questions/q09_publicidade/sql/materials/adesivaria_candidate_03.sql'),[*args,candidate_id,limit,offset])
     return {'candidate':person[0],'groups':groups,'entries':entries,'scope':scope,'limit':limit,'offset':offset,
       'total':person[0]['lancamentos'],'source':'consulta','methodology':METHOD,'turn_methodology':TURN_METHOD}

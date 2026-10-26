@@ -8,6 +8,7 @@ Regras de classificação:
 - Cada candidatura entra uma única vez pelo resultado do último turno.
 """
 from __future__ import annotations
+from core.sql import query_sql
 import math
 import re
 from functools import lru_cache
@@ -70,23 +71,7 @@ def _base_sql(ano: Optional[int], cargo: Optional[str], uf: Optional[str], munic
             filtros.append(condicao)
             params.append(valor)
 
-    sql = f'''
-        WITH ultimo AS (
-            SELECT id_candidatura, resultado
-            FROM {db_res}.main.Resultado_Candidatura
-            QUALIFY row_number() OVER (PARTITION BY id_candidatura ORDER BY turno DESC) = 1
-        ), base AS (
-            SELECT c.id_candidatura, c.id_municipio, c.uf, c.patrimonio,
-                   CASE WHEN starts_with(upper(u.resultado), 'ELEITO') THEN 1
-                        WHEN upper(u.resultado) IN ({_marcas(len(INSUCESSO))}) THEN 0
-                   END AS eleito
-            FROM {db_cand}.main.Candidatura c
-            JOIN {db_cargo}.main.Cargo cg ON cg.id_candidatura = c.id_candidatura
-            JOIN {db_eleicao}.main.Eleicao e ON e.id_eleicao = c.id_eleicao
-            LEFT JOIN ultimo u ON u.id_candidatura = c.id_candidatura
-            WHERE {' AND '.join(filtros)}
-        )
-    '''
+    sql = query_sql('questions/q02_patrimonio_sucesso/sql/compatibility/questao2__base_sql_01.sql', fragment_0=db_res, fragment_1=_marcas(len(INSUCESSO)), fragment_2=db_cand, fragment_3=db_cargo, fragment_4=db_eleicao, fragment_5=' AND '.join(filtros))
     return sql, list(INSUCESSO) + params
 
 
@@ -99,13 +84,7 @@ def opcoes_q2():
         db_cargo = _resolve_db('Cargo')
         db_eleicao = _resolve_db('Eleicao')
 
-        sql = f'''
-            SELECT DISTINCT e.ano AS ano, upper(cg.nome) AS cargo
-            FROM {db_cand}.main.Candidatura c
-            JOIN {db_cargo}.main.Cargo cg ON cg.id_candidatura = c.id_candidatura
-            JOIN {db_eleicao}.main.Eleicao e ON e.id_eleicao = c.id_eleicao
-            WHERE upper(cg.nome) IN ({_marcas(len(CARGOS))}) AND e.ano IN ({_marcas(len(ANOS))})
-        '''
+        sql = query_sql('questions/q02_patrimonio_sucesso/sql/compatibility/questao2_opcoes_q2_01.sql', fragment_0=db_cand, fragment_1=db_cargo, fragment_2=db_eleicao, fragment_3=_marcas(len(CARGOS)), fragment_4=_marcas(len(ANOS)))
         rows = _rows(sql, list(CARGOS) + list(ANOS))
         ordem = {c: i for i, c in enumerate(CARGOS)}
         pares = sorted(
