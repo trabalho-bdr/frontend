@@ -1,6 +1,7 @@
 """Organizational events; never infer individual migration from a renamed sigla."""
-RENAMES={'PMDB':'MDB','PFL':'DEM','PPB':'PP','PTN':'PODE','PT DO B':'AVANTE','PSDC':'DC','SD':'SOLIDARIEDADE','PRB':'REPUBLICANOS','PPS':'CIDADANIA','PTC':'AGIR','PMN':'MOBILIZA','PMB':'DEMOCRATA'}
-EVENTS={'DEM':('UNIÃO',2022),'PSL':('UNIÃO',2022),'PTB':('PRD',2023),'PATRIOTA':('PRD',2023),'PHS':('PODE',2019),'PSC':('PODE',2023),'PROS':('SOLIDARIEDADE',2023),'PPL':('PC DO B',2019),'PRP':('PATRIOTA',2019),'PAN':('PTB',2007),'PRONA':('PL',2006),'PGT':('PL-HISTORICO',2003),'PST':('PL-HISTORICO',2003),'PL-HISTORICO':('PL',2006)}
+from domain.normalization import PARTY_CONTRACT
+RENAMES=PARTY_CONTRACT['renames']
+EVENTS={key:tuple(value) for key,value in PARTY_CONTRACT['events'].items()}
 def canonical_party(sigla,year):
     if sigla=='PL' and year<2006:return 'PL-HISTORICO'
     if sigla=='PR':return 'PL'

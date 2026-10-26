@@ -1,0 +1,54 @@
+[
+  {
+    "input": null,
+    "expected": "Sem informação na fonte"
+  },
+  {
+    "input": "",
+    "expected": "Sem informação na fonte"
+  },
+  {
+    "input": "#NE",
+    "expected": "Sem informação na fonte"
+  },
+  {
+    "input": "#NI",
+    "expected": "Sem informação na fonte"
+  },
+  {
+    "input": "NA",
+    "expected": "Sem informação na fonte"
+  },
+  {
+    "input": "#NULO#",
+    "expected": "Sem informação na fonte"
+  },
+  {
+    "input": "SEM INFORMAÇÃO",
+    "expected": "Sem informação na fonte"
+  },
+  {
+    "input": "Sem informação na fonte",
+    "expected": "Sem informação na fonte"
+  },
+  {
+    "input": "NÃO INFORMADO",
+    "expected": "Sem informação na fonte"
+  },
+  {
+    "input": "NÃO DIVULGÁVEL",
+    "expected": "Não divulgável"
+  },
+  {
+    "input": 0,
+    "expected": "0"
+  },
+  {
+    "input": "MÉDICO",
+    "expected": "MÉDICO"
+  },
+  {
+    "input": "APTO",
+    "expected": "APTO"
+  }
+]

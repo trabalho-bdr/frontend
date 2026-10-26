@@ -8,7 +8,8 @@ from fastapi import APIRouter,Depends,HTTPException,Query,Response
 
 router=APIRouter(prefix='/api/catalogo',tags=['catalogo'])
 DB='pipeline_bdr_der_completo_v4'
-PARTY_NAME_GROUPS=(("PMDB","MDB"),("PFL","DEM"),("PPB","PP"),("PTN","PODE"),("PT DO B","AVANTE"),("PSDC","DC"),("SD","SOLIDARIEDADE"),("PRB","REPUBLICANOS"),("PPS","CIDADANIA"),("PTC","AGIR"),("PMN","MOBILIZA"),("PMB","DEMOCRATA"),("PR","PL"))
+from domain.normalization import PARTY_CONTRACT
+PARTY_NAME_GROUPS=tuple(tuple(group) for group in PARTY_CONTRACT['nameGroups'])
 UFS=('CE','MA','MS','RJ','RN','RS')
 MUNICIPAIS=('VEREADOR','PREFEITO')
 

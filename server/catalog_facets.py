@@ -1,10 +1,10 @@
 """Presentation keys shared by facet lists and SQL predicates; source records stay intact."""
 import re,unicodedata
 FIELDS=('escolaridade','genero','raca','ocupacao')
-MISSING=('','NE','NI','NULO','NULL','NAOINFORMADO','NAOINFORMADA','SEMINFORMACAONAFONTE')
+from domain.normalization import MISSING_CODES, text_key
+MISSING=MISSING_CODES
 def facet_key(field,value):
- text=''.join(c for c in unicodedata.normalize('NFD',str(value or '').upper()) if unicodedata.category(c)!='Mn')
- key=re.sub('[^A-Z0-9]','',text)
+ key=text_key(value)
  if key in MISSING:return 'SEMINFORMACAONAFONTE'
  if field=='escolaridade' and key.startswith('ENSINO'):key=key[6:]
  return key

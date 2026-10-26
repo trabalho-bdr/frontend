@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "missingCodes": [
+    "",
+    "NE",
+    "NI",
+    "NA",
+    "NULO",
+    "NULL",
+    "NAOINFORMADO",
+    "NAOINFORMADA",
+    "SEMINFORMACAO",
+    "SEMINFORMACAONAFONTE"
+  ],
+  "missingLabel": "Sem informação na fonte",
+  "restrictedCodes": [
+    "NAODIVULGAVEL"
+  ],
+  "restrictedLabel": "Não divulgável"
+}
