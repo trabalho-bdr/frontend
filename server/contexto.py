@@ -4,7 +4,9 @@ router=APIRouter(prefix='/api/contexto',tags=['contexto'])
 
 @router.get('/opcoes')
 def options(ano:int=2024,cargo:str='VEREADOR',uf:str=''):
-    from app import _rows,DB,_uf,_year
+    from core.dependencies import execute as _rows
+    from core.config import DB
+    from domain.scope import validate_uf as _uf, validate_year as _year
     _year(ano);_uf(uf)
     if cargo not in ('VEREADOR','DEPUTADO ESTADUAL','DEPUTADO FEDERAL'):
         raise HTTPException(422,'Selecione um cargo proporcional.')

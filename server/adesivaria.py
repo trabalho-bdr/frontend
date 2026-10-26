@@ -44,7 +44,7 @@ def validate(ano,uf,partido,cargo,abrangencia,municipio,material):
 
 
 def read(sql,args=()):
-    from app import _rows
+    from core.dependencies import execute as _rows
     return _rows(sql,args)
 
 

@@ -29,7 +29,8 @@ IBGE_REGEX = re.compile(r'^\d{7}$')
 
 
 def _get_query_runner():
-    from app import _rows, _resolve_db
+    from core.dependencies import execute as _rows
+    from core.database import resolve_database as _resolve_db
     return _rows, _resolve_db
 
 

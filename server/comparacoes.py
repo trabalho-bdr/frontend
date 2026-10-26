@@ -30,7 +30,7 @@ def _select(uf: str | None, cargo: str | None, ano: int | None, partido: str | N
 
 def _rows(sql, params):
     # Import tardio mantém os testes unitários leves e utiliza conexão somente leitura.
-    from app import _rows as run
+    from core.dependencies import execute as run
     return run(sql,params)
 
 

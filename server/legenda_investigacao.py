@@ -25,7 +25,8 @@ def validate(cargo, uf, partido, municipio):
 
 
 def read(sql, params):
-    from app import _rows, DB
+    from core.dependencies import execute as _rows
+    from core.config import DB
     try:
         return _rows(sql.replace('{db}', DB), params)
     except Exception:

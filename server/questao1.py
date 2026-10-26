@@ -65,7 +65,7 @@ def _valida_recorte(ano: int, cargo: str, uf: str | None = None, municipio_id: s
 
 
 def _rows(sql, params):
-    from app import _rows as run
+    from core.dependencies import execute as run
     return run(sql, params)
 
 

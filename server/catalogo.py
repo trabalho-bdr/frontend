@@ -12,7 +12,7 @@ UFS=('CE','MA','MS','RJ','RN','RS')
 MUNICIPAIS=('VEREADOR','PREFEITO')
 
 def read(sql,params=()):
-    from app import _rows
+    from core.dependencies import execute as _rows
     try:return _rows(sql,params)
     except HTTPException:raise
     except Exception:raise HTTPException(503,'O catálogo não pôde ser consultado. Tente novamente.')

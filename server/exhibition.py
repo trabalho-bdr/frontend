@@ -6,14 +6,15 @@ router = APIRouter(prefix='/api/exposicao', tags=['exposicao'])
 UFS = ('CE', 'MA', 'MS', 'RJ', 'RN', 'RS')
 
 def read(sql, params=()):
-    from app import _rows, DB
+    from core.dependencies import execute as _rows
+    from core.config import DB
     try:
         return _rows(sql.replace('{db}', DB), params)
     except Exception:
         raise HTTPException(503, 'Não foi possível atualizar esta descoberta.')
 
 def response(rows, scope, method):
-    from app import DB
+    from core.config import DB
     return {'rows':rows,'scope':scope,'source':'live','database':'pipeline_bdr_der_completo_v4',
             'extracted_at':datetime.now(timezone.utc).isoformat(),'method':method}
 

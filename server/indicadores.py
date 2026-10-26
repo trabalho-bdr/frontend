@@ -19,7 +19,8 @@ CARGOS_TODOS = ('VEREADOR', 'PREFEITO', 'DEPUTADO ESTADUAL', 'DEPUTADO FEDERAL',
 
 
 def _get_runner():
-    from app import _rows, DB
+    from core.dependencies import execute as _rows
+    from core.config import DB
     return _rows, DB
 
 

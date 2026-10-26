@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import Mock,patch
 from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'server'))
-import app
+from core import database as app
 class MotherDuckConnectionTests(unittest.TestCase):
  def setUp(self):
   self.con=Mock()

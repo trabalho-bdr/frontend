@@ -67,7 +67,16 @@ def _conexao():
         return _con
 
 
+_query_runner=None
+_year_resolver=None
+def configure(query_runner,database_name,year_resolver):
+    global _query_runner,_year_resolver,BANCO
+    _query_runner=query_runner
+    _year_resolver=year_resolver
+    BANCO=database_name
+
 def _consultar(sql, params=()):
+    if _query_runner is not None:return _query_runner(sql,params)
     try:
         cur = _conexao().cursor()
         try:
@@ -96,6 +105,7 @@ def _limpo(v):
 _col_ano = None
 
 def _obter_coluna_ano():
+    if _year_resolver is not None:return _year_resolver()
     global _col_ano
     if _col_ano is None:
         try:

@@ -24,58 +24,16 @@ app.include_router(questao2_router)
 from indicadores import router as indicadores_router, diagnostico_base
 app.include_router(indicadores_router)
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"], allow_methods=["GET"], allow_headers=["*"])
-_lock = threading.RLock()
-_con = None
-_query_cache = {}
-# Nome real do banco; usado diretamente nas consultas.
-DB = 'pipeline_bdr_der_completo_v4'
-ALLOWED_UF = {'RS', 'MA', 'CE', 'RN', 'RJ', 'MS'}
-YEARS = set(range(2002, 2025, 2))
-
-
-def _open():
-    global _con
-    with _lock:
-        if _con is not None:
-            return _con
-        if not os.getenv('MOTHERDUCK_TOKEN'):
-            raise RuntimeError('MOTHERDUCK_TOKEN não configurado no servidor')
-        # A extensão MotherDuck lê esta variável em minúsculas. O servidor
-        # recebe a credencial como MOTHERDUCK_TOKEN no arquivo .env.
-        os.environ['motherduck_token'] = os.environ['MOTHERDUCK_TOKEN']
-        import duckdb
-        # Start locally, then attach only the verified v4 database read-only.
-        # Workspace auto-attachment can fail on unrelated/stale database aliases.
-        target = os.getenv('MOTHERDUCK_DATABASE', 'md:pipeline_bdr_der_completo_v4')
-        if target != 'md:pipeline_bdr_der_completo_v4':
-            raise RuntimeError('MOTHERDUCK_DATABASE deve apontar para pipeline_bdr_der_completo_v4')
-        con = duckdb.connect(target+'?attach_mode=single', read_only=True)
-        _con = con
-        return con
-
-
-def _rows(sql, params=()):
-    if not re.match(r'^\s*(SELECT|WITH|DESCRIBE|PRAGMA)\b', sql, re.I):
-        raise RuntimeError('A API permite somente consultas de leitura')
-    key=(sql,tuple(params))
-    with _lock:
-        cached=_query_cache.get(key)
-        if cached and time.monotonic()-cached[0]<60:
-            return deepcopy(cached[1])
-        con = _open()
-        cur = con.execute(sql, list(params))
-        cols = [x[0] for x in cur.description]
-        result = cur.fetchall()
-    def clean(v):
-        if isinstance(v, Decimal): return float(v)
-        if isinstance(v, (datetime, date)): return v.isoformat()
-        return v
-    rows=[dict(zip(cols, (clean(v) for v in row))) for row in result]
-    with _lock:
-        if len(_query_cache)>=128:
-            _query_cache.pop(next(iter(_query_cache)))
-        _query_cache[key]=(time.monotonic(),rows)
-    return deepcopy(rows)
+from core import database
+from core.config import DB,UFS
+from core.dependencies import configure_query_runner
+_lock=database._lock
+_query_cache=database._query_cache
+_open=database._open
+_rows=database._rows
+ALLOWED_UF=set(UFS)
+YEARS=set(range(2002,2025,2))
+configure_query_runner(lambda sql,params=(): _rows(sql,params))
 
 
 def _year(value: int | None):
@@ -443,14 +401,13 @@ def _consultar_paineis(sql, params=()):
     except Exception:
         raise HTTPException(503, 'N?o foi poss?vel consultar este recorte do acervo.')
 
-bdr_paineis._consultar = _consultar_paineis
-bdr_paineis.BANCO = DB
+
 def _coluna_ano_paineis():
     rows = _consultar_paineis('DESCRIBE "Participacao_Eleitoral"')
     columns = {row['column_name'].lower() for row in rows}
     return 'ano' if 'ano' in columns else 'ano_participacao'
 
-bdr_paineis._obter_coluna_ano = _coluna_ano_paineis
+bdr_paineis.configure(_consultar_paineis, DB, _coluna_ano_paineis)
 app.include_router(bdr_paineis.app.router, prefix='/api/bdr')
 
 from exhibition import router as exhibition_router
