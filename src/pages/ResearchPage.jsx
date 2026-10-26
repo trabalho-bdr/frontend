@@ -83,7 +83,7 @@ export default function ResearchPage({ question, onGo, embedded = false }) {
 const MUNICIPAL_CARGOS = ['VEREADOR', 'PREFEITO', 'VICE-PREFEITO'];
 const isMunicipalCargo = (c) => MUNICIPAL_CARGOS.includes(String(c || '').toUpperCase());
 
-const Q6_CARGOS = [
+const Q_ALL_OFFICES_CARGOS = [
   { value: 'VEREADOR', label: 'Vereador', description: 'Eleições Municipais (2024, 2020)' },
   { value: 'PREFEITO', label: 'Prefeito', description: 'Eleições Municipais (2024, 2020)' },
   { value: 'DEPUTADO FEDERAL', label: 'Deputado Federal', description: 'Eleições Gerais (2022, 2018)' },
@@ -94,7 +94,7 @@ const Q6_CARGOS = [
   { value: 'VICE-GOVERNADOR', label: 'Vice-Governador', description: 'Eleições Gerais (2022, 2018)' },
 ];
 
-const Q6_YEARS = [
+const Q_ALL_OFFICES_YEARS = [
   { value: '2024', label: '2024 · Eleições Municipais' },
   { value: '2022', label: '2022 · Eleições Gerais · em validação' },
   { value: '2020', label: '2020 · Eleições Municipais · em validação' },
@@ -108,7 +108,7 @@ function Question({ q, definition, onGo, embedded }) {
     allowed && !allowed.includes(initial.cargo) ? 'VEREADOR' : initial.cargo || 'VEREADOR';
   const initialYear = (() => {
     if (getQuestion(q).validatedYear) return '2024';
-    if (q === 6) {
+    if ([3, 6].includes(q)) {
       const isMun = isMunicipalCargo(initialCargo);
       if (isMun)
         return ['2024', '2020'].includes(String(initial.ano)) ? String(initial.ano) : '2024';
@@ -134,7 +134,7 @@ function Question({ q, definition, onGo, embedded }) {
   const metaState = useCatalog('opcoes', { ano: year, uf, cargo }),
     meta = metaState.data;
   const years =
-    q === 6
+    [3, 6].includes(q)
       ? isMunicipalCargo(cargo)
         ? ['2024', '2020']
         : ['2022', '2018']
@@ -146,7 +146,7 @@ function Question({ q, definition, onGo, embedded }) {
           ),
         ];
   useEffect(() => {
-    if (q !== 6 && years.length && !years.includes(year)) setYear(years[0]);
+    if (![3, 6].includes(q) && years.length && !years.includes(year)) setYear(years[0]);
   }, [years.join('|'), year, q]);
   useEffect(() => {
     if (q !== 9)
@@ -257,8 +257,8 @@ function Question({ q, definition, onGo, embedded }) {
           label={q === 10 ? 'Referência do recorte · série 2002–2024' : 'Ano da eleição'}
           value={year}
           options={
-            q === 6
-              ? Q6_YEARS
+            [3, 6].includes(q)
+              ? Q_ALL_OFFICES_YEARS
               : (years.length ? years : [year]).map((value) => ({
                   value,
                   label:
@@ -268,7 +268,7 @@ function Question({ q, definition, onGo, embedded }) {
           }
           onChange={(newYear) => {
             setYear(newYear);
-            if (q === 6) {
+            if ([3, 6].includes(q)) {
               const isMunYear = ['2024', '2020'].includes(newYear);
               const isMun = isMunicipalCargo(cargo);
               if (isMunYear && !isMun) {
@@ -285,14 +285,14 @@ function Question({ q, definition, onGo, embedded }) {
           label="Cargo"
           value={cargo}
           options={
-            q === 6
-              ? Q6_CARGOS
+            [3, 6].includes(q)
+              ? Q_ALL_OFFICES_CARGOS
               : allowed || [...new Set((meta?.eleicoes || []).map((e) => e.cargo))]
           }
           onChange={(newCargo) => {
             setCargo(newCargo);
             setTown('');
-            if (q === 6) {
+            if ([3, 6].includes(q)) {
               const isMun = isMunicipalCargo(newCargo);
               if (isMun && !['2024', '2020'].includes(year)) {
                 setYear('2024');

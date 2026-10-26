@@ -12,6 +12,16 @@ test('all ten questions expose stable definitions and appropriate exploration ca
  assert.equal(questionModules[4].validatedYear,true);
  assert.equal(questionModules[6].validatedYear,false);
  assert.deepEqual(questionModules[5].allowedCargos,['VEREADOR','DEPUTADO ESTADUAL','DEPUTADO FEDERAL']);
+ assert.deepEqual(questionModules[3].allowedCargos,[
+  'VEREADOR',
+  'PREFEITO',
+  'DEPUTADO FEDERAL',
+  'DEPUTADO ESTADUAL',
+  'SENADOR',
+  'GOVERNADOR',
+  'VICE-PREFEITO',
+  'VICE-GOVERNADOR',
+ ]);
  assert.deepEqual(questionModules[6].allowedCargos,[
   'VEREADOR',
   'PREFEITO',
