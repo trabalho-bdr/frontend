@@ -1,16 +1,16 @@
 import {test} from 'node:test';
 import {strict as assert} from 'node:assert';
 import {readFileSync} from 'node:fs';
-import {sampleExpenses} from '../src/data/despesas-amostra.js';
+import {sampleExpenses} from './fixtures/legacy/despesas-amostra.js';
 const file=x=>readFileSync(new URL('../'+x,import.meta.url),'utf8');
 test('candidatura da captura possui lançamentos reais na amostra',()=>{
  const bella=sampleExpenses['9b5b61d4d865c3e35a852bc6543dfb48'];
  assert.ok(bella?.length>0); assert.ok(bella.every(x=>x.valor>0&&x.categoria&&x.id));
 });
-test('novo fichário é uma caixa 3D com divisórias indexadas e ficha que gira',()=>{
- const src=file('src/components/Arquivo3D.jsx');
- for(const key of ['Canvas','OrbitControls','IndexDivider','RowCard','Extracted','rotation.y','createCandidateTexture','candidate.numero','candidate.nome','candidate.partido','candidate.votos','candidate.gastos','candidate.patrimonio']) assert.ok(src.includes(key),key);
- assert.ok(src.includes('onFlip()'));
+test('o perfil integra o álbum de trajetórias e mantém os dados de registro legíveis',()=>{
+ const src=file('src/pages/PersonProfile.jsx');
+ assert.ok(src.includes('TrajectoryAlbum'));
+ assert.ok(src.includes('sourceValue'));
 });
 test('novo documento fiscal é uma representação, sem inventar NF original',()=>{
  const src=file('src/pages/PrestacaoDeContas.jsx');
@@ -23,7 +23,7 @@ test('a paginação das folhas fiscais busca mais do que os 35 primeiros registr
  const src=file('src/pages/PrestacaoDeContas.jsx');
  const api=file('server/app.py');
  assert.ok(src.includes('expenseOffset')); assert.ok(src.includes('limit:40'));
- assert.ok(api.includes('total_filtered'));assert.ok(api.includes('OFFSET ?'));
+ assert.ok(api.includes('total_filtered'));assert.ok(file('server/compatibility/sql/app/app_candidate_expenses_05.sql').includes('OFFSET ?'));
 });
 test('adesivaria separa síntese, nuvem normalizada e investigação de candidaturas',()=>{
  const jsx=file('src/pages/Adesivaria.jsx');

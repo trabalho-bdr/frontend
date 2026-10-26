@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {drawerOptions,optionsForFacet,matchesCandidate,compareIsEquivalent} from '../src/arquivo/filing.js';
+import {drawerOptions,optionsForFacet,matchesCandidate,compareIsEquivalent} from './fixtures/legacy/filing.js';
 const x={id:'1',nome:'JOÃO DA SILVA',numero:13000,municipio:'São Luís',partido:'PT',uf:'MA',ano:2024,cargo:'VEREADOR',resultado:'NÃO ELEITO'};
 test('reorganiza gavetas por facetas e páginas',()=>{
  assert.deepEqual(optionsForFacet('ano').slice(0,4),['2024','2022','2020','2018']);

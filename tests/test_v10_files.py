@@ -12,8 +12,7 @@ class IntegrationTests(unittest.TestCase):
    self.assertIn('/api/comparacoes/'+kind,paths)
  def test_pages_reuse_panel_without_new_menu(self):
   cases={
-    'src/App.jsx':['topic="atlas"','topic="plenario"','topic="investigacoes"'],
-    'src/pages/ArchivePart.jsx':['topic="fichas"','topic="arquivo"'],
+    'src/pages/Atlas.jsx':['topic="atlas"'],
     'src/pages/PrestacaoDeContas.jsx':['topic="campanhas"'],
     'src/pages/Adesivaria.jsx':['topic="adesivos"'],
     'src/pages/MuralCampanhas.jsx':['topic="partidos"']

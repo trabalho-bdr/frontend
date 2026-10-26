@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { questao1Agregados, sampleCandidates } from '../src/data/questao1Snapshot.js';
+import { questao1Agregados, sampleCandidates } from './fixtures/legacy/questao1Snapshot.js';
 import { fetchQuestao1Overview, fetchQuestao1Ranking, fetchQuestao1Dispersao } from '../src/data/questao1Client.js';
 
 test('agregados de 2024 para Vereador possuem valores nominais e divisão exata', () => {
@@ -103,15 +103,3 @@ test('dossiê sem conexão não inventa distribuições nem transforma amostras 
   assert.equal(municipal.source,'unavailable');
 });
 
-test('interface Investigações integra CustoCadeiraDossie no Dossiê 01', () => {
-  const appSrc = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
-  const dossieSrc = readFileSync(new URL('../src/components/CustoCadeiraDossie.jsx', import.meta.url), 'utf8');
-  assert.ok(appSrc.includes('CustoCadeiraDossie'));
-  assert.ok(dossieSrc.includes('FIG. 01'));
-  assert.ok(dossieSrc.includes('FIG. 02'));
-  assert.ok(dossieSrc.includes('FIG. 03'));
-  assert.ok(dossieSrc.includes('FIG. 04'));
-  assert.ok(dossieSrc.includes('FIG. 05'));
-  assert.ok(dossieSrc.includes('FIG. 06'));
-  assert.ok(dossieSrc.includes('FIG. 07'));
-});

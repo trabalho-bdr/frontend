@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {savedEvidence,correlation,transitions,questionDestinations,themes} from '../src/data/exhibition.js';
 import fixture from '../src/data/exhibitionSnapshot.json' with {type:'json'};
-import {wealthFallback} from '../src/data/wealthFallback.js';
+import {wealthFallback} from './fixtures/legacy/wealthFallback.js';
 test('archived territory is complete and state filters retain their actual scope',()=>{
  assert.equal(savedEvidence('territorio',{ano:2024}),null);const full=fixture.territorio;assert.equal(full.database,'pipeline_bdr_der_completo_v4');assert.equal(full.rows.length,1236);assert.equal(new Set(full.rows.map(r=>r.id)).size,1236);
  const ce={rows:fixture.territorio.rows.filter(row=>row.uf==='CE')};assert.equal(ce.rows.length,184);assert.ok(ce.rows.every(r=>r.uf==='CE'));

@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {seriesStyle,comparisonFindings,compactChartValue} from '../src/data/comparisonPresentation.js';
 import {buildComparisonChart} from '../src/data/comparisonLogic.js';
-import {comparisonSnapshot} from '../src/data/comparisonSnapshot.js';
+import {comparisonSnapshot} from './fixtures/legacy/comparisonSnapshot.js';
 import {territorialFindings} from '../src/atlas/data.js';
-import {municipiosAmostra} from '../src/data/municipios-amostra.js';
+import {municipiosAmostra} from './fixtures/legacy/municipios-amostra.js';
 
 test('identidade da série permanece estável ao trocar filtros e ordem',()=>{
  const first=new Map(['PT','PL','CE','RJ','RS'].map(key=>[key,seriesStyle(key)]));

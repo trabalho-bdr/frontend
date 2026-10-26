@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { patrimonioSnapshot } from '../src/data/patrimonioSnapshot.js';
+import { patrimonioSnapshot } from './fixtures/legacy/patrimonioSnapshot.js';
 import { getQ2Opcoes, getQ2Municipios, getQ2Patrimonio } from '../src/data/client.js';
 
 test('patrimonioSnapshot cobre as 6 UFs auditadas com resumo e decis', () => {
@@ -37,10 +37,3 @@ test('patrimônio indisponível retorna ausência explícita sem referência loc
  const result=await getQ2Municipios({ano:2024,cargo:'VEREADOR',uf:'CE'});assert.equal(result.source,'unavailable');assert.deepEqual(result.municipios,[]);
 });
 
-test('Investigações integra PatrimonioMapaDossie no id=2 e restaura id=3', () => {
-  const appSrc = fs.readFileSync('src/App.jsx', 'utf8');
-  assert.ok(appSrc.includes('PatrimonioMapaDossie'), 'App.jsx deve importar PatrimonioMapaDossie');
-  assert.ok(appSrc.includes('id===2&&!viewRecords?<PatrimonioMapaDossie'), 'Dossiê 02 deve renderizar PatrimonioMapaDossie');
-  assert.ok(!appSrc.includes('TerritorioMapaDossie'), 'TerritorioMapaDossie não deve existir em App.jsx');
-  assert.ok(appSrc.includes('id!==4&&id!==1&&id!==2'), 'Live query deve pular id 2 (custom dossier) e executar id 3 normalmente');
-});

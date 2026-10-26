@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {buildComparisonChart,comparisonMetrics,formatComparisonValue,isComparableCandidates} from '../src/data/comparisonLogic.js';
-import {comparisonSnapshot} from '../src/data/comparisonSnapshot.js';
+import {comparisonSnapshot} from './fixtures/legacy/comparisonSnapshot.js';
 
 test('linha temporal preserva lacunas, sem inventar zero em anos sem dado',()=>{
  const chart=buildComparisonChart('legenda',[{ano:2022,serie:'PL',valor:5.58}], 'valor',[2018,2022]);

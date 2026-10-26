@@ -1,4 +1,4 @@
-import reference from './v4Reference.json' with {type:'json'};
+import reference from '../../../src/data/v4Reference.json' with {type:'json'};
 const archive={municipios_br:reference.wealthMaps[''],municipios_por_uf:reference.wealthMaps,resumo_br:reference.wealthSummaries[''],resumos_uf:reference.wealthSummaries};
 export function wealthFallback(kind,{ano=2024,cargo='VEREADOR',uf='',municipio=''}={}){
  const scope={ano:Number(ano),cargo,uf,municipio};const empty={...scope,source:'unavailable',municipios:[],ufs:[],resumo_situacao:[],decis:[],correlacao:{linear:null,log:null},cobertura:{total:null,validos:null,cobertura_pct:null}};

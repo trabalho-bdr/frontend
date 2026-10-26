@@ -4,8 +4,8 @@ import {readFileSync} from 'node:fs';
 import {geoArea,geoMercator,geoPath} from 'd3-geo';
 import {COVERAGE,MAP_COLORS,NO_DATA_COLOR,indicatorSettings,indicatorLegend,hasIndicatorValue,formatIndicator,prepareGeography,municipalityId,mapColor} from '../src/atlas/geography.js';
 import {loadAtlasMunicipios,atlasCoverage,filterAtlasRows} from '../src/atlas/data.js';
-import {states} from '../src/data/snapshot.js';
-import {municipiosAmostra} from '../src/data/municipios-amostra.js';
+import {states} from './fixtures/legacy/snapshot.js';
+import {municipiosAmostra} from './fixtures/legacy/municipios-amostra.js';
 const load=name=>JSON.parse(readFileSync(new URL(`../public/maps/${name}.geojson`,import.meta.url)));
 test('malhas do acervo contêm 1.236 códigos únicos e toda a amostra',()=>{
  const features=COVERAGE.flatMap(uf=>load(uf).features);
