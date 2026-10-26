@@ -1,0 +1,253 @@
+[
+  {
+    "module": "server/adesivaria.py",
+    "routes": [
+      "categorias"
+    ]
+  },
+  {
+    "module": "server/app.py",
+    "routes": [
+      "/api/diagnostico",
+      "/api/health",
+      "/api/overview",
+      "/api/candidates",
+      "/api/candidate-expenses/{candidate_id}",
+      "/api/anos",
+      "/api/q3/{uf}/{ano}",
+      "/api/municipios",
+      "/api/analysis/{question}",
+      "/api/despesas/resumo-categorias",
+      "/api/despesas/regras",
+      "/api/descobertas",
+      "/api/adesivaria",
+      "/api/adesivaria/candidatura/{candidate_id}"
+    ]
+  },
+  {
+    "module": "server/catalogo.py",
+    "routes": [
+      "/candidaturas",
+      "/pessoas",
+      "/opcoes",
+      "/pessoas/{person_id}",
+      "/candidaturas/{candidate_id}",
+      "/fotos/{candidate_id}",
+      "/estados",
+      "/estados/{uf}/municipios",
+      "/municipios/{municipio}",
+      "/legendas",
+      "q",
+      "recorrencia",
+      "recorrencia",
+      "partido",
+      "ano",
+      "cargo",
+      "uf",
+      "id_candidato",
+      "cargo",
+      "cargo",
+      "partido_historico",
+      "municipio",
+      "id_candidato"
+    ]
+  },
+  {
+    "module": "server/catalog_facets.py",
+    "routes": []
+  },
+  {
+    "module": "server/comparacoes.py",
+    "routes": [
+      "/legenda",
+      "/abstencao",
+      "/cadeiras",
+      "/escolaridade",
+      "/propaganda",
+      "/patrimonio"
+    ]
+  },
+  {
+    "module": "server/contexto.py",
+    "routes": [
+      "/opcoes"
+    ]
+  },
+  {
+    "module": "server/exhibition.py",
+    "routes": [
+      "/partidos",
+      "/territorio",
+      "/transicoes",
+      "/continuidade",
+      "/gastos",
+      "/trajetoria/{candidate_id}",
+      "/escolaridade",
+      "/patrimonio",
+      "/proporcional"
+    ]
+  },
+  {
+    "module": "server/indicadores.py",
+    "routes": [
+      "/diagnostico",
+      "/resultado",
+      "/gastos",
+      "/patrimonio",
+      "/legenda",
+      "/transicoes",
+      "/territorio",
+      "/escolaridade",
+      "/juventude",
+      "/trajetorias",
+      "/propaganda",
+      "/receitas"
+    ]
+  },
+  {
+    "module": "server/legenda_investigacao.py",
+    "routes": [
+      "/serie"
+    ]
+  },
+  {
+    "module": "server/party_events.py",
+    "routes": []
+  },
+  {
+    "module": "server/pesquisa.py",
+    "routes": [
+      "/{question}",
+      "/{question}/municipios",
+      "candidaturas",
+      "conhecidos",
+      "status",
+      "superior_18",
+      "instrucao_conhecida_18",
+      "superior",
+      "conhecidos",
+      "municipio_id",
+      "points",
+      "factors",
+      "jovens_16_17",
+      "jovens_18_24",
+      "jovens_25_29",
+      "idade_conhecida",
+      "participacao_partido",
+      "abstencao",
+      "error",
+      "siglas_observadas"
+    ]
+  },
+  {
+    "module": "server/questao1.py",
+    "routes": [
+      "/partidos",
+      "/eleitos",
+      "/explorar",
+      "/overview",
+      "/ranking",
+      "/dispersao",
+      "/dossie",
+      "mediana_gastos_eleitos",
+      "mediana_gastos_nao_eleitos",
+      "gasto_por_cadeira",
+      "gasto_por_cadeira",
+      "validos_scatter",
+      "total_universo",
+      "excluidos_zero_ou_nulo",
+      "municipio",
+      "municipio",
+      "mediana_gastos_scatter",
+      "mediana_votos_scatter",
+      "r_log",
+      "r2_log",
+      "r_linear"
+    ]
+  },
+  {
+    "module": "server/questao2.py",
+    "routes": [
+      "/opcoes",
+      "/municipios",
+      "/patrimonio",
+      "/resumo"
+    ]
+  },
+  {
+    "module": "server/refresh_v4_reference.py",
+    "routes": []
+  },
+  {
+    "module": "server/run.py",
+    "routes": []
+  },
+  {
+    "module": "server/bdr_paineis/consultas_apuracao.py",
+    "routes": []
+  },
+  {
+    "module": "server/bdr_paineis/main.py",
+    "routes": [
+      "/anos",
+      "/q3/{uf}/{ano}",
+      "/legenda/opcoes",
+      "/legenda/{uf}/{ano}",
+      "/q2/opcoes",
+      "/q2/municipios",
+      "/q2/patrimonio",
+      "/q9/opcoes",
+      "/q9/partidos",
+      "/q9/evolucao",
+      "/q9/candidatos",
+      "/q9/despesas",
+      "BDR_BANCO",
+      "BDR_CORS",
+      "MOTHERDUCK_TOKEN",
+      "motherduck_token",
+      "MOTHERDUCK_TOKEN",
+      "motherduck_token"
+    ]
+  },
+  {
+    "module": "server/bdr_paineis/q2.py",
+    "routes": []
+  },
+  {
+    "module": "server/bdr_paineis/q9.py",
+    "routes": []
+  },
+  {
+    "module": "server/bdr_paineis/q9_evolucao.py",
+    "routes": []
+  },
+  {
+    "module": "server/bdr_paineis/__init__.py",
+    "routes": []
+  },
+  {
+    "module": "server/q9_normalizacao/gerar_normalizacao.py",
+    "routes": [
+      "registros_agregados",
+      "valor_contratado"
+    ]
+  },
+  {
+    "module": "server/q9_normalizacao/__init__.py",
+    "routes": []
+  },
+  {
+    "module": "server/scripts/refresh_ipca.py",
+    "routes": []
+  },
+  {
+    "module": "server/scripts/refresh_receitas.py",
+    "routes": [
+      "name"
+    ]
+  },
+  {
+    "module": "server/scripts/remote_receipts.py",
+    "routes": []
+  }
+]
