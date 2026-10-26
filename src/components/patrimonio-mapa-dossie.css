@@ -7,7 +7,15 @@
 
 .pmd-dossier {
   color: #0f172a;
-  font-family: var(--br-body, 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-family: var(
+    --br-body,
+    'DM Sans',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif
+  );
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -249,10 +257,18 @@
   height: 3px;
 }
 
-.pmd-kpi.tone-navy::after { background: #174a8b; }
-.pmd-kpi.tone-slate::after { background: #24669b; }
-.pmd-kpi.tone-brick::after { background: #ba4a3a; }
-.pmd-kpi.tone-gold::after { background: #d99b26; }
+.pmd-kpi.tone-navy::after {
+  background: #174a8b;
+}
+.pmd-kpi.tone-slate::after {
+  background: #24669b;
+}
+.pmd-kpi.tone-brick::after {
+  background: #ba4a3a;
+}
+.pmd-kpi.tone-gold::after {
+  background: #d99b26;
+}
 
 .pmd-kpi span {
   font: 700 10px var(--br-mono, monospace);
@@ -332,7 +348,9 @@
   cursor: pointer;
   stroke: rgba(255, 255, 255, 0.4);
   stroke-width: 0.5px;
-  transition: stroke 0.15s, stroke-width 0.15s;
+  transition:
+    stroke 0.15s,
+    stroke-width 0.15s;
 }
 
 .pmd-map-svg path.mun-path:hover {
@@ -638,7 +656,9 @@
   width: 80%;
   background: #174a8b;
   border-radius: 3px 3px 0 0;
-  transition: height 0.3s ease, background 0.15s;
+  transition:
+    height 0.3s ease,
+    background 0.15s;
   min-height: 4px;
 }
 

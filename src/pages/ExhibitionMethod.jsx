@@ -1,10 +1,61 @@
-import {analyses} from '../data/catalog.js';
-import {Lead,Explore} from '../components/exhibition/Story.jsx';
-export default function ExhibitionMethod({onResearch,onLegacy}){return <section className="expo-story"><Lead kicker="CADERNO DE MÉTODO" question="Como sabemos disso?" discovery="Cada descoberta deve ligar uma pergunta a um recorte, um cálculo reproduzível e seus limites."/><div className="expo-method-grid">{[
- ['Fonte e cobertura','O acervo cobre CE, MA, MS, RJ, RN e RS. As consultas atuais e as referências locais desta exposição foram obtidas a partir dos registros oficiais de prestação de contas e candidaturas eleitorais. A data e o recorte são informados junto dos resultados.'],
- ['Qual é o denominador?','Taxas de eleição usam candidaturas com resultado definido. Retorno usa pessoas da coorte de origem. O tamanho dos grupos acompanha a evidência; amostras carregadas não são rankings completos.'],
- ['Associação e incerteza','Correlação e diferenças entre taxas são descrições. Não publicamos efeitos causais, significância, intervalos de confiança ou modelos ajustados sem cálculo e validação.'],
- ['Tempos diferentes','Gastos são nominais, sem ajuste de inflação. IDHM é de 2010. População e PIB têm referência 2022; não representam evolução do IDHM até esse ano.'],
- ['Ausência não é zero','Sem informação financeira ou resultado, o indicador permanece indisponível. Filtros sem consulta ou arquivo correspondente não reutilizam dados de outro recorte.'],
- ['O que ainda falta','Receitas públicas/privadas, perfil do eleitorado, exercício de mandatos e cassações verificadas dependem de fontes adicionais. Uma pessoa que não volta a concorrer pode continuar na política.']
- ].map(([title,text])=><article key={title}><h3>{title}</h3><p>{text}</p></article>)}</div><Explore title="Índice das perguntas e critérios originais"><p>Os links antigos continuam acessíveis. As histórias agora estão distribuídas pelos ambientes correspondentes.</p>{analyses.map(a=><article key={a.id}><button onClick={()=>onResearch(a.id)}>Q{a.id} · {a.title} ↗</button><p>{a.note}</p><button onClick={()=>onLegacy(a.id)}>Consultar a apresentação original ↗</button></article>)}</Explore></section>}
+import { analyses } from '../data/catalog.js';
+import { Lead, Explore } from '../components/exhibition/Story.jsx';
+export default function ExhibitionMethod({ onResearch, onLegacy }) {
+  return (
+    <section className="expo-story">
+      <Lead
+        kicker="CADERNO DE MÉTODO"
+        question="Como sabemos disso?"
+        discovery="Cada descoberta deve ligar uma pergunta a um recorte, um cálculo reproduzível e seus limites."
+      />
+      <div className="expo-method-grid">
+        {[
+          [
+            'Fonte e cobertura',
+            'O acervo cobre CE, MA, MS, RJ, RN e RS. As consultas atuais e as referências locais desta exposição foram obtidas a partir dos registros oficiais de prestação de contas e candidaturas eleitorais. A data e o recorte são informados junto dos resultados.',
+          ],
+          [
+            'Qual é o denominador?',
+            'Taxas de eleição usam candidaturas com resultado definido. Retorno usa pessoas da coorte de origem. O tamanho dos grupos acompanha a evidência; amostras carregadas não são rankings completos.',
+          ],
+          [
+            'Associação e incerteza',
+            'Correlação e diferenças entre taxas são descrições. Não publicamos efeitos causais, significância, intervalos de confiança ou modelos ajustados sem cálculo e validação.',
+          ],
+          [
+            'Tempos diferentes',
+            'Gastos são nominais, sem ajuste de inflação. IDHM é de 2010. População e PIB têm referência 2022; não representam evolução do IDHM até esse ano.',
+          ],
+          [
+            'Ausência não é zero',
+            'Sem informação financeira ou resultado, o indicador permanece indisponível. Filtros sem consulta ou arquivo correspondente não reutilizam dados de outro recorte.',
+          ],
+          [
+            'O que ainda falta',
+            'Receitas públicas/privadas, perfil do eleitorado, exercício de mandatos e cassações verificadas dependem de fontes adicionais. Uma pessoa que não volta a concorrer pode continuar na política.',
+          ],
+        ].map(([title, text]) => (
+          <article key={title}>
+            <h3>{title}</h3>
+            <p>{text}</p>
+          </article>
+        ))}
+      </div>
+      <Explore title="Índice das perguntas e critérios originais">
+        <p>
+          Os links antigos continuam acessíveis. As histórias agora estão distribuídas pelos
+          ambientes correspondentes.
+        </p>
+        {analyses.map((a) => (
+          <article key={a.id}>
+            <button onClick={() => onResearch(a.id)}>
+              Q{a.id} · {a.title} ↗
+            </button>
+            <p>{a.note}</p>
+            <button onClick={() => onLegacy(a.id)}>Consultar a apresentação original ↗</button>
+          </article>
+        ))}
+      </Explore>
+    </section>
+  );
+}

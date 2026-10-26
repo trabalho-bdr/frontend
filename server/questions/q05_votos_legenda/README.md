@@ -1,5 +1,21 @@
 # Q05 — Votos de legenda
 
-Entrada: recorte validado pelo catálogo. `service.calculate` recebe um `ResearchContext` explícito; `sql/` contém consultas desta questão. Fragmentos internos são renderizados pelo carregador SQL; valores do usuário continuam em parâmetros preparados.
+## Responsabilidade e granularidade
 
-Método e limitações são retornados junto aos resultados. Testes de regressão: `tests/test_pesquisa.py` e `tests/test_exploration.py`. Primeiro turno, resultado final, ausências e denominadores preservam os contratos anteriores. Não escrever no banco remoto.
+Partido, município e eleição proporcional no primeiro turno.
+
+## Método preservado
+
+Votos de legenda divididos por votos nominais mais votos de legenda, com contagens completas e eleições equivalentes. Histórico de nomes é opcional.
+
+## Ausências, normalização e limites
+
+Sigla original preservada. Fusões e incorporações não são tratadas como simples renomeações. Não deduzir cadeiras diretamente da proporção.
+
+## Manutenção
+
+- Serviço: `service.py`; consultas: `sql/`. Consultas comuns ficam em `../shared/sql/`, com referência local para evitar cópias.
+- Entrada validada no adaptador HTTP; execução injetada por `ResearchContext`. Valores do usuário usam parâmetros preparados.
+- Frontend correspondente: `src/features/questions/q05_votos_legenda/`.
+- Regressão: `tests/test_pesquisa.py`, `tests/test_exploration.py` e testes específicos da API. Q09 também usa os testes de classificação e evolução monetária.
+- Retornar método, cobertura e limitações junto aos valores. Não alterar denominadores durante uma mudança visual.

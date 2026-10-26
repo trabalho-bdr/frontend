@@ -1,59 +1,805 @@
-import {getQuestion} from '../../features/questions/registry.js';
-import {useCatalog} from '../../catalog/useCatalog.jsx';
-import {lazy,Suspense,useEffect,useMemo,useState} from 'react';
-import {request} from '../../data/client.js';
-import {displayNumber as num,displayMoney as money,candidateContext,emptyCatalogFilters} from '../../catalog/logic.js';
+import { getQuestion } from '../../features/questions/registry.js';
+import { useCatalog } from '../../catalog/useCatalog.jsx';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { request } from '../../data/client.js';
+import {
+  displayNumber as num,
+  displayMoney as money,
+  candidateContext,
+  emptyCatalogFilters,
+} from '../../catalog/logic.js';
 import SearchSelect from '../../catalog/SearchSelect.jsx';
 import PartySelect from '../../catalog/PartySelect.jsx';
 import Portrait from '../../catalog/Portrait.jsx';
-import {partyColors} from '../../catalog/partyColors.js';
+import { partyColors } from '../../catalog/partyColors.js';
 import GeoAtlas from '../GeoAtlas.jsx';
-import {plenarioAssentos} from '../Plenario3D.jsx';
-import {comparisonMetrics,findEvidence,seatInk} from '../../data/exploration.js';
+import { plenarioAssentos } from '../Plenario3D.jsx';
+import { comparisonMetrics, findEvidence, seatInk } from '../../data/exploration.js';
 import './exploration-workbench.css';
-const Chamber=lazy(()=>import('../Plenario3D.jsx'));
-const number=(value,unit)=>value==null?'Sem informação':unit==='money'?money(value):num(value)+(unit==='percent'?'%':'');
-const labels={id:'Identificador',nome:'Nome',uf:'Estado',ano:'Ano',grupo:'Grupo',valor:'Valor representado',x:'Indicador horizontal',y:'Indicador vertical',candidaturas:'Candidaturas',pessoas:'Pessoas',eleitos:'Eleitos registrados',eleitores:'Eleitores',com_despesa:'Com despesa conhecida',despesas:'Despesas conhecidas',gasto_por_eleito:'Despesa conhecida por eleito',patrimonio_mediano:'Patrimônio mediano',taxa_eleicao:'Taxa de eleição (%)',nominais:'Votos nominais',legenda:'Votos de legenda',total:'Total',total_selecionado:'Votos do partido selecionado',vinculadas:'Candidaturas vinculadas à prestação final',receita:'Receita financeira vinculada',publico:'Fundos públicos',incompletos:'Registros incompletos',municipio_id:'Código IBGE',mediana:'Mediana',minimo:'Limite inferior',maximo:'Limite superior',eleitores_conhecidos:'Eleitores com escolaridade conhecida',definidos:'Resultados definidos',intervalo_inferior:'Intervalo de Wilson · inferior (%)',intervalo_superior:'Intervalo de Wilson · superior (%)',origem:'Organização anterior',destino:'Organização posterior',evento:'Evento observado',diferenca_pp:'Diferença candidatos − eleitores (p.p.)',participacao_partido:'Participação partidária (%)',abstencao:'Abstenção municipal (%)',idade_invalida:'Eleitores com idade inválida',idade_conhecida:'Eleitores com idade conhecida'};
-const label=k=>labels[k]||({patrimonio_conhecido:'Com patrimônio conhecido',definidos_com_patrimonio:'Resultados definidos com patrimônio conhecido',eleitos_com_patrimonio:'Eleitos com patrimônio conhecido',nao_classificado:'Origem não classificada',candidatos_conhecidos:'Candidaturas com escolaridade conhecida',superior_18:'Eleitores 18+ com superior completo',instrucao_conhecida_18:'Eleitores 18+ com escolaridade conhecida'})[k]||k.replaceAll('_',' ');
-const moneyKeys=new Set(['despesas','gasto_por_eleito','patrimonio_mediano','receita','publico','mediana','minimo','maximo','recebido','total_corrigido','gasto_eleitos']);
-const recordValue=(key,value,q,mapRecord=false)=>value==null?'Sem informação':typeof value==='number'?(moneyKeys.has(key)||key==='valor'&&(q===1||q===2&&mapRecord)?money(value):['ano','inicio','primeiro','ultimo'].includes(key)?String(value):num(value)):String(value);
-const scopeText=s=>[s.ano,s.cargo,s.uf||'Seis UFs',s.partido||'Todos os partidos',s.municipio?'Município '+(s.municipioNome||s.municipio):'Todos os municípios'].filter(Boolean).join(' · ');
+const Chamber = lazy(() => import('../Plenario3D.jsx'));
+const number = (value, unit) =>
+  value == null
+    ? 'Sem informação'
+    : unit === 'money'
+      ? money(value)
+      : num(value) + (unit === 'percent' ? '%' : '');
+const labels = {
+  id: 'Identificador',
+  nome: 'Nome',
+  uf: 'Estado',
+  ano: 'Ano',
+  grupo: 'Grupo',
+  valor: 'Valor representado',
+  x: 'Indicador horizontal',
+  y: 'Indicador vertical',
+  candidaturas: 'Candidaturas',
+  pessoas: 'Pessoas',
+  eleitos: 'Eleitos registrados',
+  eleitores: 'Eleitores',
+  com_despesa: 'Com despesa conhecida',
+  despesas: 'Despesas conhecidas',
+  gasto_por_eleito: 'Despesa conhecida por eleito',
+  patrimonio_mediano: 'Patrimônio mediano',
+  taxa_eleicao: 'Taxa de eleição (%)',
+  nominais: 'Votos nominais',
+  legenda: 'Votos de legenda',
+  total: 'Total',
+  total_selecionado: 'Votos do partido selecionado',
+  vinculadas: 'Candidaturas vinculadas à prestação final',
+  receita: 'Receita financeira vinculada',
+  publico: 'Fundos públicos',
+  incompletos: 'Registros incompletos',
+  municipio_id: 'Código IBGE',
+  mediana: 'Mediana',
+  minimo: 'Limite inferior',
+  maximo: 'Limite superior',
+  eleitores_conhecidos: 'Eleitores com escolaridade conhecida',
+  definidos: 'Resultados definidos',
+  intervalo_inferior: 'Intervalo de Wilson · inferior (%)',
+  intervalo_superior: 'Intervalo de Wilson · superior (%)',
+  origem: 'Organização anterior',
+  destino: 'Organização posterior',
+  evento: 'Evento observado',
+  diferenca_pp: 'Diferença candidatos − eleitores (p.p.)',
+  participacao_partido: 'Participação partidária (%)',
+  abstencao: 'Abstenção municipal (%)',
+  idade_invalida: 'Eleitores com idade inválida',
+  idade_conhecida: 'Eleitores com idade conhecida',
+};
+const label = (k) =>
+  labels[k] ||
+  {
+    patrimonio_conhecido: 'Com patrimônio conhecido',
+    definidos_com_patrimonio: 'Resultados definidos com patrimônio conhecido',
+    eleitos_com_patrimonio: 'Eleitos com patrimônio conhecido',
+    nao_classificado: 'Origem não classificada',
+    candidatos_conhecidos: 'Candidaturas com escolaridade conhecida',
+    superior_18: 'Eleitores 18+ com superior completo',
+    instrucao_conhecida_18: 'Eleitores 18+ com escolaridade conhecida',
+  }[k] ||
+  k.replaceAll('_', ' ');
+const moneyKeys = new Set([
+  'despesas',
+  'gasto_por_eleito',
+  'patrimonio_mediano',
+  'receita',
+  'publico',
+  'mediana',
+  'minimo',
+  'maximo',
+  'recebido',
+  'total_corrigido',
+  'gasto_eleitos',
+]);
+const recordValue = (key, value, q, mapRecord = false) =>
+  value == null
+    ? 'Sem informação'
+    : typeof value === 'number'
+      ? moneyKeys.has(key) || (key === 'valor' && (q === 1 || (q === 2 && mapRecord)))
+        ? money(value)
+        : ['ano', 'inicio', 'primeiro', 'ultimo'].includes(key)
+          ? String(value)
+          : num(value)
+      : String(value);
+const scopeText = (s) =>
+  [
+    s.ano,
+    s.cargo,
+    s.uf || 'Seis UFs',
+    s.partido || 'Todos os partidos',
+    s.municipio ? 'Município ' + (s.municipioNome || s.municipio) : 'Todos os municípios',
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
-export default function ExplorationWorkbench({question:q,data,scope,parameters,options,onScopeChange,onGo,focusedRecord,mode='',onModeChange}){
- const setMode=onModeChange;
- const [text,setText]=useState(''),[selected,setSelected]=useState(null),[page,setPage]=useState(0),[mapState,setMapState]=useState({}),[mapField,setMapField]=useState('valor');
- const [other,setOther]=useState({...scope,uf:scope.uf==='MA'?'CE':'MA',municipio:''}),[compared,setCompared]=useState(null),[comparison,setComparison]=useState({});
- const [personText,setPersonText]=useState(''),[personQuery,setPersonQuery]=useState(''),[personPage,setPersonPage]=useState(0),[persons,setPersons]=useState({}),[chamber,setChamber]=useState({}),[seat,setSeat]=useState(null),[colorBy,setColorBy]=useState(q===2?'patrimonio':q===4?'escolaridade':'partido');
- const otherMeta=useCatalog('opcoes',{ano:other.ano,uf:other.uf,cargo:scope.cargo},mode==='comparar').data;
- const query=new URLSearchParams(scope).toString(),municipal=['VEREADOR','PREFEITO'].includes(scope.cargo),canMap=municipal&&getQuestion(q).map,canChamber=getQuestion(q).chamber&&['VEREADOR','DEPUTADO ESTADUAL','DEPUTADO FEDERAL'].includes(scope.cargo)&&[2018,2020,2022,2024].includes(Number(scope.ano));
- useEffect(()=>{setSelected(null);setPage(0);setSeat(null);setPersonPage(0)},[query]);
- useEffect(()=>{if(mode==='mapa'&&!canMap||mode==='plenario'&&!canChamber)setMode('registros')},[mode,canMap,canChamber]);
- useEffect(()=>{if(focusedRecord){setSelected(focusedRecord);setMode('registros')}},[focusedRecord]);
- const existingMap=getQuestion(q).existingMap?data?.points||data?.rows:null;
- useEffect(()=>{if(mode!=='mapa'||existingMap||!canMap)return;const ac=new AbortController();setMapState({loading:true});request('/pesquisa/'+q+'/municipios?'+query,{signal:ac.signal,timeout:90000}).then(data=>{if(!ac.signal.aborted)setMapState({data})}).catch(()=>{if(!ac.signal.aborted)setMapState({error:true})});return()=>ac.abort()},[mode,query,q,!!existingMap,canMap]);
- const compareKey=compared?new URLSearchParams({...parameters,...compared}).toString():'';
- useEffect(()=>{if(!compared)return;const ac=new AbortController();setComparison({loading:true});request('/pesquisa/'+q+'?'+compareKey,{signal:ac.signal,timeout:90000}).then(data=>{if(!ac.signal.aborted)setComparison({data})}).catch(()=>{if(!ac.signal.aborted)setComparison({error:true})});return()=>ac.abort()},[compareKey,q]);
- const personParams=new URLSearchParams({...scope,ano:q===10?'':scope.ano,q:personQuery,limit:8,offset:personPage*8}).toString();
- useEffect(()=>{if(mode!=='pessoas')return;const ac=new AbortController();setPersons({loading:true});request('/catalogo/pessoas?'+personParams,{signal:ac.signal,timeout:90000}).then(data=>{if(!ac.signal.aborted)setPersons({data})}).catch(()=>{if(!ac.signal.aborted)setPersons({error:true})});return()=>ac.abort()},[mode,personParams]);
- const contestReady=scope.cargo==='VEREADOR'?!!scope.uf&&!!scope.municipio:!!scope.uf;
- useEffect(()=>{if(mode!=='plenario'||!canChamber||!contestReady)return;const ac=new AbortController();setChamber({loading:true});request('/questao1/eleitos?'+new URLSearchParams({ano:scope.ano,cargo:scope.cargo,uf:scope.uf,partido:scope.partido,municipio_id:scope.municipio,limit:72}),{signal:ac.signal,timeout:90000}).then(data=>{if(!ac.signal.aborted)setChamber({data})}).catch(()=>{if(!ac.signal.aborted)setChamber({error:true})});return()=>ac.abort()},[mode,query,canChamber,contestReady]);
- const seatRows=chamber.data?.rows||[],seats=useMemo(()=>plenarioAssentos.slice(0,Math.min(72,seatRows.length)).map((position,i)=>({...position,block:'todos',person:seatRows[i],name:seatRows[i].nome,color:seatInk(seatRows[i],colorBy,partyColors)})),[chamber.data,colorBy]);
- const rawMap=existingMap||mapState.data?.rows||[];
- const fields=getQuestion(q).mapFields(data);
- const field=fields.find(f=>f.value===mapField)||fields[0],mapRows=rawMap.map(row=>({...row,id:String(row.municipio_id||row.id),researchValue:row[field.value]}));
- const definition={label:field.label,unit:field.unit,breaks:field.unit==='money'?[10000,50000,100000,500000]:field.unit==='pp'&&q===4?[-20,-5,5,20]:[10,25,50,75],context:scopeText(scope)+(field.unit==='pp'?' · pontos percentuais':'')};
- const searchable=mode==='mapa'?mapRows:data?.points||data?.rows||[],matches=findEvidence(searchable,text),visible=matches.slice(page*6,page*6+6);
- const openPerson=row=>onGo('candidatos','perfil','',candidateContext(row));
- const openMunicipality=row=>{const town=row.municipio_id||(getQuestion(q).existingMap?String(row.id).split(':')[0]:row.id);onGo('territorios','municipio','',{uf:row.uf||scope.uf,municipioId:town,municipioNome:row.nome||'',ano:scope.ano,cargo:scope.cargo,partido:scope.partido})};
- const currentScope={...scope,municipioNome:(options?.municipios||[]).find(m=>String(m.id)===String(scope.municipio))?.nome};
- const prompt=mode==='mapa'?'Abra uma UF, busque um município e selecione sua ficha. O mapa representa o indicador escolhido, com a mesma escala entre UFs.':mode==='comparar'?'Mantenha o cargo e escolha outro ano, estado ou partido. As duas coberturas ficam visíveis para conferir a comparação.':mode==='pessoas'?'Busque pelo nome civil ou de urna. Os resultados respeitam os filtros e abrem o histórico disponível. Incluem também candidaturas sem valor conhecido no indicador.':mode==='plenario'?'Cada cadeira exibida corresponde a uma candidatura eleita do recorte. Selecione a cadeira ou o nome na lista para conferir sua ficha.':'Selecione um ponto do gráfico ou encontre um registro. Confira quantidades, limites e denominadores antes de interpretar o resultado.';
- return <section className="exploration-workbench" aria-label="Aprofundar esta análise"><header><span>EXPLORE A EVIDÊNCIA</span><h3>Do panorama aos casos.</h3><p>Compare recortes, localize diferenças e confira os registros que sustentam a descoberta.</p></header><nav className="exploration-modes" aria-label="Formas de explorar a análise">{[[canMap?'mapa':null,'Mapa','Onde estão as diferenças'],['comparar','Comparar','Outro ano, estado ou partido'],['registros','Conferir','Valores e denominadores'],['pessoas','Pessoas','Buscar candidaturas do recorte'],[canChamber?'plenario':null,'Plenário','Conhecer eleitos da disputa']].filter(row=>row[0]).map(([key,title,note])=><button key={key} aria-pressed={mode===key} onClick={()=>{setMode(key);setText('');setPage(0)}}><strong>{title}</strong><span>{note}</span></button>)}</nav>
- {mode&&<div className="exploration-panel"><p className="exploration-instruction">{prompt}</p><p className="exploration-current">Recorte em leitura: {scopeText(currentScope)}</p>
- {mode==='mapa'&&data?.status==='em_validacao'?<p>Este recorte permanece em validação. Selecione 2024 para explorar o mapa com dados liberados.</p>:mode==='mapa'&&<><SearchSelect label="Indicador no mapa" value={field.value} options={fields} onChange={setMapField}/>{scope.municipio&&<button onClick={()=>onScopeChange({municipio:''})}>Mostrar todos os municípios deste estado</button>}{mapState.loading&&<p role="status">Consultando os municípios do recorte…</p>}{mapState.error&&<p role="alert">A consulta municipal não respondeu. Os valores não foram substituídos.</p>}<GeoAtlas uf={scope.uf} onUf={uf=>onScopeChange({uf,municipio:''})} onSelect={setSelected} municipios={mapRows} indicator="researchValue" metricDefinition={definition} selected={selected} loading={mapState.loading}/>{mapState.data?.method&&<p className="exploration-small">{mapState.data.method}</p>}</>}
- {['mapa','registros'].includes(mode)&&<><label className="evidence-search">{mode==='mapa'?'Encontrar município':'Encontrar registro'}<input type="search" value={text} onChange={e=>{setText(e.target.value);setPage(0)}} placeholder={mode==='mapa'?'Nome ou código IBGE':'Nome, grupo, ano ou valor'}/></label><p aria-live="polite">{num(matches.length)} {matches.length===1?'registro':'registros'} neste recorte.</p><div className="evidence-record-grid">{visible.map((row,i)=><button key={String(row.id||row.grupo||row.ano||i)} onClick={()=>setSelected(row)}><strong>{row.nome||row.grupo||row.partido||'Registro '+(page*6+i+1)}</strong><span>{row.uf||row.ano||''}</span><small>Conferir valores →</small></button>)}</div>{matches.length>6&&<div className="exploration-pagination"><button disabled={!page} onClick={()=>setPage(p=>p-1)}>Anterior</button><span>Página {page+1} de {Math.ceil(matches.length/6)}</span><button disabled={(page+1)*6>=matches.length} onClick={()=>setPage(p=>p+1)}>Próxima</button></div>}{selected&&<article className="evidence-detail"><h4>{selected.nome||selected.grupo||'Registro selecionado'}</h4><dl>{Object.entries(selected).filter(([k,v])=>(v==null||typeof v!=='object')&&!['researchValue','id_candidato','nome_civil',...(q===2?['x','y','z']:[])].includes(k)).map(([key,value])=><div key={key}><dt>{key==='x'?data?.x_label||label(key):key==='y'?data?.y_label||label(key):label(key)}</dt><dd>{recordValue(key,value,q,mode==='mapa')}</dd></div>)}</dl>{selected.uf&&selected.nome&&<div className="evidence-actions"><button onClick={()=>onScopeChange({uf:selected.uf,municipio:String(selected.municipio_id||selected.id).split(':')[0]})}>Usar este município como recorte</button><button onClick={()=>openMunicipality(selected)}>Abrir perfil eleitoral →</button></div>}</article>}</>}
- {mode==='comparar'&&<><div className="exploration-comparison-controls"><SearchSelect label="Ano de comparação" value={other.ano} options={[...new Set((options?.eleicoes||[]).filter(e=>e.cargo===scope.cargo).map(e=>String(e.ano)))]} onChange={ano=>setOther(v=>({...v,ano}))}/><SearchSelect label="Estado de comparação" value={other.uf} options={[{value:'',label:'Seis UFs'},...['CE','MA','MS','RJ','RN','RS']]} onChange={uf=>setOther(v=>({...v,uf,municipio:''}))}/><SearchSelect label="Município de comparação" value={other.municipio||''} disabled={!other.uf||!municipal} options={[{value:'',label:'Todos os municípios'},...(otherMeta?.municipios||[]).map(m=>({value:m.id,label:m.nome}))]} onChange={municipio=>setOther(v=>({...v,municipio}))}/><PartySelect label="Partido de comparação" value={other.partido||''} options={otherMeta?.facets?.partido||[]} onChange={partido=>setOther(v=>({...v,partido}))}/><button onClick={()=>setCompared({...other,cargo:scope.cargo,municipioNome:(otherMeta?.municipios||[]).find(m=>String(m.id)===String(other.municipio))?.nome||''})}>Comparar recortes</button></div>{comparison.loading&&<p role="status">Calculando o outro recorte…</p>}{comparison.error&&<p role="alert">Não foi possível consultar o recorte de comparação.</p>}{comparison.data&&<><div className="comparison-scopes"><p><b>Recorte A</b>{scopeText(currentScope)}</p><p><b>Recorte B</b>{scopeText(compared)}</p></div>{comparison.data.status==='em_validacao'||comparison.data.status==='fonte_pendente'?<p>O recorte B ainda não tem evidência liberada. Nenhuma diferença foi calculada.</p>:<div className="comparison-metrics">{comparisonMetrics(q,data).map(a=>{const b=comparisonMetrics(q,comparison.data).find(r=>r.key===a.key),difference=a.value!=null&&b?.value!=null?b.value-a.value:null;return <article key={a.key}><h4>{a.label}</h4><p><span>A</span><strong>{number(a.value,a.unit)}</strong></p><p><span>B</span><strong>{number(b?.value,a.unit)}</strong></p><small>Diferença B − A: {difference==null?'não calculada':number(difference,a.unit==='percent'?'number':a.unit)+(a.unit==='percent'?' p.p.':'')}</small></article>})}</div>}<p className="exploration-small">A comparação é descritiva. Mudanças de composição, cobertura e tamanho dos grupos podem explicar diferenças; não se estima um efeito causal. Cargo mantido: {scope.cargo}.</p></>}</>}
- {mode==='pessoas'&&<><form className="evidence-people-search" onSubmit={e=>{e.preventDefault();setPersonQuery(personText);setPersonPage(0)}}><label>Encontrar pessoa<input type="search" value={personText} onChange={e=>setPersonText(e.target.value)} placeholder="Nome civil ou de urna"/></label><button>Pesquisar neste recorte</button></form>{persons.loading&&<p role="status">Consultando pessoas…</p>}{persons.error&&<p role="alert">A busca não respondeu. Tente pesquisar novamente.</p>}{persons.data&&<><p>{num(persons.data.total)} {persons.data.total===1?'pessoa':'pessoas'} · {num(persons.data.candidaturas_no_recorte)} {persons.data.candidaturas_no_recorte===1?'candidatura correspondente':'candidaturas correspondentes'}.</p><div className="exploration-person-grid">{persons.data.rows.map(row=><button key={row.id_candidato} onClick={()=>openPerson(row)}><Portrait name={row.nome_pessoa||row.nome} url={row.foto_url} photoYear={row.foto_ano}/><span><strong>{row.nome_pessoa||row.nome}</strong><small>{row.ano} · {row.partido} · {row.municipio||row.uf}</small><b>Abrir perfil e fontes →</b></span></button>)}</div>{persons.data.total>8&&<div className="exploration-pagination"><button disabled={!personPage} onClick={()=>setPersonPage(p=>p-1)}>Anterior</button><span>Página {personPage+1}</span><button disabled={(personPage+1)*8>=persons.data.total} onClick={()=>setPersonPage(p=>p+1)}>Próxima</button></div>}</>}</>}
- {mode==='plenario'&&<>{!contestReady?<><p>Para representar uma disputa coerente, selecione {scope.cargo==='VEREADOR'?'uma UF e um município':'uma UF'}.</p><SearchSelect label="Estado da disputa" value={scope.uf} options={['CE','MA','MS','RJ','RN','RS']} onChange={uf=>onScopeChange({uf,municipio:''})}/>{scope.cargo==='VEREADOR'&&<SearchSelect label="Município da disputa" value={scope.municipio} options={(options?.municipios||[]).map(m=>({value:m.id,label:m.nome}))} onChange={municipio=>onScopeChange({municipio})} disabled={!scope.uf}/>}</>:<><SearchSelect label="Colorir as cadeiras por" value={colorBy} onChange={setColorBy} options={[{value:'partido',label:'Partido na eleição'},{value:'gasto',label:'Despesa declarada'},{value:'patrimonio',label:'Patrimônio declarado'},{value:'escolaridade',label:'Escolaridade conhecida'}]}/>{chamber.loading&&<p role="status">Carregando as candidaturas eleitas da disputa…</p>}{chamber.error&&<p role="alert">A consulta dos eleitos não respondeu.</p>}{!chamber.loading&&chamber.data&&!seatRows.length&&<p>Não há eleitos neste recorte. Isso não equivale a ausência de candidaturas.</p>}{seatRows.length>0&&<><div className="exploration-chamber"><Suspense fallback={<p>Preparando o Plenário…</p>}><Chamber sourceCaption="Candidaturas eleitas no recorte selecionado. Consulte a legenda e a lista de nomes." seats={seats} selectedSeat={seat} onPick={setSeat}/></Suspense></div><p className="exploration-small">{num(seatRows.length)} eleitos exibidos, até 72 por ordem de votos. Resultados do acervo, não ocupantes atuais. A posição é uma organização visual; esta seleção não representa todos os candidatos nem a proporção de todo o eleitorado.</p><div className="chamber-legend">{colorBy==='partido'?[...new Set(seatRows.map(r=>r.partido))].map(party=><span key={party}><i style={{background:partyColors[party]||'#7d898a'}}/>{party}</span>):(colorBy==='escolaridade'?[['#173e78','Superior completo'],['#245b4d','Demais conhecidas'],['#929b9c','Sem informação']]:[['#245b4d','Zero declarado'],['#ddb643','Acima de zero até R$ 10 mil'],['#173e78','Acima de R$ 10 mil até R$ 100 mil'],['#a63c30','Acima de R$ 100 mil'],['#929b9c','Sem informação']]).map(([color,text])=><span key={text}><i style={{background:color}}/>{text}</span>)}</div><details><summary>Selecionar pelo nome, sem usar o 3D</summary><div className="chamber-name-list">{seats.map(s=><button key={s.number} onClick={()=>setSeat(s)}>{s.person.nome} · {s.person.partido}</button>)}</div></details>{seat?.person&&<article className="evidence-detail"><h4>{seat.person.nome}</h4><p>{seat.person.partido} · {seat.person.municipio||seat.person.uf} · {num(seat.person.votos)} votos</p><p>Despesa: {money(seat.person.gastos)} · Patrimônio: {money(seat.person.patrimonio)} · Escolaridade: {seat.person.escolaridade||'Sem informação'}</p><button onClick={()=>openPerson(seat.person)}>Conferir perfil e histórico →</button></article>}</>}</>}</>}
- </div>}
- </section>;
+export default function ExplorationWorkbench({
+  question: q,
+  data,
+  scope,
+  parameters,
+  options,
+  onScopeChange,
+  onGo,
+  focusedRecord,
+  mode = '',
+  onModeChange,
+}) {
+  const setMode = onModeChange;
+  const [text, setText] = useState(''),
+    [selected, setSelected] = useState(null),
+    [page, setPage] = useState(0),
+    [mapState, setMapState] = useState({}),
+    [mapField, setMapField] = useState('valor');
+  const [other, setOther] = useState({
+      ...scope,
+      uf: scope.uf === 'MA' ? 'CE' : 'MA',
+      municipio: '',
+    }),
+    [compared, setCompared] = useState(null),
+    [comparison, setComparison] = useState({});
+  const [personText, setPersonText] = useState(''),
+    [personQuery, setPersonQuery] = useState(''),
+    [personPage, setPersonPage] = useState(0),
+    [persons, setPersons] = useState({}),
+    [chamber, setChamber] = useState({}),
+    [seat, setSeat] = useState(null),
+    [colorBy, setColorBy] = useState(q === 2 ? 'patrimonio' : q === 4 ? 'escolaridade' : 'partido');
+  const otherMeta = useCatalog(
+    'opcoes',
+    { ano: other.ano, uf: other.uf, cargo: scope.cargo },
+    mode === 'comparar',
+  ).data;
+  const query = new URLSearchParams(scope).toString(),
+    municipal = ['VEREADOR', 'PREFEITO'].includes(scope.cargo),
+    canMap = municipal && getQuestion(q).map,
+    canChamber =
+      getQuestion(q).chamber &&
+      ['VEREADOR', 'DEPUTADO ESTADUAL', 'DEPUTADO FEDERAL'].includes(scope.cargo) &&
+      [2018, 2020, 2022, 2024].includes(Number(scope.ano));
+  useEffect(() => {
+    setSelected(null);
+    setPage(0);
+    setSeat(null);
+    setPersonPage(0);
+  }, [query]);
+  useEffect(() => {
+    if ((mode === 'mapa' && !canMap) || (mode === 'plenario' && !canChamber)) setMode('registros');
+  }, [mode, canMap, canChamber]);
+  useEffect(() => {
+    if (focusedRecord) {
+      setSelected(focusedRecord);
+      setMode('registros');
+    }
+  }, [focusedRecord]);
+  const existingMap = getQuestion(q).existingMap ? data?.points || data?.rows : null;
+  useEffect(() => {
+    if (mode !== 'mapa' || existingMap || !canMap) return;
+    const ac = new AbortController();
+    setMapState({ loading: true });
+    request('/pesquisa/' + q + '/municipios?' + query, { signal: ac.signal, timeout: 90000 })
+      .then((data) => {
+        if (!ac.signal.aborted) setMapState({ data });
+      })
+      .catch(() => {
+        if (!ac.signal.aborted) setMapState({ error: true });
+      });
+    return () => ac.abort();
+  }, [mode, query, q, !!existingMap, canMap]);
+  const compareKey = compared ? new URLSearchParams({ ...parameters, ...compared }).toString() : '';
+  useEffect(() => {
+    if (!compared) return;
+    const ac = new AbortController();
+    setComparison({ loading: true });
+    request('/pesquisa/' + q + '?' + compareKey, { signal: ac.signal, timeout: 90000 })
+      .then((data) => {
+        if (!ac.signal.aborted) setComparison({ data });
+      })
+      .catch(() => {
+        if (!ac.signal.aborted) setComparison({ error: true });
+      });
+    return () => ac.abort();
+  }, [compareKey, q]);
+  const personParams = new URLSearchParams({
+    ...scope,
+    ano: q === 10 ? '' : scope.ano,
+    q: personQuery,
+    limit: 8,
+    offset: personPage * 8,
+  }).toString();
+  useEffect(() => {
+    if (mode !== 'pessoas') return;
+    const ac = new AbortController();
+    setPersons({ loading: true });
+    request('/catalogo/pessoas?' + personParams, { signal: ac.signal, timeout: 90000 })
+      .then((data) => {
+        if (!ac.signal.aborted) setPersons({ data });
+      })
+      .catch(() => {
+        if (!ac.signal.aborted) setPersons({ error: true });
+      });
+    return () => ac.abort();
+  }, [mode, personParams]);
+  const contestReady = scope.cargo === 'VEREADOR' ? !!scope.uf && !!scope.municipio : !!scope.uf;
+  useEffect(() => {
+    if (mode !== 'plenario' || !canChamber || !contestReady) return;
+    const ac = new AbortController();
+    setChamber({ loading: true });
+    request(
+      '/questao1/eleitos?' +
+        new URLSearchParams({
+          ano: scope.ano,
+          cargo: scope.cargo,
+          uf: scope.uf,
+          partido: scope.partido,
+          municipio_id: scope.municipio,
+          limit: 72,
+        }),
+      { signal: ac.signal, timeout: 90000 },
+    )
+      .then((data) => {
+        if (!ac.signal.aborted) setChamber({ data });
+      })
+      .catch(() => {
+        if (!ac.signal.aborted) setChamber({ error: true });
+      });
+    return () => ac.abort();
+  }, [mode, query, canChamber, contestReady]);
+  const seatRows = chamber.data?.rows || [],
+    seats = useMemo(
+      () =>
+        plenarioAssentos.slice(0, Math.min(72, seatRows.length)).map((position, i) => ({
+          ...position,
+          block: 'todos',
+          person: seatRows[i],
+          name: seatRows[i].nome,
+          color: seatInk(seatRows[i], colorBy, partyColors),
+        })),
+      [chamber.data, colorBy],
+    );
+  const rawMap = existingMap || mapState.data?.rows || [];
+  const fields = getQuestion(q).mapFields(data);
+  const field = fields.find((f) => f.value === mapField) || fields[0],
+    mapRows = rawMap.map((row) => ({
+      ...row,
+      id: String(row.municipio_id || row.id),
+      researchValue: row[field.value],
+    }));
+  const definition = {
+    label: field.label,
+    unit: field.unit,
+    breaks:
+      field.unit === 'money'
+        ? [10000, 50000, 100000, 500000]
+        : field.unit === 'pp' && q === 4
+          ? [-20, -5, 5, 20]
+          : [10, 25, 50, 75],
+    context: scopeText(scope) + (field.unit === 'pp' ? ' · pontos percentuais' : ''),
+  };
+  const searchable = mode === 'mapa' ? mapRows : data?.points || data?.rows || [],
+    matches = findEvidence(searchable, text),
+    visible = matches.slice(page * 6, page * 6 + 6);
+  const openPerson = (row) => onGo('candidatos', 'perfil', '', candidateContext(row));
+  const openMunicipality = (row) => {
+    const town =
+      row.municipio_id || (getQuestion(q).existingMap ? String(row.id).split(':')[0] : row.id);
+    onGo('territorios', 'municipio', '', {
+      uf: row.uf || scope.uf,
+      municipioId: town,
+      municipioNome: row.nome || '',
+      ano: scope.ano,
+      cargo: scope.cargo,
+      partido: scope.partido,
+    });
+  };
+  const currentScope = {
+    ...scope,
+    municipioNome: (options?.municipios || []).find((m) => String(m.id) === String(scope.municipio))
+      ?.nome,
+  };
+  const prompt =
+    mode === 'mapa'
+      ? 'Abra uma UF, busque um município e selecione sua ficha. O mapa representa o indicador escolhido, com a mesma escala entre UFs.'
+      : mode === 'comparar'
+        ? 'Mantenha o cargo e escolha outro ano, estado ou partido. As duas coberturas ficam visíveis para conferir a comparação.'
+        : mode === 'pessoas'
+          ? 'Busque pelo nome civil ou de urna. Os resultados respeitam os filtros e abrem o histórico disponível. Incluem também candidaturas sem valor conhecido no indicador.'
+          : mode === 'plenario'
+            ? 'Cada cadeira exibida corresponde a uma candidatura eleita do recorte. Selecione a cadeira ou o nome na lista para conferir sua ficha.'
+            : 'Selecione um ponto do gráfico ou encontre um registro. Confira quantidades, limites e denominadores antes de interpretar o resultado.';
+  return (
+    <section className="exploration-workbench" aria-label="Aprofundar esta análise">
+      <header>
+        <span>EXPLORE A EVIDÊNCIA</span>
+        <h3>Do panorama aos casos.</h3>
+        <p>
+          Compare recortes, localize diferenças e confira os registros que sustentam a descoberta.
+        </p>
+      </header>
+      <nav className="exploration-modes" aria-label="Formas de explorar a análise">
+        {[
+          [canMap ? 'mapa' : null, 'Mapa', 'Onde estão as diferenças'],
+          ['comparar', 'Comparar', 'Outro ano, estado ou partido'],
+          ['registros', 'Conferir', 'Valores e denominadores'],
+          ['pessoas', 'Pessoas', 'Buscar candidaturas do recorte'],
+          [canChamber ? 'plenario' : null, 'Plenário', 'Conhecer eleitos da disputa'],
+        ]
+          .filter((row) => row[0])
+          .map(([key, title, note]) => (
+            <button
+              key={key}
+              aria-pressed={mode === key}
+              onClick={() => {
+                setMode(key);
+                setText('');
+                setPage(0);
+              }}
+            >
+              <strong>{title}</strong>
+              <span>{note}</span>
+            </button>
+          ))}
+      </nav>
+      {mode && (
+        <div className="exploration-panel">
+          <p className="exploration-instruction">{prompt}</p>
+          <p className="exploration-current">Recorte em leitura: {scopeText(currentScope)}</p>
+          {mode === 'mapa' && data?.status === 'em_validacao' ? (
+            <p>
+              Este recorte permanece em validação. Selecione 2024 para explorar o mapa com dados
+              liberados.
+            </p>
+          ) : (
+            mode === 'mapa' && (
+              <>
+                <SearchSelect
+                  label="Indicador no mapa"
+                  value={field.value}
+                  options={fields}
+                  onChange={setMapField}
+                />
+                {scope.municipio && (
+                  <button onClick={() => onScopeChange({ municipio: '' })}>
+                    Mostrar todos os municípios deste estado
+                  </button>
+                )}
+                {mapState.loading && <p role="status">Consultando os municípios do recorte…</p>}
+                {mapState.error && (
+                  <p role="alert">
+                    A consulta municipal não respondeu. Os valores não foram substituídos.
+                  </p>
+                )}
+                <GeoAtlas
+                  uf={scope.uf}
+                  onUf={(uf) => onScopeChange({ uf, municipio: '' })}
+                  onSelect={setSelected}
+                  municipios={mapRows}
+                  indicator="researchValue"
+                  metricDefinition={definition}
+                  selected={selected}
+                  loading={mapState.loading}
+                />
+                {mapState.data?.method && (
+                  <p className="exploration-small">{mapState.data.method}</p>
+                )}
+              </>
+            )
+          )}
+          {['mapa', 'registros'].includes(mode) && (
+            <>
+              <label className="evidence-search">
+                {mode === 'mapa' ? 'Encontrar município' : 'Encontrar registro'}
+                <input
+                  type="search"
+                  value={text}
+                  onChange={(e) => {
+                    setText(e.target.value);
+                    setPage(0);
+                  }}
+                  placeholder={
+                    mode === 'mapa' ? 'Nome ou código IBGE' : 'Nome, grupo, ano ou valor'
+                  }
+                />
+              </label>
+              <p aria-live="polite">
+                {num(matches.length)} {matches.length === 1 ? 'registro' : 'registros'} neste
+                recorte.
+              </p>
+              <div className="evidence-record-grid">
+                {visible.map((row, i) => (
+                  <button
+                    key={String(row.id || row.grupo || row.ano || i)}
+                    onClick={() => setSelected(row)}
+                  >
+                    <strong>
+                      {row.nome || row.grupo || row.partido || 'Registro ' + (page * 6 + i + 1)}
+                    </strong>
+                    <span>{row.uf || row.ano || ''}</span>
+                    <small>Conferir valores →</small>
+                  </button>
+                ))}
+              </div>
+              {matches.length > 6 && (
+                <div className="exploration-pagination">
+                  <button disabled={!page} onClick={() => setPage((p) => p - 1)}>
+                    Anterior
+                  </button>
+                  <span>
+                    Página {page + 1} de {Math.ceil(matches.length / 6)}
+                  </span>
+                  <button
+                    disabled={(page + 1) * 6 >= matches.length}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    Próxima
+                  </button>
+                </div>
+              )}
+              {selected && (
+                <article className="evidence-detail">
+                  <h4>{selected.nome || selected.grupo || 'Registro selecionado'}</h4>
+                  <dl>
+                    {Object.entries(selected)
+                      .filter(
+                        ([k, v]) =>
+                          (v == null || typeof v !== 'object') &&
+                          ![
+                            'researchValue',
+                            'id_candidato',
+                            'nome_civil',
+                            ...(q === 2 ? ['x', 'y', 'z'] : []),
+                          ].includes(k),
+                      )
+                      .map(([key, value]) => (
+                        <div key={key}>
+                          <dt>
+                            {key === 'x'
+                              ? data?.x_label || label(key)
+                              : key === 'y'
+                                ? data?.y_label || label(key)
+                                : label(key)}
+                          </dt>
+                          <dd>{recordValue(key, value, q, mode === 'mapa')}</dd>
+                        </div>
+                      ))}
+                  </dl>
+                  {selected.uf && selected.nome && (
+                    <div className="evidence-actions">
+                      <button
+                        onClick={() =>
+                          onScopeChange({
+                            uf: selected.uf,
+                            municipio: String(selected.municipio_id || selected.id).split(':')[0],
+                          })
+                        }
+                      >
+                        Usar este município como recorte
+                      </button>
+                      <button onClick={() => openMunicipality(selected)}>
+                        Abrir perfil eleitoral →
+                      </button>
+                    </div>
+                  )}
+                </article>
+              )}
+            </>
+          )}
+          {mode === 'comparar' && (
+            <>
+              <div className="exploration-comparison-controls">
+                <SearchSelect
+                  label="Ano de comparação"
+                  value={other.ano}
+                  options={[
+                    ...new Set(
+                      (options?.eleicoes || [])
+                        .filter((e) => e.cargo === scope.cargo)
+                        .map((e) => String(e.ano)),
+                    ),
+                  ]}
+                  onChange={(ano) => setOther((v) => ({ ...v, ano }))}
+                />
+                <SearchSelect
+                  label="Estado de comparação"
+                  value={other.uf}
+                  options={[
+                    { value: '', label: 'Seis UFs' },
+                    ...['CE', 'MA', 'MS', 'RJ', 'RN', 'RS'],
+                  ]}
+                  onChange={(uf) => setOther((v) => ({ ...v, uf, municipio: '' }))}
+                />
+                <SearchSelect
+                  label="Município de comparação"
+                  value={other.municipio || ''}
+                  disabled={!other.uf || !municipal}
+                  options={[
+                    { value: '', label: 'Todos os municípios' },
+                    ...(otherMeta?.municipios || []).map((m) => ({ value: m.id, label: m.nome })),
+                  ]}
+                  onChange={(municipio) => setOther((v) => ({ ...v, municipio }))}
+                />
+                <PartySelect
+                  label="Partido de comparação"
+                  value={other.partido || ''}
+                  options={otherMeta?.facets?.partido || []}
+                  onChange={(partido) => setOther((v) => ({ ...v, partido }))}
+                />
+                <button
+                  onClick={() =>
+                    setCompared({
+                      ...other,
+                      cargo: scope.cargo,
+                      municipioNome:
+                        (otherMeta?.municipios || []).find(
+                          (m) => String(m.id) === String(other.municipio),
+                        )?.nome || '',
+                    })
+                  }
+                >
+                  Comparar recortes
+                </button>
+              </div>
+              {comparison.loading && <p role="status">Calculando o outro recorte…</p>}
+              {comparison.error && (
+                <p role="alert">Não foi possível consultar o recorte de comparação.</p>
+              )}
+              {comparison.data && (
+                <>
+                  <div className="comparison-scopes">
+                    <p>
+                      <b>Recorte A</b>
+                      {scopeText(currentScope)}
+                    </p>
+                    <p>
+                      <b>Recorte B</b>
+                      {scopeText(compared)}
+                    </p>
+                  </div>
+                  {comparison.data.status === 'em_validacao' ||
+                  comparison.data.status === 'fonte_pendente' ? (
+                    <p>
+                      O recorte B ainda não tem evidência liberada. Nenhuma diferença foi calculada.
+                    </p>
+                  ) : (
+                    <div className="comparison-metrics">
+                      {comparisonMetrics(q, data).map((a) => {
+                        const b = comparisonMetrics(q, comparison.data).find(
+                            (r) => r.key === a.key,
+                          ),
+                          difference =
+                            a.value != null && b?.value != null ? b.value - a.value : null;
+                        return (
+                          <article key={a.key}>
+                            <h4>{a.label}</h4>
+                            <p>
+                              <span>A</span>
+                              <strong>{number(a.value, a.unit)}</strong>
+                            </p>
+                            <p>
+                              <span>B</span>
+                              <strong>{number(b?.value, a.unit)}</strong>
+                            </p>
+                            <small>
+                              Diferença B − A:{' '}
+                              {difference == null
+                                ? 'não calculada'
+                                : number(difference, a.unit === 'percent' ? 'number' : a.unit) +
+                                  (a.unit === 'percent' ? ' p.p.' : '')}
+                            </small>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <p className="exploration-small">
+                    A comparação é descritiva. Mudanças de composição, cobertura e tamanho dos
+                    grupos podem explicar diferenças; não se estima um efeito causal. Cargo mantido:{' '}
+                    {scope.cargo}.
+                  </p>
+                </>
+              )}
+            </>
+          )}
+          {mode === 'pessoas' && (
+            <>
+              <form
+                className="evidence-people-search"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setPersonQuery(personText);
+                  setPersonPage(0);
+                }}
+              >
+                <label>
+                  Encontrar pessoa
+                  <input
+                    type="search"
+                    value={personText}
+                    onChange={(e) => setPersonText(e.target.value)}
+                    placeholder="Nome civil ou de urna"
+                  />
+                </label>
+                <button>Pesquisar neste recorte</button>
+              </form>
+              {persons.loading && <p role="status">Consultando pessoas…</p>}
+              {persons.error && (
+                <p role="alert">A busca não respondeu. Tente pesquisar novamente.</p>
+              )}
+              {persons.data && (
+                <>
+                  <p>
+                    {num(persons.data.total)} {persons.data.total === 1 ? 'pessoa' : 'pessoas'} ·{' '}
+                    {num(persons.data.candidaturas_no_recorte)}{' '}
+                    {persons.data.candidaturas_no_recorte === 1
+                      ? 'candidatura correspondente'
+                      : 'candidaturas correspondentes'}
+                    .
+                  </p>
+                  <div className="exploration-person-grid">
+                    {persons.data.rows.map((row) => (
+                      <button key={row.id_candidato} onClick={() => openPerson(row)}>
+                        <Portrait
+                          name={row.nome_pessoa || row.nome}
+                          url={row.foto_url}
+                          photoYear={row.foto_ano}
+                        />
+                        <span>
+                          <strong>{row.nome_pessoa || row.nome}</strong>
+                          <small>
+                            {row.ano} · {row.partido} · {row.municipio || row.uf}
+                          </small>
+                          <b>Abrir perfil e fontes →</b>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  {persons.data.total > 8 && (
+                    <div className="exploration-pagination">
+                      <button disabled={!personPage} onClick={() => setPersonPage((p) => p - 1)}>
+                        Anterior
+                      </button>
+                      <span>Página {personPage + 1}</span>
+                      <button
+                        disabled={(personPage + 1) * 8 >= persons.data.total}
+                        onClick={() => setPersonPage((p) => p + 1)}
+                      >
+                        Próxima
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
+          {mode === 'plenario' && (
+            <>
+              {!contestReady ? (
+                <>
+                  <p>
+                    Para representar uma disputa coerente, selecione{' '}
+                    {scope.cargo === 'VEREADOR' ? 'uma UF e um município' : 'uma UF'}.
+                  </p>
+                  <SearchSelect
+                    label="Estado da disputa"
+                    value={scope.uf}
+                    options={['CE', 'MA', 'MS', 'RJ', 'RN', 'RS']}
+                    onChange={(uf) => onScopeChange({ uf, municipio: '' })}
+                  />
+                  {scope.cargo === 'VEREADOR' && (
+                    <SearchSelect
+                      label="Município da disputa"
+                      value={scope.municipio}
+                      options={(options?.municipios || []).map((m) => ({
+                        value: m.id,
+                        label: m.nome,
+                      }))}
+                      onChange={(municipio) => onScopeChange({ municipio })}
+                      disabled={!scope.uf}
+                    />
+                  )}
+                </>
+              ) : (
+                <>
+                  <SearchSelect
+                    label="Colorir as cadeiras por"
+                    value={colorBy}
+                    onChange={setColorBy}
+                    options={[
+                      { value: 'partido', label: 'Partido na eleição' },
+                      { value: 'gasto', label: 'Despesa declarada' },
+                      { value: 'patrimonio', label: 'Patrimônio declarado' },
+                      { value: 'escolaridade', label: 'Escolaridade conhecida' },
+                    ]}
+                  />
+                  {chamber.loading && (
+                    <p role="status">Carregando as candidaturas eleitas da disputa…</p>
+                  )}
+                  {chamber.error && <p role="alert">A consulta dos eleitos não respondeu.</p>}
+                  {!chamber.loading && chamber.data && !seatRows.length && (
+                    <p>
+                      Não há eleitos neste recorte. Isso não equivale a ausência de candidaturas.
+                    </p>
+                  )}
+                  {seatRows.length > 0 && (
+                    <>
+                      <div className="exploration-chamber">
+                        <Suspense fallback={<p>Preparando o Plenário…</p>}>
+                          <Chamber
+                            sourceCaption="Candidaturas eleitas no recorte selecionado. Consulte a legenda e a lista de nomes."
+                            seats={seats}
+                            selectedSeat={seat}
+                            onPick={setSeat}
+                          />
+                        </Suspense>
+                      </div>
+                      <p className="exploration-small">
+                        {num(seatRows.length)} eleitos exibidos, até 72 por ordem de votos.
+                        Resultados do acervo, não ocupantes atuais. A posição é uma organização
+                        visual; esta seleção não representa todos os candidatos nem a proporção de
+                        todo o eleitorado.
+                      </p>
+                      <div className="chamber-legend">
+                        {colorBy === 'partido'
+                          ? [...new Set(seatRows.map((r) => r.partido))].map((party) => (
+                              <span key={party}>
+                                <i style={{ background: partyColors[party] || '#7d898a' }} />
+                                {party}
+                              </span>
+                            ))
+                          : (colorBy === 'escolaridade'
+                              ? [
+                                  ['#173e78', 'Superior completo'],
+                                  ['#245b4d', 'Demais conhecidas'],
+                                  ['#929b9c', 'Sem informação'],
+                                ]
+                              : [
+                                  ['#245b4d', 'Zero declarado'],
+                                  ['#ddb643', 'Acima de zero até R$ 10 mil'],
+                                  ['#173e78', 'Acima de R$ 10 mil até R$ 100 mil'],
+                                  ['#a63c30', 'Acima de R$ 100 mil'],
+                                  ['#929b9c', 'Sem informação'],
+                                ]
+                            ).map(([color, text]) => (
+                              <span key={text}>
+                                <i style={{ background: color }} />
+                                {text}
+                              </span>
+                            ))}
+                      </div>
+                      <details>
+                        <summary>Selecionar pelo nome, sem usar o 3D</summary>
+                        <div className="chamber-name-list">
+                          {seats.map((s) => (
+                            <button key={s.number} onClick={() => setSeat(s)}>
+                              {s.person.nome} · {s.person.partido}
+                            </button>
+                          ))}
+                        </div>
+                      </details>
+                      {seat?.person && (
+                        <article className="evidence-detail">
+                          <h4>{seat.person.nome}</h4>
+                          <p>
+                            {seat.person.partido} · {seat.person.municipio || seat.person.uf} ·{' '}
+                            {num(seat.person.votos)} votos
+                          </p>
+                          <p>
+                            Despesa: {money(seat.person.gastos)} · Patrimônio:{' '}
+                            {money(seat.person.patrimonio)} · Escolaridade:{' '}
+                            {seat.person.escolaridade || 'Sem informação'}
+                          </p>
+                          <button onClick={() => openPerson(seat.person)}>
+                            Conferir perfil e histórico →
+                          </button>
+                        </article>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </section>
+  );
 }

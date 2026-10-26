@@ -1,14 +1,138 @@
-import {sourceValue} from '../../catalog/sourceValue.js';
-import {useState,useEffect} from 'react';
+import { sourceValue } from '../../catalog/sourceValue.js';
+import { useState, useEffect } from 'react';
 import Portrait from '../../catalog/Portrait.jsx';
-import {displayNumber as num} from '../../catalog/logic.js';
+import { displayNumber as num } from '../../catalog/logic.js';
 import './trajectory-album.css';
-export default function TrajectoryAlbum({rows,current,onChoose,busy}){
- const history=[...rows].sort((a,b)=>a.ano-b.ano||String(a.id).localeCompare(String(b.id)));
- const selectedIndex=history.findIndex(row=>row.id===current.id),pageCount=Math.ceil(history.length/2);
- const [page,setPage]=useState(()=>Math.max(0,Math.floor(selectedIndex/2)));
- useEffect(()=>setPage(Math.max(0,Math.floor(selectedIndex/2))),[current.id]);
- useEffect(()=>setPage(value=>Math.min(value,Math.max(0,pageCount-1))),[pageCount]);
- const visible=history.slice(page*2,page*2+2);
- return <div className="trajectory-album"><header className="album-heading"><span>ÁLBUM ELEITORAL</span><span>{history[0]?.ano} — {history.at(-1)?.ano} · {history.length} registros</span></header>{pageCount>1&&<nav className="album-pagination" aria-label="Páginas do álbum"><button disabled={page===0||busy} onClick={()=>setPage(value=>value-1)}>← Anterior</button><span aria-live="polite">Página {page+1} de {pageCount} · {visible[0]?.ano===visible.at(-1)?.ano?visible[0]?.ano:visible[0]?.ano+'–'+visible.at(-1)?.ano}</span><button disabled={page+1>=pageCount||busy} onClick={()=>setPage(value=>value+1)}>Próxima →</button></nav>}<ol key={page} className="album-spread" aria-label="Álbum de candidaturas em ordem cronológica">{visible.map((row,localIndex)=>{const index=page*2+localIndex,previous=history[index-1],changes=previous?[previous.partido&&row.partido&&previous.partido!==row.partido?previous.partido+' → '+row.partido:null,previous.cargo!==row.cargo?previous.cargo+' → '+row.cargo:null,previous.resultado&&row.resultado&&sourceValue(previous.resultado)!=='Sem informação na fonte'&&sourceValue(row.resultado)!=='Sem informação na fonte'&&previous.resultado!==row.resultado?sourceValue(previous.resultado)+' → '+sourceValue(row.resultado):null].filter(Boolean):[],photo=row.foto_url||current.foto_url;return <li key={row.id} className="album-page"><div className="album-year"><span>{String(index+1).padStart(2,'0')} / ELEIÇÃO</span><strong>{row.ano}</strong></div><button disabled={busy} className="album-cutout" aria-pressed={current.id===row.id} onClick={()=>onChoose(row)}><i className="album-photo-corner" aria-hidden="true"/><div className="album-record-image">{photo?<Portrait name={row.nome} url={photo} photoYear={row.foto_ano||current.foto_ano}/>:<div className="album-type-record"><small>REGISTRO ELEITORAL</small><strong>{row.partido||'—'}</strong><span>{row.numero?'Nº '+row.numero:row.ano}</span></div>}</div><div className="album-caption"><span className="album-party">{row.partido||'Sigla não informada'}</span><h3>{row.nome}</h3><p>{row.cargo} · {row.municipio||row.uf}</p><strong className="album-result">{sourceValue(row.resultado)}</strong><p>{num(row.votos)} votos individuais</p><span className="album-action">{current.id===row.id?'Eleição em leitura ✓':'Selecionar eleição →'}</span></div></button>{changes.length>0&&<div className="album-note"><span>ENTRE ESTES REGISTROS</span>{changes.map(change=><p key={change}>{change}</p>)}</div>}{!previous&&<p className="album-first-note">Primeira candidatura observada neste acervo.</p>}</li>})}</ol><div className="album-colophon"><p>Foto de referência da pessoa, repetida entre as eleições. Não corresponde necessariamente ao ano do registro.</p><button onClick={()=>document.getElementById('perfil-eleicao')?.scrollIntoView({block:'start'})}>Ver dados da eleição de {current.ano} ↓</button></div></div>;
+export default function TrajectoryAlbum({ rows, current, onChoose, busy }) {
+  const history = [...rows].sort(
+    (a, b) => a.ano - b.ano || String(a.id).localeCompare(String(b.id)),
+  );
+  const selectedIndex = history.findIndex((row) => row.id === current.id),
+    pageCount = Math.ceil(history.length / 2);
+  const [page, setPage] = useState(() => Math.max(0, Math.floor(selectedIndex / 2)));
+  useEffect(() => setPage(Math.max(0, Math.floor(selectedIndex / 2))), [current.id]);
+  useEffect(() => setPage((value) => Math.min(value, Math.max(0, pageCount - 1))), [pageCount]);
+  const visible = history.slice(page * 2, page * 2 + 2);
+  return (
+    <div className="trajectory-album">
+      <header className="album-heading">
+        <span>ÁLBUM ELEITORAL</span>
+        <span>
+          {history[0]?.ano} — {history.at(-1)?.ano} · {history.length} registros
+        </span>
+      </header>
+      {pageCount > 1 && (
+        <nav className="album-pagination" aria-label="Páginas do álbum">
+          <button disabled={page === 0 || busy} onClick={() => setPage((value) => value - 1)}>
+            ← Anterior
+          </button>
+          <span aria-live="polite">
+            Página {page + 1} de {pageCount} ·{' '}
+            {visible[0]?.ano === visible.at(-1)?.ano
+              ? visible[0]?.ano
+              : visible[0]?.ano + '–' + visible.at(-1)?.ano}
+          </span>
+          <button
+            disabled={page + 1 >= pageCount || busy}
+            onClick={() => setPage((value) => value + 1)}
+          >
+            Próxima →
+          </button>
+        </nav>
+      )}
+      <ol
+        key={page}
+        className="album-spread"
+        aria-label="Álbum de candidaturas em ordem cronológica"
+      >
+        {visible.map((row, localIndex) => {
+          const index = page * 2 + localIndex,
+            previous = history[index - 1],
+            changes = previous
+              ? [
+                  previous.partido && row.partido && previous.partido !== row.partido
+                    ? previous.partido + ' → ' + row.partido
+                    : null,
+                  previous.cargo !== row.cargo ? previous.cargo + ' → ' + row.cargo : null,
+                  previous.resultado &&
+                  row.resultado &&
+                  sourceValue(previous.resultado) !== 'Sem informação na fonte' &&
+                  sourceValue(row.resultado) !== 'Sem informação na fonte' &&
+                  previous.resultado !== row.resultado
+                    ? sourceValue(previous.resultado) + ' → ' + sourceValue(row.resultado)
+                    : null,
+                ].filter(Boolean)
+              : [],
+            photo = row.foto_url || current.foto_url;
+          return (
+            <li key={row.id} className="album-page">
+              <div className="album-year">
+                <span>{String(index + 1).padStart(2, '0')} / ELEIÇÃO</span>
+                <strong>{row.ano}</strong>
+              </div>
+              <button
+                disabled={busy}
+                className="album-cutout"
+                aria-pressed={current.id === row.id}
+                onClick={() => onChoose(row)}
+              >
+                <i className="album-photo-corner" aria-hidden="true" />
+                <div className="album-record-image">
+                  {photo ? (
+                    <Portrait
+                      name={row.nome}
+                      url={photo}
+                      photoYear={row.foto_ano || current.foto_ano}
+                    />
+                  ) : (
+                    <div className="album-type-record">
+                      <small>REGISTRO ELEITORAL</small>
+                      <strong>{row.partido || '—'}</strong>
+                      <span>{row.numero ? 'Nº ' + row.numero : row.ano}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="album-caption">
+                  <span className="album-party">{row.partido || 'Sigla não informada'}</span>
+                  <h3>{row.nome}</h3>
+                  <p>
+                    {row.cargo} · {row.municipio || row.uf}
+                  </p>
+                  <strong className="album-result">{sourceValue(row.resultado)}</strong>
+                  <p>{num(row.votos)} votos individuais</p>
+                  <span className="album-action">
+                    {current.id === row.id ? 'Eleição em leitura ✓' : 'Selecionar eleição →'}
+                  </span>
+                </div>
+              </button>
+              {changes.length > 0 && (
+                <div className="album-note">
+                  <span>ENTRE ESTES REGISTROS</span>
+                  {changes.map((change) => (
+                    <p key={change}>{change}</p>
+                  ))}
+                </div>
+              )}
+              {!previous && (
+                <p className="album-first-note">Primeira candidatura observada neste acervo.</p>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+      <div className="album-colophon">
+        <p>
+          Foto de referência da pessoa, repetida entre as eleições. Não corresponde necessariamente
+          ao ano do registro.
+        </p>
+        <button
+          onClick={() =>
+            document.getElementById('perfil-eleicao')?.scrollIntoView({ block: 'start' })
+          }
+        >
+          Ver dados da eleição de {current.ano} ↓
+        </button>
+      </div>
+    </div>
+  );
 }

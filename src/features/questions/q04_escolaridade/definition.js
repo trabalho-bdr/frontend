@@ -1,1 +1,10 @@
-export default {id:4,title:'A escolaridade dos candidatos acompanha a do eleitorado?',original:'Existe relação entre o grau de instrução dos candidatos e as características educacionais ou demográficas da população/eleitorado por município?',theme:'Pessoas e trajetórias',status:'Eleitorado validado em 2024',place:['arquivo','escolaridade'],note:'Comparação municipal com o eleitorado. População residente tem outro universo.'};
+export default {
+  id: 4,
+  title: 'A escolaridade dos candidatos acompanha a do eleitorado?',
+  original:
+    'Existe relação entre o grau de instrução dos candidatos e as características educacionais ou demográficas da população/eleitorado por município?',
+  theme: 'Pessoas e trajetórias',
+  status: 'Eleitorado validado em 2024',
+  place: ['arquivo', 'escolaridade'],
+  note: 'Comparação municipal com o eleitorado. População residente tem outro universo.',
+};

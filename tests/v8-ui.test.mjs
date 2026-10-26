@@ -22,7 +22,7 @@ test('novo documento fiscal é uma representação, sem inventar NF original',()
 test('a paginação das folhas fiscais busca mais do que os 35 primeiros registros',()=>{
  const src=file('src/pages/PrestacaoDeContas.jsx');
  const api=file('server/app.py');
- assert.ok(src.includes('expenseOffset')); assert.ok(src.includes('limit:40'));
+ assert.ok(src.includes('expenseOffset')); assert.ok(/limit:\s*40/.test(src));
  assert.ok(api.includes('total_filtered'));assert.ok(file('server/compatibility/sql/app/app_candidate_expenses_05.sql').includes('OFFSET ?'));
 });
 test('adesivaria separa síntese, nuvem normalizada e investigação de candidaturas',()=>{

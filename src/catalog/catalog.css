@@ -1,1 +1,473 @@
-.candidate-catalog,.person-profile,.territory-catalog{max-width:1180px;margin:12px auto 45px;color:#173e78}.catalog-heading{padding:24px 0 28px;border-bottom:2px solid #173e78;background:none}.catalog-heading>span,.catalog-section-heading>span,.catalog-stamp{font-size:11px;letter-spacing:.08em;font-weight:800;color:#176B50}.catalog-heading h1,.catalog-profile-heading h1,.person-profile>h1{font-size:clamp(42px,6vw,76px);line-height:1.05;margin:12px 0 16px;color:#173e78}.catalog-heading p{font-size:18px;line-height:1.6;max-width:70ch}.catalog-heading small{display:block;line-height:1.7;color:#576564}.candidate-catalog button,.person-profile button,.territory-catalog button{cursor:pointer}.catalog-heading>button,.catalog-back,.catalog-clear,.catalog-related>button,.catalog-profile-section>button,.catalog-pagination button,.catalog-state button{padding:12px 16px;margin:14px 8px 0 0;border:1px solid #173e78;background:#fffaf0;color:#173e78;font-weight:700;min-height:44px}.catalog-search{padding:26px;background:#f3e5c8;border:1px solid #cbbb9c;margin:25px 0}.catalog-search>label,.catalog-town-search{display:grid;gap:10px;font-weight:700}.catalog-search>label>input{font-size:18px;padding:16px;background:#fffaf0;border:1px solid #a99a7d;color:#173e78;width:100%;box-sizing:border-box}.catalog-search>p,.catalog-more>p{font-size:13px;line-height:1.6;color:#536163}.catalog-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:22px 0}.catalog-filters label,.catalog-results-heading label{display:grid;gap:7px;font-size:12px;font-weight:700;min-width:0}.catalog-filters select,.catalog-filters input,.catalog-results-heading select,.catalog-town-search input{width:100%;min-width:0;box-sizing:border-box;min-height:46px;padding:10px 12px;background:#fffaf0;border:1px solid #a99a7d;color:#173e78;font:inherit}.catalog-more{padding-top:18px;border-top:1px dashed #b8a787}.catalog-more>summary{font-weight:700;cursor:pointer}.catalog-results-heading{display:flex;justify-content:space-between;align-items:end;gap:18px;flex-wrap:wrap;margin:22px 0}.catalog-results-heading p{font-size:14px;font-weight:700}.catalog-candidates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:24px 0;padding:0;list-style:none}.catalog-candidate{display:flex;gap:20px;padding:24px;border:1px solid #cbbb9c;border-top:5px solid #176B50;background:#fffaf0;color:#173e78;text-align:left;width:100%;height:100%;box-sizing:border-box;transition:box-shadow .15s}.catalog-candidate:hover{box-shadow:4px 4px 0 #d2bd93}.catalog-candidate h2{font-size:27px;line-height:1.1;margin:10px 0;overflow-wrap:anywhere}.catalog-candidate p{font-size:13px;line-height:1.6;margin:6px 0;color:#596563}.catalog-candidate small{font-size:12px;line-height:1.5;display:block;color:#8d412f}.catalog-candidate b{display:block;font-size:12px;margin-top:20px}.catalog-portrait{width:72px;height:90px;flex:0 0 auto;background:#ece2cf;border:1px solid #cbbb9c;display:grid;place-items:center;overflow:hidden;color:#627363}.catalog-portrait>span{font-size:26px;font-weight:800}.catalog-portrait img{width:100%;height:100%;object-fit:contain}.catalog-portrait.is-large{width:125px;height:155px}.catalog-portrait.is-large>span{font-size:40px}.catalog-state{padding:24px;border-left:4px solid #C84D38;background:#f3e5c8;margin:20px 0;line-height:1.6}.catalog-pagination{display:flex;justify-content:center;align-items:center;gap:20px;margin:28px 0;font-size:13px}.catalog-pagination button{margin:0}.candidate-catalog button:disabled,.territory-catalog button:disabled{opacity:.45;cursor:default}.catalog-profile-heading{display:flex;gap:28px;align-items:center;padding:28px 0;border-bottom:2px solid #173e78;background:none}.catalog-profile-heading p,.catalog-profile-heading small{line-height:1.6}.catalog-profile-heading small{font-size:12px;color:#596563}.catalog-profile-section{padding:26px;margin:26px 0;border:1px solid #cbbb9c;background:#fffaf0}.catalog-profile-section h2,.catalog-related h2{font-size:32px;line-height:1.15;margin:10px 0 18px}.catalog-profile-section p{font-size:14px;line-height:1.75;max-width:85ch}.catalog-election-timeline{list-style:none;padding:0;display:flex;overflow-x:auto;gap:14px;scroll-snap-type:x proximity;margin:24px 0}.catalog-election-timeline li{flex:0 0 245px;scroll-snap-align:start}.catalog-election-timeline button{display:flex;flex-direction:column;gap:8px;width:100%;height:100%;min-height:210px;text-align:left;padding:18px;border:1px solid #b9a984;border-top:4px solid #EDBF42;background:#f5ead4;color:#173e78;box-sizing:border-box}.catalog-election-timeline button[aria-pressed=true]{background:#173e78;color:#fffaf0;border-top-color:#EDBF42}.catalog-election-timeline strong{font-size:30px}.catalog-election-timeline span,.catalog-election-timeline small{font-size:12px;line-height:1.5}.catalog-election-timeline b{font-size:16px}.catalog-selected{padding:28px;border-left:6px solid #176B50;background:#f3e5c8;margin:28px 0}.catalog-selected h2{font-size:36px;margin:10px 0}.catalog-results-pair{display:flex;flex-wrap:wrap;gap:30px;padding:20px 0;border-bottom:1px solid #cbbb9c}.catalog-results-pair span{display:block;font-size:12px;margin-bottom:8px}.catalog-results-pair strong{font-size:26px}.catalog-profile-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;padding:12px 0}.catalog-profile-facts dt{font-size:11px;color:#536163}.catalog-profile-facts dd{margin:6px 0;font-size:15px;font-weight:700}.catalog-big-value{font-size:clamp(28px,4vw,44px);color:#176B50;font-variant-numeric:tabular-nums}.catalog-method{font-size:13px;line-height:1.7;margin:25px 0;padding:18px;background:#f1e6d1}.catalog-method summary,.catalog-profile-section>details>summary{cursor:pointer;font-weight:700}.catalog-related{border-top:2px solid #173e78;padding-top:20px;margin:28px 0}.catalog-state-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin:26px 0}.catalog-state-grid>button{text-align:left;padding:26px;border:1px solid #cbbb9c;background:#fffaf0;color:#173e78;border-top:5px solid #176B50}.catalog-state-grid>button>span{font-size:44px;font-weight:900;color:#176B50}.catalog-state-grid h2{font-size:26px;margin:15px 0}.catalog-state-grid p,.catalog-state-grid small{font-size:13px;line-height:1.6}.catalog-state-grid b{display:block;margin-top:20px;font-size:13px}.catalog-town-search{margin:24px 0;max-width:600px}.candidate-catalog :focus-visible,.person-profile :focus-visible,.territory-catalog :focus-visible{outline:3px solid #C84D38;outline-offset:3px}.catalog-transition{padding:14px 18px;border-left:4px solid #C84D38;background:#fff0c7;line-height:1.6;font-size:14px}@media(max-width:800px){.catalog-candidates,.catalog-state-grid{grid-template-columns:1fr}.catalog-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.catalog-profile-heading{align-items:start}.catalog-profile-heading h1{font-size:42px}}@media(max-width:520px){.catalog-search,.catalog-profile-section,.catalog-selected{padding:18px}.catalog-filters,.catalog-profile-facts{grid-template-columns:1fr}.catalog-candidate{padding:18px;gap:14px}.catalog-portrait{width:52px;height:65px}.catalog-portrait.is-large{width:76px;height:96px}.catalog-profile-heading{gap:16px}.catalog-profile-heading h1{font-size:34px}.catalog-candidate h2{font-size:24px}.catalog-pagination{gap:10px}.catalog-election-timeline li{flex-basis:220px}}
+.candidate-catalog,
+.person-profile,
+.territory-catalog {
+  max-width: 1180px;
+  margin: 12px auto 45px;
+  color: #173e78;
+}
+.catalog-heading {
+  padding: 24px 0 28px;
+  border-bottom: 2px solid #173e78;
+  background: none;
+}
+.catalog-heading > span,
+.catalog-section-heading > span,
+.catalog-stamp {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+  color: #176b50;
+}
+.catalog-heading h1,
+.catalog-profile-heading h1,
+.person-profile > h1 {
+  font-size: clamp(42px, 6vw, 76px);
+  line-height: 1.05;
+  margin: 12px 0 16px;
+  color: #173e78;
+}
+.catalog-heading p {
+  font-size: 18px;
+  line-height: 1.6;
+  max-width: 70ch;
+}
+.catalog-heading small {
+  display: block;
+  line-height: 1.7;
+  color: #576564;
+}
+.candidate-catalog button,
+.person-profile button,
+.territory-catalog button {
+  cursor: pointer;
+}
+.catalog-heading > button,
+.catalog-back,
+.catalog-clear,
+.catalog-related > button,
+.catalog-profile-section > button,
+.catalog-pagination button,
+.catalog-state button {
+  padding: 12px 16px;
+  margin: 14px 8px 0 0;
+  border: 1px solid #173e78;
+  background: #fffaf0;
+  color: #173e78;
+  font-weight: 700;
+  min-height: 44px;
+}
+.catalog-search {
+  padding: 26px;
+  background: #f3e5c8;
+  border: 1px solid #cbbb9c;
+  margin: 25px 0;
+}
+.catalog-search > label,
+.catalog-town-search {
+  display: grid;
+  gap: 10px;
+  font-weight: 700;
+}
+.catalog-search > label > input {
+  font-size: 18px;
+  padding: 16px;
+  background: #fffaf0;
+  border: 1px solid #a99a7d;
+  color: #173e78;
+  width: 100%;
+  box-sizing: border-box;
+}
+.catalog-search > p,
+.catalog-more > p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #536163;
+}
+.catalog-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 22px 0;
+}
+.catalog-filters label,
+.catalog-results-heading label {
+  display: grid;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 0;
+}
+.catalog-filters select,
+.catalog-filters input,
+.catalog-results-heading select,
+.catalog-town-search input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: 46px;
+  padding: 10px 12px;
+  background: #fffaf0;
+  border: 1px solid #a99a7d;
+  color: #173e78;
+  font: inherit;
+}
+.catalog-more {
+  padding-top: 18px;
+  border-top: 1px dashed #b8a787;
+}
+.catalog-more > summary {
+  font-weight: 700;
+  cursor: pointer;
+}
+.catalog-results-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin: 22px 0;
+}
+.catalog-results-heading p {
+  font-size: 14px;
+  font-weight: 700;
+}
+.catalog-candidates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin: 24px 0;
+  padding: 0;
+  list-style: none;
+}
+.catalog-candidate {
+  display: flex;
+  gap: 20px;
+  padding: 24px;
+  border: 1px solid #cbbb9c;
+  border-top: 5px solid #176b50;
+  background: #fffaf0;
+  color: #173e78;
+  text-align: left;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  transition: box-shadow 0.15s;
+}
+.catalog-candidate:hover {
+  box-shadow: 4px 4px 0 #d2bd93;
+}
+.catalog-candidate h2 {
+  font-size: 27px;
+  line-height: 1.1;
+  margin: 10px 0;
+  overflow-wrap: anywhere;
+}
+.catalog-candidate p {
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 6px 0;
+  color: #596563;
+}
+.catalog-candidate small {
+  font-size: 12px;
+  line-height: 1.5;
+  display: block;
+  color: #8d412f;
+}
+.catalog-candidate b {
+  display: block;
+  font-size: 12px;
+  margin-top: 20px;
+}
+.catalog-portrait {
+  width: 72px;
+  height: 90px;
+  flex: 0 0 auto;
+  background: #ece2cf;
+  border: 1px solid #cbbb9c;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: #627363;
+}
+.catalog-portrait > span {
+  font-size: 26px;
+  font-weight: 800;
+}
+.catalog-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.catalog-portrait.is-large {
+  width: 125px;
+  height: 155px;
+}
+.catalog-portrait.is-large > span {
+  font-size: 40px;
+}
+.catalog-state {
+  padding: 24px;
+  border-left: 4px solid #c84d38;
+  background: #f3e5c8;
+  margin: 20px 0;
+  line-height: 1.6;
+}
+.catalog-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin: 28px 0;
+  font-size: 13px;
+}
+.catalog-pagination button {
+  margin: 0;
+}
+.candidate-catalog button:disabled,
+.territory-catalog button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.catalog-profile-heading {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  padding: 28px 0;
+  border-bottom: 2px solid #173e78;
+  background: none;
+}
+.catalog-profile-heading p,
+.catalog-profile-heading small {
+  line-height: 1.6;
+}
+.catalog-profile-heading small {
+  font-size: 12px;
+  color: #596563;
+}
+.catalog-profile-section {
+  padding: 26px;
+  margin: 26px 0;
+  border: 1px solid #cbbb9c;
+  background: #fffaf0;
+}
+.catalog-profile-section h2,
+.catalog-related h2 {
+  font-size: 32px;
+  line-height: 1.15;
+  margin: 10px 0 18px;
+}
+.catalog-profile-section p {
+  font-size: 14px;
+  line-height: 1.75;
+  max-width: 85ch;
+}
+.catalog-election-timeline {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  overflow-x: auto;
+  gap: 14px;
+  scroll-snap-type: x proximity;
+  margin: 24px 0;
+}
+.catalog-election-timeline li {
+  flex: 0 0 245px;
+  scroll-snap-align: start;
+}
+.catalog-election-timeline button {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  min-height: 210px;
+  text-align: left;
+  padding: 18px;
+  border: 1px solid #b9a984;
+  border-top: 4px solid #edbf42;
+  background: #f5ead4;
+  color: #173e78;
+  box-sizing: border-box;
+}
+.catalog-election-timeline button[aria-pressed='true'] {
+  background: #173e78;
+  color: #fffaf0;
+  border-top-color: #edbf42;
+}
+.catalog-election-timeline strong {
+  font-size: 30px;
+}
+.catalog-election-timeline span,
+.catalog-election-timeline small {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.catalog-election-timeline b {
+  font-size: 16px;
+}
+.catalog-selected {
+  padding: 28px;
+  border-left: 6px solid #176b50;
+  background: #f3e5c8;
+  margin: 28px 0;
+}
+.catalog-selected h2 {
+  font-size: 36px;
+  margin: 10px 0;
+}
+.catalog-results-pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+  padding: 20px 0;
+  border-bottom: 1px solid #cbbb9c;
+}
+.catalog-results-pair span {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.catalog-results-pair strong {
+  font-size: 26px;
+}
+.catalog-profile-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  padding: 12px 0;
+}
+.catalog-profile-facts dt {
+  font-size: 11px;
+  color: #536163;
+}
+.catalog-profile-facts dd {
+  margin: 6px 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+.catalog-big-value {
+  font-size: clamp(28px, 4vw, 44px);
+  color: #176b50;
+  font-variant-numeric: tabular-nums;
+}
+.catalog-method {
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 25px 0;
+  padding: 18px;
+  background: #f1e6d1;
+}
+.catalog-method summary,
+.catalog-profile-section > details > summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.catalog-related {
+  border-top: 2px solid #173e78;
+  padding-top: 20px;
+  margin: 28px 0;
+}
+.catalog-state-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  margin: 26px 0;
+}
+.catalog-state-grid > button {
+  text-align: left;
+  padding: 26px;
+  border: 1px solid #cbbb9c;
+  background: #fffaf0;
+  color: #173e78;
+  border-top: 5px solid #176b50;
+}
+.catalog-state-grid > button > span {
+  font-size: 44px;
+  font-weight: 900;
+  color: #176b50;
+}
+.catalog-state-grid h2 {
+  font-size: 26px;
+  margin: 15px 0;
+}
+.catalog-state-grid p,
+.catalog-state-grid small {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.catalog-state-grid b {
+  display: block;
+  margin-top: 20px;
+  font-size: 13px;
+}
+.catalog-town-search {
+  margin: 24px 0;
+  max-width: 600px;
+}
+.candidate-catalog :focus-visible,
+.person-profile :focus-visible,
+.territory-catalog :focus-visible {
+  outline: 3px solid #c84d38;
+  outline-offset: 3px;
+}
+.catalog-transition {
+  padding: 14px 18px;
+  border-left: 4px solid #c84d38;
+  background: #fff0c7;
+  line-height: 1.6;
+  font-size: 14px;
+}
+@media (max-width: 800px) {
+  .catalog-candidates,
+  .catalog-state-grid {
+    grid-template-columns: 1fr;
+  }
+  .catalog-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .catalog-profile-heading {
+    align-items: start;
+  }
+  .catalog-profile-heading h1 {
+    font-size: 42px;
+  }
+}
+@media (max-width: 520px) {
+  .catalog-search,
+  .catalog-profile-section,
+  .catalog-selected {
+    padding: 18px;
+  }
+  .catalog-filters,
+  .catalog-profile-facts {
+    grid-template-columns: 1fr;
+  }
+  .catalog-candidate {
+    padding: 18px;
+    gap: 14px;
+  }
+  .catalog-portrait {
+    width: 52px;
+    height: 65px;
+  }
+  .catalog-portrait.is-large {
+    width: 76px;
+    height: 96px;
+  }
+  .catalog-profile-heading {
+    gap: 16px;
+  }
+  .catalog-profile-heading h1 {
+    font-size: 34px;
+  }
+  .catalog-candidate h2 {
+    font-size: 24px;
+  }
+  .catalog-pagination {
+    gap: 10px;
+  }
+  .catalog-election-timeline li {
+    flex-basis: 220px;
+  }
+}

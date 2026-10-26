@@ -1,10 +1,312 @@
-.people-view-switch,.people-profile-nav{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0}.people-view-switch button,.people-profile-nav button{min-height:44px;padding:12px 18px;border:1px solid #173e78;background:#fffaf0;color:#173e78;font-size:14px;font-weight:700}.people-view-switch button[aria-pressed=true]{background:#173e78;color:#fffaf0}.people-profile-nav{padding-bottom:18px;border-bottom:1px solid #cbbb9c}.person-profile section[id]{scroll-margin-top:24px}
-.people-stickers{gap:24px!important}.people-stickers>li{min-width:0;display:flex}.catalog-candidate.people-sticker{position:relative;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:26px;background:#fffaf0;border:1px solid #c6b99c;border-top:6px solid #176b50;border-radius:4px 24px 4px 4px;box-shadow:3px 4px 0 #d5c6a9;text-align:left;transition:box-shadow .15s,border-color .15s}.people-stickers>li:nth-child(3n+2) .people-sticker{border-top-color:#174a8b}.people-stickers>li:nth-child(3n) .people-sticker{border-top-color:#b58a25}.catalog-candidate.people-sticker:hover{border-color:#173e78;box-shadow:5px 6px 0 #c8b795}.people-sticker:after{content:'';position:absolute;right:0;top:0;width:20px;height:20px;border-radius:0 20px 0 8px;background:linear-gradient(45deg,#e8dbc1 0 48%,#fffaf0 50%);pointer-events:none}.people-card-heading{display:grid;grid-template-columns:90px minmax(0,1fr);align-items:start;gap:20px;min-width:0}.people-sticker .catalog-portrait{width:90px;height:114px;background:#eee6d6;border-radius:2px}.people-sticker .catalog-stamp{font-size:10px;line-height:1.6;letter-spacing:.07em}.people-sticker h2{font-size:30px;line-height:1.05;margin:10px 0 8px}.people-sticker p{font-size:14px;line-height:1.6;margin:6px 0}.people-place{color:#173e78!important;font-weight:700}.people-history-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:24px 0 20px;padding:16px 0;border-top:1px dashed #c3b391;border-bottom:1px dashed #c3b391}.people-history-summary>span{font-size:12px;line-height:1.5;color:#465265}.people-history-summary strong{display:block;font:800 30px/1.1 'Barlow Condensed',sans-serif;color:#173e78}.people-last-run>span{font-size:10px;letter-spacing:.07em;color:#617067;font-weight:800}.people-last-run p{margin-top:8px}.people-last-run b{font:700 15px/1.5 'DM Sans',sans-serif;color:#173e78}.people-sticker .people-last-run small{font-size:13px;line-height:1.6;margin-top:5px;color:#465265}.people-sticker .people-matched-run{padding:10px 12px;margin-top:12px;border-left:3px solid #176b50;background:#edf0e7;color:#354b42;font-size:13px}.people-years{display:flex;flex-wrap:wrap;gap:6px;margin:18px 0}.people-years>span{padding:4px 8px;border:1px solid #d4c4a7;background:#f3e8d2;font:600 12px/1.4 'DM Sans',sans-serif;color:#465265}.people-sticker .people-metric{font-weight:700;color:#173e78}.people-card-open{margin-top:auto;padding-top:18px;border-top:1px solid #d6cbb7;display:flex;justify-content:space-between;gap:16px;font-size:14px;line-height:1.5;font-weight:800;color:#173e78}.people-card-open>span{font-size:20px}.people-sticker:focus-visible{outline:3px solid #c84d38;outline-offset:5px}
-@media(max-width:800px){.people-stickers{grid-template-columns:1fr!important}.people-sticker h2{font-size:28px}}@media(max-width:520px){.catalog-candidate.people-sticker{padding:20px}.people-card-heading{grid-template-columns:72px minmax(0,1fr);gap:14px}.people-sticker .catalog-portrait{width:72px;height:92px}.people-sticker h2{font-size:26px}.people-sticker .catalog-stamp{font-size:9px}.people-sticker p{font-size:13px}.people-history-summary{gap:8px}.people-history-summary>span{font-size:11px}.people-history-summary strong{font-size:27px}.people-view-switch{display:grid;grid-template-columns:1fr}.people-profile-nav{gap:7px}.people-profile-nav button{padding:10px 12px;font-size:13px}}
-@media(prefers-reduced-motion:reduce){.catalog-candidate.people-sticker{transition:none}}
+.people-view-switch,
+.people-profile-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 22px 0;
+}
+.people-view-switch button,
+.people-profile-nav button {
+  min-height: 44px;
+  padding: 12px 18px;
+  border: 1px solid #173e78;
+  background: #fffaf0;
+  color: #173e78;
+  font-size: 14px;
+  font-weight: 700;
+}
+.people-view-switch button[aria-pressed='true'] {
+  background: #173e78;
+  color: #fffaf0;
+}
+.people-profile-nav {
+  padding-bottom: 18px;
+  border-bottom: 1px solid #cbbb9c;
+}
+.person-profile section[id] {
+  scroll-margin-top: 24px;
+}
+.people-stickers {
+  gap: 24px !important;
+}
+.people-stickers > li {
+  min-width: 0;
+  display: flex;
+}
+.catalog-candidate.people-sticker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 26px;
+  background: #fffaf0;
+  border: 1px solid #c6b99c;
+  border-top: 6px solid #176b50;
+  border-radius: 4px 24px 4px 4px;
+  box-shadow: 3px 4px 0 #d5c6a9;
+  text-align: left;
+  transition:
+    box-shadow 0.15s,
+    border-color 0.15s;
+}
+.people-stickers > li:nth-child(3n + 2) .people-sticker {
+  border-top-color: #174a8b;
+}
+.people-stickers > li:nth-child(3n) .people-sticker {
+  border-top-color: #b58a25;
+}
+.catalog-candidate.people-sticker:hover {
+  border-color: #173e78;
+  box-shadow: 5px 6px 0 #c8b795;
+}
+.people-sticker:after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 0 20px 0 8px;
+  background: linear-gradient(45deg, #e8dbc1 0 48%, #fffaf0 50%);
+  pointer-events: none;
+}
+.people-card-heading {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+  min-width: 0;
+}
+.people-sticker .catalog-portrait {
+  width: 90px;
+  height: 114px;
+  background: #eee6d6;
+  border-radius: 2px;
+}
+.people-sticker .catalog-stamp {
+  font-size: 10px;
+  line-height: 1.6;
+  letter-spacing: 0.07em;
+}
+.people-sticker h2 {
+  font-size: 30px;
+  line-height: 1.05;
+  margin: 10px 0 8px;
+}
+.people-sticker p {
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 6px 0;
+}
+.people-place {
+  color: #173e78 !important;
+  font-weight: 700;
+}
+.people-history-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 24px 0 20px;
+  padding: 16px 0;
+  border-top: 1px dashed #c3b391;
+  border-bottom: 1px dashed #c3b391;
+}
+.people-history-summary > span {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #465265;
+}
+.people-history-summary strong {
+  display: block;
+  font:
+    800 30px/1.1 'Barlow Condensed',
+    sans-serif;
+  color: #173e78;
+}
+.people-last-run > span {
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  color: #617067;
+  font-weight: 800;
+}
+.people-last-run p {
+  margin-top: 8px;
+}
+.people-last-run b {
+  font:
+    700 15px/1.5 'DM Sans',
+    sans-serif;
+  color: #173e78;
+}
+.people-sticker .people-last-run small {
+  font-size: 13px;
+  line-height: 1.6;
+  margin-top: 5px;
+  color: #465265;
+}
+.people-sticker .people-matched-run {
+  padding: 10px 12px;
+  margin-top: 12px;
+  border-left: 3px solid #176b50;
+  background: #edf0e7;
+  color: #354b42;
+  font-size: 13px;
+}
+.people-years {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 18px 0;
+}
+.people-years > span {
+  padding: 4px 8px;
+  border: 1px solid #d4c4a7;
+  background: #f3e8d2;
+  font:
+    600 12px/1.4 'DM Sans',
+    sans-serif;
+  color: #465265;
+}
+.people-sticker .people-metric {
+  font-weight: 700;
+  color: #173e78;
+}
+.people-card-open {
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px solid #d6cbb7;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 800;
+  color: #173e78;
+}
+.people-card-open > span {
+  font-size: 20px;
+}
+.people-sticker:focus-visible {
+  outline: 3px solid #c84d38;
+  outline-offset: 5px;
+}
+@media (max-width: 800px) {
+  .people-stickers {
+    grid-template-columns: 1fr !important;
+  }
+  .people-sticker h2 {
+    font-size: 28px;
+  }
+}
+@media (max-width: 520px) {
+  .catalog-candidate.people-sticker {
+    padding: 20px;
+  }
+  .people-card-heading {
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 14px;
+  }
+  .people-sticker .catalog-portrait {
+    width: 72px;
+    height: 92px;
+  }
+  .people-sticker h2 {
+    font-size: 26px;
+  }
+  .people-sticker .catalog-stamp {
+    font-size: 9px;
+  }
+  .people-sticker p {
+    font-size: 13px;
+  }
+  .people-history-summary {
+    gap: 8px;
+  }
+  .people-history-summary > span {
+    font-size: 11px;
+  }
+  .people-history-summary strong {
+    font-size: 27px;
+  }
+  .people-view-switch {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .people-profile-nav {
+    gap: 7px;
+  }
+  .people-profile-nav button {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .catalog-candidate.people-sticker {
+    transition: none;
+  }
+}
 
-.party-history-toggle{display:flex;align-items:center;gap:9px;margin-top:16px;font-size:13px;line-height:1.5;color:#245b4d}.candidate-workspace .candidate-filter-form .party-history-toggle input{width:17px;min-height:17px;height:17px;flex-shrink:0;accent-color:#245b4d}.party-history-note{font-size:12px;line-height:1.65;padding:11px 13px;background:#ede5d35c;border-left:3px solid #b79d69;color:#46574e}.party-history-note a{color:#174a70;text-decoration:underline}
+.party-history-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #245b4d;
+}
+.candidate-workspace .candidate-filter-form .party-history-toggle input {
+  width: 17px;
+  min-height: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  accent-color: #245b4d;
+}
+.party-history-note {
+  font-size: 12px;
+  line-height: 1.65;
+  padding: 11px 13px;
+  background: #ede5d35c;
+  border-left: 3px solid #b79d69;
+  color: #46574e;
+}
+.party-history-note a {
+  color: #174a70;
+  text-decoration: underline;
+}
 
-.candidate-party,.party-identity{background:var(--party-color,#173e78)!important;color:var(--party-ink,#fff)!important}.party-identity{display:inline-block;padding:5px 10px;font-size:12px;font-weight:800;line-height:1.4;border-radius:2px;margin:12px 0 0}.party-history-note{border-left-color:var(--party-color,#b79d69)}
+.candidate-party,
+.party-identity {
+  background: var(--party-color, #173e78) !important;
+  color: var(--party-ink, #fff) !important;
+}
+.party-identity {
+  display: inline-block;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.4;
+  border-radius: 2px;
+  margin: 12px 0 0;
+}
+.party-history-note {
+  border-left-color: var(--party-color, #b79d69);
+}
 
-.trajectory-changes{list-style:none;margin:12px 0 0;padding:0 0 0 12px;border-left:2px solid #b9aa8e}.trajectory-changes li{font-size:12px;line-height:1.65;color:#53645d;margin:6px 0;overflow-wrap:anywhere}.person-profile .catalog-election-timeline>li{min-width:0}
+.trajectory-changes {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0 0 0 12px;
+  border-left: 2px solid #b9aa8e;
+}
+.trajectory-changes li {
+  font-size: 12px;
+  line-height: 1.65;
+  color: #53645d;
+  margin: 6px 0;
+  overflow-wrap: anywhere;
+}
+.person-profile .catalog-election-timeline > li {
+  min-width: 0;
+}

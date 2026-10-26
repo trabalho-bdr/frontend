@@ -13,8 +13,6 @@
     "SEMINFORMACAONAFONTE"
   ],
   "missingLabel": "Sem informação na fonte",
-  "restrictedCodes": [
-    "NAODIVULGAVEL"
-  ],
+  "restrictedCodes": ["NAODIVULGAVEL"],
   "restrictedLabel": "Não divulgável"
 }

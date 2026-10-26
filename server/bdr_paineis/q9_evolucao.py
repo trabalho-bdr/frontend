@@ -1,4 +1,5 @@
 """Compatibility imports; implementation lives under questions/q09_publicidade."""
+
 from questions.q09_publicidade.evolution import (
     defaultdict,
     Decimal,
@@ -11,5 +12,5 @@ from questions.q09_publicidade.evolution import (
     _taxa,
     _distancia,
     _coorte,
-    resumo
+    resumo,
 )

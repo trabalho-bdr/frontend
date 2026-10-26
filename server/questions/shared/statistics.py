@@ -1,8 +1,11 @@
 """Pure descriptive statistics; no HTTP or database dependencies."""
-import math,statistics
+
+import math, statistics
+
 
 def percent(a, b):
     return 100 * a / b if b and a is not None else None
+
 
 def wilson(successes, total):
     if not total:
@@ -14,10 +17,18 @@ def wilson(successes, total):
     half = z * math.sqrt(p * (1 - p) / total + z * z / (4 * total * total)) / d
     return (100 * max(0, mid - half), 100 * min(1, mid + half))
 
+
 def correlation(rows, x, y):
-    pairs = [(r.get(x), r.get(y)) for r in rows if r.get(x) is not None and r.get(y) is not None and math.isfinite(r[x]) and math.isfinite(r[y])]
+    pairs = [
+        (r.get(x), r.get(y))
+        for r in rows
+        if r.get(x) is not None
+        and r.get(y) is not None
+        and math.isfinite(r[x])
+        and math.isfinite(r[y])
+    ]
     if len(pairs) < 3:
-        return {'n': len(pairs), 'pearson': None, 'spearman': None}
+        return {"n": len(pairs), "pearson": None, "spearman": None}
     (a, b) = zip(*pairs)
 
     def corr(a, b):
@@ -38,4 +49,5 @@ def correlation(rows, x, y):
                 out[ordered[k][0]] = (i + j - 1) / 2 + 1
             i = j
         return out
-    return {'n': len(pairs), 'pearson': corr(a, b), 'spearman': corr(ranks(a), ranks(b))}
+
+    return {"n": len(pairs), "pearson": corr(a, b), "spearman": corr(ranks(a), ranks(b))}

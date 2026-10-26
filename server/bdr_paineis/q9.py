@@ -1,4 +1,5 @@
 """Compatibility imports; implementation lives under questions/q09_publicidade."""
+
 from questions.q09_publicidade.repository import (
     unicodedata,
     re,
@@ -17,5 +18,5 @@ from questions.q09_publicidade.repository import (
     _classificar,
     _normalizacao_do_recorte,
     _normalizacao,
-    resumo
+    resumo,
 )

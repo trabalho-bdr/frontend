@@ -1,1 +1,20 @@
-export default function AcervoNav({active,onGo}){return <nav className="acervo-paths" aria-label="Caminhos do acervo"><span>CONSULTAR O ACERVO</span>{[['candidatos','Pessoas'],['territorios','Territórios'],['legendas','Partidos']].map(([page,label])=><button key={page} aria-current={active===page?'page':undefined} onClick={()=>onGo(page)}>{label}</button>)}</nav>}
+export default function AcervoNav({ active, onGo }) {
+  return (
+    <nav className="acervo-paths" aria-label="Caminhos do acervo">
+      <span>CONSULTAR O ACERVO</span>
+      {[
+        ['candidatos', 'Pessoas'],
+        ['territorios', 'Territórios'],
+        ['legendas', 'Partidos'],
+      ].map(([page, label]) => (
+        <button
+          key={page}
+          aria-current={active === page ? 'page' : undefined}
+          onClick={() => onGo(page)}
+        >
+          {label}
+        </button>
+      ))}
+    </nav>
+  );
+}

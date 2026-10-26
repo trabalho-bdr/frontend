@@ -1,93 +1,890 @@
-import {useEffect,useMemo,useState} from 'react';
-import Plenario3D,{plenarioAssentos} from '../Plenario3D.jsx';
-import {getMunicipios} from '../../data/client.js';
-import {fetchQuestao1Eleitos,fetchQuestao1Explorar,fetchQuestao1Partidos} from '../../data/questao1Client.js';
+import { useEffect, useMemo, useState } from 'react';
+import Plenario3D, { plenarioAssentos } from '../Plenario3D.jsx';
+import { getMunicipios } from '../../data/client.js';
+import {
+  fetchQuestao1Eleitos,
+  fetchQuestao1Explorar,
+  fetchQuestao1Partidos,
+} from '../../data/questao1Client.js';
 import './questao1.css';
 
-const UFS=['CE','MA','MS','RJ','RN','RS'];
-const YEARS={'VEREADOR':[2024,2020],'DEPUTADO ESTADUAL':[2022,2018],'DEPUTADO FEDERAL':[2022,2018]};
-const VIEWS=[['estado','Estado'],['municipio','Município'],['partido','Partido'],['perfil','Perfil'],['evolucao','Evolução']];
-const COLORS={CE:'#176B50',MA:'#d59a2e',MS:'#7775a0',RJ:'#174A8B',RN:'#C84D38',RS:'#72949b'};
-const money=value=>value==null?'—':Number(value).toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
-const num=value=>value==null?'—':Number(value).toLocaleString('pt-BR');
-const pct=value=>value==null?'—':`${Number(value).toLocaleString('pt-BR',{maximumFractionDigits:1})}%`;
-const metric={agregado:'Gasto declarado por cadeira conquistada',mediana:'Quanto gastou o eleito típico?',taxa:'Quem gasta mais se elege com mais frequência?'};
-const profileNames={gasto:'Faixa de gasto',escolaridade:'Escolaridade',idade:'Idade',patrimonio:'Patrimônio declarado'};
-const defaultScope={ano:2024,cargo:'VEREADOR',uf:'',municipioId:'',municipioNome:'',partido:'',indicador:'agregado',visao:'estado',perfil:'gasto'};
-function initialScope(){
- try{
-  const stored=JSON.parse(sessionStorage.getItem('q1_scope')||'{}');
-  const query=new URLSearchParams(location.hash.slice(1));
-  const merged={...defaultScope,...stored};
-  for(const key of ['ano','cargo','uf','municipioId','municipioNome','partido','indicador','visao','perfil'])if(query.has('q1_'+key))merged[key]=key==='ano'?Number(query.get('q1_'+key)):query.get('q1_'+key);
-  if(!YEARS[merged.cargo]||!YEARS[merged.cargo].includes(Number(merged.ano)))return defaultScope;
-  return merged;
- }catch{return defaultScope}
+const UFS = ['CE', 'MA', 'MS', 'RJ', 'RN', 'RS'];
+const YEARS = {
+  VEREADOR: [2024, 2020],
+  'DEPUTADO ESTADUAL': [2022, 2018],
+  'DEPUTADO FEDERAL': [2022, 2018],
+};
+const VIEWS = [
+  ['estado', 'Estado'],
+  ['municipio', 'Município'],
+  ['partido', 'Partido'],
+  ['perfil', 'Perfil'],
+  ['evolucao', 'Evolução'],
+];
+const COLORS = {
+  CE: '#176B50',
+  MA: '#d59a2e',
+  MS: '#7775a0',
+  RJ: '#174A8B',
+  RN: '#C84D38',
+  RS: '#72949b',
+};
+const money = (value) =>
+  value == null
+    ? '—'
+    : Number(value).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+        maximumFractionDigits: 0,
+      });
+const num = (value) => (value == null ? '—' : Number(value).toLocaleString('pt-BR'));
+const pct = (value) =>
+  value == null ? '—' : `${Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
+const metric = {
+  agregado: 'Gasto declarado por cadeira conquistada',
+  mediana: 'Quanto gastou o eleito típico?',
+  taxa: 'Quem gasta mais se elege com mais frequência?',
+};
+const profileNames = {
+  gasto: 'Faixa de gasto',
+  escolaridade: 'Escolaridade',
+  idade: 'Idade',
+  patrimonio: 'Patrimônio declarado',
+};
+const defaultScope = {
+  ano: 2024,
+  cargo: 'VEREADOR',
+  uf: '',
+  municipioId: '',
+  municipioNome: '',
+  partido: '',
+  indicador: 'agregado',
+  visao: 'estado',
+  perfil: 'gasto',
+};
+function initialScope() {
+  try {
+    const stored = JSON.parse(sessionStorage.getItem('q1_scope') || '{}');
+    const query = new URLSearchParams(location.hash.slice(1));
+    const merged = { ...defaultScope, ...stored };
+    for (const key of [
+      'ano',
+      'cargo',
+      'uf',
+      'municipioId',
+      'municipioNome',
+      'partido',
+      'indicador',
+      'visao',
+      'perfil',
+    ])
+      if (query.has('q1_' + key))
+        merged[key] = key === 'ano' ? Number(query.get('q1_' + key)) : query.get('q1_' + key);
+    if (!YEARS[merged.cargo] || !YEARS[merged.cargo].includes(Number(merged.ano)))
+      return defaultScope;
+    return merged;
+  } catch {
+    return defaultScope;
+  }
 }
-function median(values){const list=values.filter(v=>Number.isFinite(v)).sort((a,b)=>a-b);if(!list.length)return null;const i=Math.floor(list.length/2);return list.length%2?list[i]:(list[i-1]+list[i])/2}
-function rowValue(row,indicator){return row?.[indicator==='agregado'?'gasto_por_cadeira':indicator==='mediana'?'mediana_eleitos':'taxa_eleicao']??row?.valor??null}
-function readout(row,indicator){const value=rowValue(row,indicator);return indicator==='taxa'?pct(value):money(value)}
-function seatColor(person,mode,parties){
- if(mode==='partido')return ['#176B50','#174A8B','#EDBF42','#C84D38','#8665a0'][Math.max(0,parties.indexOf(person.partido))%5];
- const value=mode==='gasto'?person.gastos:mode==='patrimonio'?person.patrimonio:mode==='idade'?person.idade:null;
- if(mode==='escolaridade')return person.escolaridade?.includes('SUPERIOR')?'#174A8B':'#176B50';
- if(value==null)return '#8b9398';
- if(mode==='idade')return value<30?'#176B50':value<45?'#EDBF42':value<60?'#174A8B':'#C84D38';
- return value===0?'#176B50':value<10000?'#EDBF42':value<100000?'#174A8B':'#C84D38';
+function median(values) {
+  const list = values.filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
+  if (!list.length) return null;
+  const i = Math.floor(list.length / 2);
+  return list.length % 2 ? list[i] : (list[i - 1] + list[i]) / 2;
+}
+function rowValue(row, indicator) {
+  return (
+    row?.[
+      indicator === 'agregado'
+        ? 'gasto_por_cadeira'
+        : indicator === 'mediana'
+          ? 'mediana_eleitos'
+          : 'taxa_eleicao'
+    ] ??
+    row?.valor ??
+    null
+  );
+}
+function readout(row, indicator) {
+  const value = rowValue(row, indicator);
+  return indicator === 'taxa' ? pct(value) : money(value);
+}
+function seatColor(person, mode, parties) {
+  if (mode === 'partido')
+    return ['#176B50', '#174A8B', '#EDBF42', '#C84D38', '#8665a0'][
+      Math.max(0, parties.indexOf(person.partido)) % 5
+    ];
+  const value =
+    mode === 'gasto'
+      ? person.gastos
+      : mode === 'patrimonio'
+        ? person.patrimonio
+        : mode === 'idade'
+          ? person.idade
+          : null;
+  if (mode === 'escolaridade')
+    return person.escolaridade?.includes('SUPERIOR') ? '#174A8B' : '#176B50';
+  if (value == null) return '#8b9398';
+  if (mode === 'idade')
+    return value < 30 ? '#176B50' : value < 45 ? '#EDBF42' : value < 60 ? '#174A8B' : '#C84D38';
+  return value === 0
+    ? '#176B50'
+    : value < 10000
+      ? '#EDBF42'
+      : value < 100000
+        ? '#174A8B'
+        : '#C84D38';
 }
 
-export default function CostInvestigation({onGo,onOpenRecord}){
- const [scope,setScope]=useState(initialScope),[notice,setNotice]=useState('');
- const [data,setData]=useState(null),[loading,setLoading]=useState(true),[revision,setRevision]=useState(0);
- const [stateReference,setStateReference]=useState(null);
- const [townQuery,setTownQuery]=useState(''),[towns,setTowns]=useState([]),[parties,setParties]=useState([]);
- const [selected,setSelected]=useState(''),[ascending,setAscending]=useState(false),[extreme,setExtreme]=useState('maiores');
- const [compare,setCompare]=useState([]),[showPeople,setShowPeople]=useState(false),[people,setPeople]=useState(null),[personLoading,setPersonLoading]=useState(false),[selectedSeat,setSelectedSeat]=useState(null),[colorBy,setColorBy]=useState('partido'),[profileGroup,setProfileGroup]=useState('');
- const update=(patch,message='')=>{setScope(current=>({...current,...patch}));setSelected('');setCompare([]);setProfileGroup('');setNotice(message)};
- const changeCargo=cargo=>update({cargo,ano:YEARS[cargo][0],partido:'',municipioId:'',municipioNome:'',visao:scope.visao==='municipio'&&cargo!=='VEREADOR'?'estado':scope.visao},'Ano ajustado à eleição deste cargo.');
- const changeYear=ano=>update({ano:Number(ano),partido:'',municipioId:'',municipioNome:''});
- const changeUf=uf=>update({uf,municipioId:'',municipioNome:'',partido:''});
- const changeView=visao=>{if(visao==='municipio'&&!scope.uf){setNotice('Selecione uma UF para comparar os municípios.');return}if(visao==='municipio'&&scope.cargo!=='VEREADOR')return;update({visao,indicador:scope.indicador==='taxa'&&visao!=='perfil'?'agregado':scope.indicador},scope.indicador==='taxa'&&visao!=='perfil'?'Indicador ajustado: taxa por faixa de gasto só aparece em Perfil.':'')};
- const changeIndicator=indicador=>update(indicador==='taxa'?{indicador,visao:'perfil',perfil:'gasto'}:{indicador},indicador==='taxa'?'Exibindo faixas de gasto para calcular a taxa de eleição.':'');
- useEffect(()=>{try{sessionStorage.setItem('q1_scope',JSON.stringify(scope));const query=new URLSearchParams(location.hash.slice(1));for(const [key,value] of Object.entries(scope))query.set('q1_'+key,String(value));history.replaceState(null,'','#'+query.toString())}catch{}},[scope]);
- useEffect(()=>{const ac=new AbortController();setData(null);setLoading(true);fetchQuestao1Explorar({ano:scope.ano,cargo:scope.cargo,uf:scope.uf,municipio_id:scope.municipioId,partido:scope.partido,visao:scope.visao,indicador:scope.indicador,perfil:scope.perfil},{signal:ac.signal}).then(result=>{if(!ac.signal.aborted)setData(result)}).finally(()=>{if(!ac.signal.aborted)setLoading(false)});return()=>ac.abort()},[scope,revision]);
- useEffect(()=>{setStateReference(null);if(scope.visao!=='municipio'||!scope.uf)return;const ac=new AbortController();fetchQuestao1Explorar({ano:scope.ano,cargo:scope.cargo,uf:scope.uf,partido:scope.partido,visao:'estado',indicador:scope.indicador},{signal:ac.signal}).then(result=>{if(!ac.signal.aborted)setStateReference(result.rows.find(row=>row.grupo===scope.uf)||null)});return()=>ac.abort()},[scope.visao,scope.ano,scope.cargo,scope.uf,scope.partido,scope.indicador]);
- useEffect(()=>{let active=true;fetchQuestao1Partidos({ano:scope.ano,cargo:scope.cargo,uf:scope.uf}).then(rows=>{if(active)setParties(rows)});return()=>{active=false}},[scope.ano,scope.cargo,scope.uf]);
- useEffect(()=>{if(scope.cargo!=='VEREADOR'||townQuery.trim().length<2){setTowns([]);return}let active=true;const timer=setTimeout(()=>getMunicipios({search:townQuery,uf:scope.uf,limit:15}).then(rows=>{if(active)setTowns(Array.isArray(rows)?rows:[])}).catch(()=>{if(active)setTowns([])}),280);return()=>{active=false;clearTimeout(timer)}},[townQuery,scope.uf,scope.cargo]);
- const contestReady=scope.cargo==='VEREADOR'?!!scope.municipioId:!!scope.uf;
- useEffect(()=>{setPeople(null);setSelectedSeat(null);if(!showPeople||!contestReady)return;let active=true;setPersonLoading(true);fetchQuestao1Eleitos({ano:scope.ano,cargo:scope.cargo,uf:scope.uf,municipioId:scope.municipioId,partido:scope.partido,perfil:profileGroup?scope.perfil:'',grupo:profileGroup}).then(result=>{if(active)setPeople(result)}).finally(()=>{if(active)setPersonLoading(false)});return()=>{active=false}},[showPeople,contestReady,scope.ano,scope.cargo,scope.uf,scope.municipioId,scope.partido,scope.perfil,profileGroup]);
- const rows=data?.rows||[],valid=rows.filter(row=>Number.isFinite(Number(rowValue(row,scope.indicador)))&&rowValue(row,scope.indicador)!=null),ordered=[...rows].sort((a,b)=>{const x=rowValue(a,scope.indicador),y=rowValue(b,scope.indicador);if(x==null)return 1;if(y==null)return -1;return ascending?x-y:y-x});
- const selectedRow=rows.find(row=>String(row.grupo)===selected),scopeRow=rows.find(row=>String(row.grupo)===(scope.visao==='estado'?scope.uf:scope.visao==='municipio'?scope.municipioNome:'')),leader=ordered.find(row=>rowValue(row,scope.indicador)!=null),active=selectedRow||scopeRow||leader;
- const stateMedian=median(valid.map(row=>Number(rowValue(row,scope.indicador))));
- const featured=scope.visao==='municipio'?(townQuery?ordered.filter(row=>String(row.grupo).toLocaleLowerCase('pt-BR').includes(townQuery.toLocaleLowerCase('pt-BR'))):extreme==='menores'?[...ordered].reverse().filter(row=>rowValue(row,scope.indicador)!=null).slice(0,10):ordered.slice(0,10)):scope.visao==='evolucao'?[...rows].sort((a,b)=>Number(a.grupo)-Number(b.grupo)):ordered.slice(0,scope.visao==='partido'?16:20);
- const maximum=Math.max(1,...featured.map(row=>Number(rowValue(row,scope.indicador))||0));
- const first=rows.find(row=>Number(row.grupo)===YEARS[scope.cargo][1]),last=rows.find(row=>Number(row.grupo)===YEARS[scope.cargo][0]);
- const firstValue=rowValue(first,scope.indicador),lastValue=rowValue(last,scope.indicador);
- const delta=firstValue!=null&&lastValue!=null?lastValue-firstValue:null;
- const label=scope.indicador==='taxa'?'taxa de eleição':scope.indicador==='mediana'?'gasto mediano dos eleitos':'gasto declarado por cadeira';
- const answer=loading?'Calculando o recorte selecionado…':data?.source==='unavailable'?'Este recorte não está disponível na consulta atual. Escolha outro filtro ou tente novamente.':!rows.length?'Não há candidaturas suficientes para esta comparação.':scope.visao==='evolucao'?delta==null?'Faltam valores comparáveis nos dois pleitos deste cargo.':`Entre ${YEARS[scope.cargo][1]} e ${YEARS[scope.cargo][0]}, o ${label} passou de ${money(firstValue)} para ${money(lastValue)} em valores nominais (${delta>=0?'+':''}${money(delta)}).`:!active?'Nenhum grupo tem valor calculável para este indicador.':scope.visao==='estado'?`${active.grupo} apresenta ${readout(active,scope.indicador)} de ${label}, com ${num(active.candidaturas)} candidaturas e ${num(active.eleitos)} eleitos.`:scope.visao==='municipio'?`${active.grupo}/${scope.uf} registra ${readout(active,scope.indicador)} de ${label}; a referência estadual deve usar a mesma definição.`:scope.visao==='partido'?active.eleitos?`${active.grupo} conquistou ${num(active.eleitos)} cadeiras neste recorte, com ${readout(active,scope.indicador)} de ${label}.`:`${active.grupo} não conquistou cadeiras neste recorte; não há gasto por cadeira a calcular.`:`No grupo ${active.grupo}, o ${label} é ${readout(active,scope.indicador)} (${num(active.candidaturas)} candidaturas).`;
- const contestRows=people?.rows||[],partyNames=[...new Set(contestRows.map(row=>row.partido))],seats=useMemo(()=>plenarioAssentos.slice(0,Math.min(72,contestRows.length)).map((seat,index)=>{const person=contestRows[index];return {...seat,block:'todos',person,name:person.nome,color:seatColor(person,colorBy,partyNames)}}),[people,colorBy]);
- const follow=(page,story='',extra={})=>onGo?.(page,story,'',{q1_ano:scope.ano,q1_cargo:scope.cargo,q1_uf:scope.uf,q1_partido:scope.partido,q1_municipioId:scope.municipioId,...extra});
- return <section className="q1-investigation">
-  <header className="q1-head"><span>PLENÁRIO / INVESTIGAÇÃO FINANCEIRA</span><h1>Quanto custa uma <em>cadeira?</em></h1><p>Uma pergunta, cinco maneiras de investigar. Escolha o recorte e veja o que os números permitem concluir.</p></header>
-  <div className="q1-core-filters"><label>Ano<select value={scope.ano} onChange={event=>changeYear(event.target.value)}>{YEARS[scope.cargo].map(year=><option key={year}>{year}</option>)}</select></label><label>Cargo<select value={scope.cargo} onChange={event=>changeCargo(event.target.value)}>{Object.keys(YEARS).map(cargo=><option key={cargo}>{cargo}</option>)}</select></label><label>Estado<select value={scope.uf} onChange={event=>changeUf(event.target.value)}><option value="">Seis UFs</option>{UFS.map(uf=><option key={uf}>{uf}</option>)}</select></label><label>Partido<select value={scope.partido} onChange={event=>update({partido:event.target.value})}><option value="">Todos</option>{parties.map(party=><option key={party}>{party}</option>)}</select></label></div>
-  {scope.cargo==='VEREADOR'&&<div className="q1-town-filter"><label>Município <input value={townQuery} onChange={event=>setTownQuery(event.target.value)} placeholder="Buscar município" aria-label="Buscar município"/></label>{scope.municipioId&&<button onClick={()=>update({municipioId:'',municipioNome:''})}>{scope.municipioNome} ×</button>}{towns.length>0&&<div>{towns.map(town=><button key={town.id} onClick={()=>{update({uf:town.uf,municipioId:String(town.id),municipioNome:town.nome});setTownQuery('');setTowns([])}}>{town.nome}/{town.uf}</button>)}</div>}</div>}
-  {notice&&<p className="q1-notice" role="status">{notice}</p>}
-  <div className="q1-indicator"><label>Indicador financeiro<select value={scope.indicador} onChange={event=>changeIndicator(event.target.value)}>{Object.entries(metric).map(([key,title])=><option key={key} value={key}>{title}</option>)}</select></label><p>{scope.indicador==='agregado'?'Soma das despesas conhecidas de todas as candidaturas ÷ número de eleitos.':scope.indicador==='mediana'?'Mediana das despesas conhecidas entre candidaturas eleitas.':'Eleitos ÷ candidaturas com resultado definido, dentro de cada faixa de gasto.'}</p></div>
-  <nav className="q1-perspectives" aria-label="Ver por"><strong>VER POR</strong>{VIEWS.map(([key,title])=><button key={key} aria-pressed={scope.visao===key} disabled={key==='municipio'&&scope.cargo!=='VEREADOR'} onClick={()=>changeView(key)}>{title}</button>)}</nav>
-  <div className="q1-reading" aria-live="polite"><span>O QUE O RECORTE RESPONDE</span><h2>{answer}</h2><small>{scope.ano} · {scope.cargo} · {scope.uf||'seis UFs'}{scope.municipioNome?' · '+scope.municipioNome:''}{scope.partido?' · '+scope.partido:''} · {data?.source==='snapshot'?'referência real do acervo arquivada':data?.source==='live'?'consulta ao acervo':'aguardando consulta'}</small></div>
-  <div className="q1-visual"><div className="q1-visual-heading"><div><span>{scope.visao==='estado'?'COMPARAÇÃO TERRITORIAL':scope.visao==='municipio'?'MUNICÍPIOS DO ESTADO':scope.visao==='partido'?'SIGLAS E CADEIRAS':scope.visao==='perfil'?'PERFIS DE CANDIDATURAS':'DOIS PLEITOS COMPARÁVEIS'}</span><h3>{scope.visao==='evolucao'?`O que mudou entre ${YEARS[scope.cargo][1]} e ${YEARS[scope.cargo][0]}?`:scope.visao==='perfil'?`Diferenças por ${profileNames[scope.perfil].toLowerCase()}`:metric[scope.indicador]}</h3></div>{scope.visao!=='evolucao'&&<button onClick={()=>setAscending(value=>!value)}>Ordem: {ascending?'menores primeiro':'maiores primeiro'} ↕</button>}</div>
-  {scope.visao==='perfil'&&<label className="q1-profile-select">Perfil<select value={scope.perfil} onChange={event=>update({perfil:event.target.value,indicador:scope.indicador==='taxa'&&event.target.value!=='gasto'?'agregado':scope.indicador},scope.indicador==='taxa'&&event.target.value!=='gasto'?'Taxa por faixa de gasto requer Perfil > Gasto; indicador ajustado.':'')}>{Object.entries(profileNames).map(([key,title])=><option key={key} value={key}>{title}</option>)}</select></label>}
-  {scope.visao==='municipio'&&<div className="q1-extremes"><button aria-pressed={extreme==='maiores'} onClick={()=>setExtreme('maiores')}>10 maiores</button><button aria-pressed={extreme==='menores'} onClick={()=>setExtreme('menores')}>10 menores</button></div>}
-  {loading?<p role="status">Consultando o acervo…</p>:!featured.length?<p className="q1-empty">{data?.source==='unavailable'?'Consulta indisponível para este recorte.':'Sem grupos comparáveis neste recorte.'} <button onClick={()=>setRevision(value=>value+1)}>Tentar novamente</button></p>:<div className="q1-bars">{featured.map(row=>{const value=rowValue(row,scope.indicador),width=value==null?0:Math.max(1,100*Number(value)/maximum);return <button key={row.grupo} className="q1-bar-row" aria-pressed={selected===String(row.grupo)||(!selected&&active?.grupo===row.grupo)} onClick={()=>{setSelected(String(row.grupo));if(scope.visao==='partido')setCompare(current=>current.includes(row.grupo)?current.filter(item=>item!==row.grupo):[...current.slice(-1),row.grupo])}}><span className="q1-bar-name">{row.grupo}</span><span className="q1-bar-track"><i style={{width:width+'%',background:scope.visao==='estado'?COLORS[row.grupo]||'#174A8B':'#176B50'}}/></span><strong>{readout(row,scope.indicador)}</strong><small>{num(row.eleitos)} eleitos</small></button>})}</div>}
-  {scope.visao==='evolucao'&&delta!=null&&<p className="q1-comparison-note">Diferença nominal: {delta>=0?'+':''}{money(delta)}{firstValue>0?` · ${pct(100*delta/firstValue)} em relação ao primeiro pleito`:''}. Valores de cada eleição sem correção pela inflação.</p>}
-  {scope.visao==='estado'&&active&&stateMedian!=null&&<p className="q1-comparison-note">Mediana dos {valid.length} indicadores estaduais: {money(stateMedian)} ({money(Math.abs(rowValue(active,scope.indicador)-stateMedian))} {rowValue(active,scope.indicador)>=stateMedian?'acima':'abaixo'}). Cada UF tem peso igual nesta referência.</p>}
-  {scope.visao==='municipio'&&active&&stateReference&&<p className="q1-comparison-note">{active.grupo}: {readout(active,scope.indicador)}. Referência para {scope.uf}, calculada com o mesmo indicador, ano, cargo e partido: {readout(stateReference,scope.indicador)}. Os denominadores são {num(active.eleitos)} eleitos no município e {num(stateReference.eleitos)} no estado.</p>}
-  {scope.visao==='partido'&&compare.length===2&&<div className="q1-party-pair">{compare.map(key=>{const row=rows.find(item=>item.grupo===key);return <article key={key}><strong>{key}</strong><p>{money(row?.total_despesas)} declarados · {num(row?.eleitos)} eleitos · {num(row?.candidaturas)} candidaturas</p><b>{readout(row,scope.indicador)}</b><details><summary>Outros indicadores</summary><p>Gasto mediano dos eleitos: {money(row?.mediana_eleitos)} · taxa de eleição: {pct(row?.taxa_eleicao)}. {row?.candidaturas<10?'Poucas candidaturas neste recorte.':''}</p></details></article>})}</div>}
-  {active&&<details className="q1-case-detail"><summary>Conferir o grupo selecionado: {active.grupo}</summary><p>{num(active.candidaturas)} candidaturas · {num(active.eleitos)} eleitos · {num(active.com_gasto)} despesas conhecidas · {num(active.sem_gasto)} ausentes. {active.eleitos===0?'Nenhuma cadeira conquistada; o indicador por cadeira não é calculado.':''}</p>{scope.visao==='partido'&&<button onClick={()=>update({partido:active.grupo})}>Filtrar por {active.grupo} ↗</button>}{scope.visao==='municipio'&&<button onClick={()=>follow('atlas','',{q1_municipioId:active.municipio_id,q1_municipioNome:active.grupo})}>Ver no Atlas ↗</button>}{scope.visao==='perfil'&&<button onClick={()=>{setProfileGroup(active.grupo);setShowPeople(true)}}>Conhecer eleitos deste perfil ↗</button>}</details>}
-  </div>
-  <details className="q1-method"><summary>Como foi calculado este valor?</summary><p><strong>Gasto declarado por cadeira conquistada:</strong> soma das despesas conhecidas de todas as candidaturas do recorte ÷ candidaturas com resultado de eleitas. Sem eleitos, não há divisão.</p><p><strong>Eleito típico:</strong> mediana das despesas informadas dos eleitos. <strong>Taxa por faixa:</strong> eleitos ÷ candidaturas com resultado definido na faixa × 100.</p><p>Base de dados: Candidatura, Eleicao e Resultado_Candidatura; primeiro turno ordinário de CE, MA, MS, RJ, RN e RS. Ausência de despesa não equivale a R$ 0. Valores nominais. Associação não demonstra causalidade.</p>{active&&<p>Grupo selecionado: {num(active.candidaturas)} candidaturas, {num(active.eleitos)} eleitos e {num(active.sem_gasto)} despesas ausentes.</p>}</details>
-  <details className="q1-people" open={showPeople} onToggle={event=>setShowPeople(event.currentTarget.open)}><summary>Explorar os casos por trás dos números · Plenário 3D</summary><div className="q1-people-content">{!contestReady?<p>Para vincular cadeiras a uma disputa coerente, selecione {scope.cargo==='VEREADOR'?'um município':'uma UF'} nos filtros acima.</p>:<><p>Resultados eleitorais do acervo oficial, não ocupantes atuais dos mandatos. A posição das cadeiras é uma organização visual.</p>{profileGroup&&<p>Perfil selecionado: {profileGroup}. <button onClick={()=>setProfileGroup('')}>Mostrar todos os eleitos da disputa</button></p>}<label>Colorir por<select value={colorBy} onChange={event=>setColorBy(event.target.value)}>{[['partido','Partido'],['gasto','Faixa de despesa'],['patrimonio','Patrimônio'],['escolaridade','Escolaridade'],['idade','Faixa etária']].map(([key,title])=><option key={key} value={key}>{title}</option>)}</select></label>{personLoading?<p>Carregando eleitos do recorte…</p>:contestRows.length?<><div className="q1-3d"><Plenario3D seats={seats} selectedSeat={selectedSeat} onPick={setSelectedSeat}/></div><p>{num(contestRows.length)} candidaturas exibidas{people?.source==='snapshot'?' da amostra parcial do acervo':''}. A maquete mostra no máximo 72 nomes, em ordem de votos.</p>{selectedSeat?.person&&<article className="q1-person-card"><strong>{selectedSeat.person.nome}</strong><p>{selectedSeat.person.partido} · {selectedSeat.person.municipio||selectedSeat.person.uf} · {num(selectedSeat.person.votos)} votos</p><p>Despesa: {money(selectedSeat.person.gastos)} · Patrimônio: {money(selectedSeat.person.patrimonio)} · Escolaridade: {selectedSeat.person.escolaridade||'Não informada'} · Idade: {num(selectedSeat.person.idade)}</p><button onClick={()=>onOpenRecord?.(selectedSeat.person)}>Abrir no Fichário ↗</button></article>}</>:<p>{people?.source==='unavailable'?'A consulta aos eleitos deste perfil está indisponível no momento.':'Não há candidaturas eleitas neste recorte carregado.'}</p>}</>}</div></details>
-  <nav className="q1-next" aria-label="Continue a investigação"><strong>CONTINUE A INVESTIGAÇÃO</strong><button onClick={()=>follow('atlas')}>Diferenças no Atlas ↗</button><button onClick={()=>follow('partidos')}>Partidos no Mural ↗</button><button onClick={()=>follow('arquivo')}>Perfis no Fichário ↗</button><button onClick={()=>follow('adesivos')}>Despesas na Adesivaria ↗</button></nav>
- </section>;
+export default function CostInvestigation({ onGo, onOpenRecord }) {
+  const [scope, setScope] = useState(initialScope),
+    [notice, setNotice] = useState('');
+  const [data, setData] = useState(null),
+    [loading, setLoading] = useState(true),
+    [revision, setRevision] = useState(0);
+  const [stateReference, setStateReference] = useState(null);
+  const [townQuery, setTownQuery] = useState(''),
+    [towns, setTowns] = useState([]),
+    [parties, setParties] = useState([]);
+  const [selected, setSelected] = useState(''),
+    [ascending, setAscending] = useState(false),
+    [extreme, setExtreme] = useState('maiores');
+  const [compare, setCompare] = useState([]),
+    [showPeople, setShowPeople] = useState(false),
+    [people, setPeople] = useState(null),
+    [personLoading, setPersonLoading] = useState(false),
+    [selectedSeat, setSelectedSeat] = useState(null),
+    [colorBy, setColorBy] = useState('partido'),
+    [profileGroup, setProfileGroup] = useState('');
+  const update = (patch, message = '') => {
+    setScope((current) => ({ ...current, ...patch }));
+    setSelected('');
+    setCompare([]);
+    setProfileGroup('');
+    setNotice(message);
+  };
+  const changeCargo = (cargo) =>
+    update(
+      {
+        cargo,
+        ano: YEARS[cargo][0],
+        partido: '',
+        municipioId: '',
+        municipioNome: '',
+        visao: scope.visao === 'municipio' && cargo !== 'VEREADOR' ? 'estado' : scope.visao,
+      },
+      'Ano ajustado à eleição deste cargo.',
+    );
+  const changeYear = (ano) =>
+    update({ ano: Number(ano), partido: '', municipioId: '', municipioNome: '' });
+  const changeUf = (uf) => update({ uf, municipioId: '', municipioNome: '', partido: '' });
+  const changeView = (visao) => {
+    if (visao === 'municipio' && !scope.uf) {
+      setNotice('Selecione uma UF para comparar os municípios.');
+      return;
+    }
+    if (visao === 'municipio' && scope.cargo !== 'VEREADOR') return;
+    update(
+      {
+        visao,
+        indicador: scope.indicador === 'taxa' && visao !== 'perfil' ? 'agregado' : scope.indicador,
+      },
+      scope.indicador === 'taxa' && visao !== 'perfil'
+        ? 'Indicador ajustado: taxa por faixa de gasto só aparece em Perfil.'
+        : '',
+    );
+  };
+  const changeIndicator = (indicador) =>
+    update(
+      indicador === 'taxa' ? { indicador, visao: 'perfil', perfil: 'gasto' } : { indicador },
+      indicador === 'taxa' ? 'Exibindo faixas de gasto para calcular a taxa de eleição.' : '',
+    );
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('q1_scope', JSON.stringify(scope));
+      const query = new URLSearchParams(location.hash.slice(1));
+      for (const [key, value] of Object.entries(scope)) query.set('q1_' + key, String(value));
+      history.replaceState(null, '', '#' + query.toString());
+    } catch {}
+  }, [scope]);
+  useEffect(() => {
+    const ac = new AbortController();
+    setData(null);
+    setLoading(true);
+    fetchQuestao1Explorar(
+      {
+        ano: scope.ano,
+        cargo: scope.cargo,
+        uf: scope.uf,
+        municipio_id: scope.municipioId,
+        partido: scope.partido,
+        visao: scope.visao,
+        indicador: scope.indicador,
+        perfil: scope.perfil,
+      },
+      { signal: ac.signal },
+    )
+      .then((result) => {
+        if (!ac.signal.aborted) setData(result);
+      })
+      .finally(() => {
+        if (!ac.signal.aborted) setLoading(false);
+      });
+    return () => ac.abort();
+  }, [scope, revision]);
+  useEffect(() => {
+    setStateReference(null);
+    if (scope.visao !== 'municipio' || !scope.uf) return;
+    const ac = new AbortController();
+    fetchQuestao1Explorar(
+      {
+        ano: scope.ano,
+        cargo: scope.cargo,
+        uf: scope.uf,
+        partido: scope.partido,
+        visao: 'estado',
+        indicador: scope.indicador,
+      },
+      { signal: ac.signal },
+    ).then((result) => {
+      if (!ac.signal.aborted)
+        setStateReference(result.rows.find((row) => row.grupo === scope.uf) || null);
+    });
+    return () => ac.abort();
+  }, [scope.visao, scope.ano, scope.cargo, scope.uf, scope.partido, scope.indicador]);
+  useEffect(() => {
+    let active = true;
+    fetchQuestao1Partidos({ ano: scope.ano, cargo: scope.cargo, uf: scope.uf }).then((rows) => {
+      if (active) setParties(rows);
+    });
+    return () => {
+      active = false;
+    };
+  }, [scope.ano, scope.cargo, scope.uf]);
+  useEffect(() => {
+    if (scope.cargo !== 'VEREADOR' || townQuery.trim().length < 2) {
+      setTowns([]);
+      return;
+    }
+    let active = true;
+    const timer = setTimeout(
+      () =>
+        getMunicipios({ search: townQuery, uf: scope.uf, limit: 15 })
+          .then((rows) => {
+            if (active) setTowns(Array.isArray(rows) ? rows : []);
+          })
+          .catch(() => {
+            if (active) setTowns([]);
+          }),
+      280,
+    );
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [townQuery, scope.uf, scope.cargo]);
+  const contestReady = scope.cargo === 'VEREADOR' ? !!scope.municipioId : !!scope.uf;
+  useEffect(() => {
+    setPeople(null);
+    setSelectedSeat(null);
+    if (!showPeople || !contestReady) return;
+    let active = true;
+    setPersonLoading(true);
+    fetchQuestao1Eleitos({
+      ano: scope.ano,
+      cargo: scope.cargo,
+      uf: scope.uf,
+      municipioId: scope.municipioId,
+      partido: scope.partido,
+      perfil: profileGroup ? scope.perfil : '',
+      grupo: profileGroup,
+    })
+      .then((result) => {
+        if (active) setPeople(result);
+      })
+      .finally(() => {
+        if (active) setPersonLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [
+    showPeople,
+    contestReady,
+    scope.ano,
+    scope.cargo,
+    scope.uf,
+    scope.municipioId,
+    scope.partido,
+    scope.perfil,
+    profileGroup,
+  ]);
+  const rows = data?.rows || [],
+    valid = rows.filter(
+      (row) =>
+        Number.isFinite(Number(rowValue(row, scope.indicador))) &&
+        rowValue(row, scope.indicador) != null,
+    ),
+    ordered = [...rows].sort((a, b) => {
+      const x = rowValue(a, scope.indicador),
+        y = rowValue(b, scope.indicador);
+      if (x == null) return 1;
+      if (y == null) return -1;
+      return ascending ? x - y : y - x;
+    });
+  const selectedRow = rows.find((row) => String(row.grupo) === selected),
+    scopeRow = rows.find(
+      (row) =>
+        String(row.grupo) ===
+        (scope.visao === 'estado'
+          ? scope.uf
+          : scope.visao === 'municipio'
+            ? scope.municipioNome
+            : ''),
+    ),
+    leader = ordered.find((row) => rowValue(row, scope.indicador) != null),
+    active = selectedRow || scopeRow || leader;
+  const stateMedian = median(valid.map((row) => Number(rowValue(row, scope.indicador))));
+  const featured =
+    scope.visao === 'municipio'
+      ? townQuery
+        ? ordered.filter((row) =>
+            String(row.grupo)
+              .toLocaleLowerCase('pt-BR')
+              .includes(townQuery.toLocaleLowerCase('pt-BR')),
+          )
+        : extreme === 'menores'
+          ? [...ordered]
+              .reverse()
+              .filter((row) => rowValue(row, scope.indicador) != null)
+              .slice(0, 10)
+          : ordered.slice(0, 10)
+      : scope.visao === 'evolucao'
+        ? [...rows].sort((a, b) => Number(a.grupo) - Number(b.grupo))
+        : ordered.slice(0, scope.visao === 'partido' ? 16 : 20);
+  const maximum = Math.max(
+    1,
+    ...featured.map((row) => Number(rowValue(row, scope.indicador)) || 0),
+  );
+  const first = rows.find((row) => Number(row.grupo) === YEARS[scope.cargo][1]),
+    last = rows.find((row) => Number(row.grupo) === YEARS[scope.cargo][0]);
+  const firstValue = rowValue(first, scope.indicador),
+    lastValue = rowValue(last, scope.indicador);
+  const delta = firstValue != null && lastValue != null ? lastValue - firstValue : null;
+  const label =
+    scope.indicador === 'taxa'
+      ? 'taxa de eleição'
+      : scope.indicador === 'mediana'
+        ? 'gasto mediano dos eleitos'
+        : 'gasto declarado por cadeira';
+  const answer = loading
+    ? 'Calculando o recorte selecionado…'
+    : data?.source === 'unavailable'
+      ? 'Este recorte não está disponível na consulta atual. Escolha outro filtro ou tente novamente.'
+      : !rows.length
+        ? 'Não há candidaturas suficientes para esta comparação.'
+        : scope.visao === 'evolucao'
+          ? delta == null
+            ? 'Faltam valores comparáveis nos dois pleitos deste cargo.'
+            : `Entre ${YEARS[scope.cargo][1]} e ${YEARS[scope.cargo][0]}, o ${label} passou de ${money(firstValue)} para ${money(lastValue)} em valores nominais (${delta >= 0 ? '+' : ''}${money(delta)}).`
+          : !active
+            ? 'Nenhum grupo tem valor calculável para este indicador.'
+            : scope.visao === 'estado'
+              ? `${active.grupo} apresenta ${readout(active, scope.indicador)} de ${label}, com ${num(active.candidaturas)} candidaturas e ${num(active.eleitos)} eleitos.`
+              : scope.visao === 'municipio'
+                ? `${active.grupo}/${scope.uf} registra ${readout(active, scope.indicador)} de ${label}; a referência estadual deve usar a mesma definição.`
+                : scope.visao === 'partido'
+                  ? active.eleitos
+                    ? `${active.grupo} conquistou ${num(active.eleitos)} cadeiras neste recorte, com ${readout(active, scope.indicador)} de ${label}.`
+                    : `${active.grupo} não conquistou cadeiras neste recorte; não há gasto por cadeira a calcular.`
+                  : `No grupo ${active.grupo}, o ${label} é ${readout(active, scope.indicador)} (${num(active.candidaturas)} candidaturas).`;
+  const contestRows = people?.rows || [],
+    partyNames = [...new Set(contestRows.map((row) => row.partido))],
+    seats = useMemo(
+      () =>
+        plenarioAssentos.slice(0, Math.min(72, contestRows.length)).map((seat, index) => {
+          const person = contestRows[index];
+          return {
+            ...seat,
+            block: 'todos',
+            person,
+            name: person.nome,
+            color: seatColor(person, colorBy, partyNames),
+          };
+        }),
+      [people, colorBy],
+    );
+  const follow = (page, story = '', extra = {}) =>
+    onGo?.(page, story, '', {
+      q1_ano: scope.ano,
+      q1_cargo: scope.cargo,
+      q1_uf: scope.uf,
+      q1_partido: scope.partido,
+      q1_municipioId: scope.municipioId,
+      ...extra,
+    });
+  return (
+    <section className="q1-investigation">
+      <header className="q1-head">
+        <span>PLENÁRIO / INVESTIGAÇÃO FINANCEIRA</span>
+        <h1>
+          Quanto custa uma <em>cadeira?</em>
+        </h1>
+        <p>
+          Uma pergunta, cinco maneiras de investigar. Escolha o recorte e veja o que os números
+          permitem concluir.
+        </p>
+      </header>
+      <div className="q1-core-filters">
+        <label>
+          Ano
+          <select value={scope.ano} onChange={(event) => changeYear(event.target.value)}>
+            {YEARS[scope.cargo].map((year) => (
+              <option key={year}>{year}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Cargo
+          <select value={scope.cargo} onChange={(event) => changeCargo(event.target.value)}>
+            {Object.keys(YEARS).map((cargo) => (
+              <option key={cargo}>{cargo}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Estado
+          <select value={scope.uf} onChange={(event) => changeUf(event.target.value)}>
+            <option value="">Seis UFs</option>
+            {UFS.map((uf) => (
+              <option key={uf}>{uf}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Partido
+          <select
+            value={scope.partido}
+            onChange={(event) => update({ partido: event.target.value })}
+          >
+            <option value="">Todos</option>
+            {parties.map((party) => (
+              <option key={party}>{party}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {scope.cargo === 'VEREADOR' && (
+        <div className="q1-town-filter">
+          <label>
+            Município{' '}
+            <input
+              value={townQuery}
+              onChange={(event) => setTownQuery(event.target.value)}
+              placeholder="Buscar município"
+              aria-label="Buscar município"
+            />
+          </label>
+          {scope.municipioId && (
+            <button onClick={() => update({ municipioId: '', municipioNome: '' })}>
+              {scope.municipioNome} ×
+            </button>
+          )}
+          {towns.length > 0 && (
+            <div>
+              {towns.map((town) => (
+                <button
+                  key={town.id}
+                  onClick={() => {
+                    update({ uf: town.uf, municipioId: String(town.id), municipioNome: town.nome });
+                    setTownQuery('');
+                    setTowns([]);
+                  }}
+                >
+                  {town.nome}/{town.uf}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      {notice && (
+        <p className="q1-notice" role="status">
+          {notice}
+        </p>
+      )}
+      <div className="q1-indicator">
+        <label>
+          Indicador financeiro
+          <select value={scope.indicador} onChange={(event) => changeIndicator(event.target.value)}>
+            {Object.entries(metric).map(([key, title]) => (
+              <option key={key} value={key}>
+                {title}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p>
+          {scope.indicador === 'agregado'
+            ? 'Soma das despesas conhecidas de todas as candidaturas ÷ número de eleitos.'
+            : scope.indicador === 'mediana'
+              ? 'Mediana das despesas conhecidas entre candidaturas eleitas.'
+              : 'Eleitos ÷ candidaturas com resultado definido, dentro de cada faixa de gasto.'}
+        </p>
+      </div>
+      <nav className="q1-perspectives" aria-label="Ver por">
+        <strong>VER POR</strong>
+        {VIEWS.map(([key, title]) => (
+          <button
+            key={key}
+            aria-pressed={scope.visao === key}
+            disabled={key === 'municipio' && scope.cargo !== 'VEREADOR'}
+            onClick={() => changeView(key)}
+          >
+            {title}
+          </button>
+        ))}
+      </nav>
+      <div className="q1-reading" aria-live="polite">
+        <span>O QUE O RECORTE RESPONDE</span>
+        <h2>{answer}</h2>
+        <small>
+          {scope.ano} · {scope.cargo} · {scope.uf || 'seis UFs'}
+          {scope.municipioNome ? ' · ' + scope.municipioNome : ''}
+          {scope.partido ? ' · ' + scope.partido : ''} ·{' '}
+          {data?.source === 'snapshot'
+            ? 'referência real do acervo arquivada'
+            : data?.source === 'live'
+              ? 'consulta ao acervo'
+              : 'aguardando consulta'}
+        </small>
+      </div>
+      <div className="q1-visual">
+        <div className="q1-visual-heading">
+          <div>
+            <span>
+              {scope.visao === 'estado'
+                ? 'COMPARAÇÃO TERRITORIAL'
+                : scope.visao === 'municipio'
+                  ? 'MUNICÍPIOS DO ESTADO'
+                  : scope.visao === 'partido'
+                    ? 'SIGLAS E CADEIRAS'
+                    : scope.visao === 'perfil'
+                      ? 'PERFIS DE CANDIDATURAS'
+                      : 'DOIS PLEITOS COMPARÁVEIS'}
+            </span>
+            <h3>
+              {scope.visao === 'evolucao'
+                ? `O que mudou entre ${YEARS[scope.cargo][1]} e ${YEARS[scope.cargo][0]}?`
+                : scope.visao === 'perfil'
+                  ? `Diferenças por ${profileNames[scope.perfil].toLowerCase()}`
+                  : metric[scope.indicador]}
+            </h3>
+          </div>
+          {scope.visao !== 'evolucao' && (
+            <button onClick={() => setAscending((value) => !value)}>
+              Ordem: {ascending ? 'menores primeiro' : 'maiores primeiro'} ↕
+            </button>
+          )}
+        </div>
+        {scope.visao === 'perfil' && (
+          <label className="q1-profile-select">
+            Perfil
+            <select
+              value={scope.perfil}
+              onChange={(event) =>
+                update(
+                  {
+                    perfil: event.target.value,
+                    indicador:
+                      scope.indicador === 'taxa' && event.target.value !== 'gasto'
+                        ? 'agregado'
+                        : scope.indicador,
+                  },
+                  scope.indicador === 'taxa' && event.target.value !== 'gasto'
+                    ? 'Taxa por faixa de gasto requer Perfil > Gasto; indicador ajustado.'
+                    : '',
+                )
+              }
+            >
+              {Object.entries(profileNames).map(([key, title]) => (
+                <option key={key} value={key}>
+                  {title}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {scope.visao === 'municipio' && (
+          <div className="q1-extremes">
+            <button aria-pressed={extreme === 'maiores'} onClick={() => setExtreme('maiores')}>
+              10 maiores
+            </button>
+            <button aria-pressed={extreme === 'menores'} onClick={() => setExtreme('menores')}>
+              10 menores
+            </button>
+          </div>
+        )}
+        {loading ? (
+          <p role="status">Consultando o acervo…</p>
+        ) : !featured.length ? (
+          <p className="q1-empty">
+            {data?.source === 'unavailable'
+              ? 'Consulta indisponível para este recorte.'
+              : 'Sem grupos comparáveis neste recorte.'}{' '}
+            <button onClick={() => setRevision((value) => value + 1)}>Tentar novamente</button>
+          </p>
+        ) : (
+          <div className="q1-bars">
+            {featured.map((row) => {
+              const value = rowValue(row, scope.indicador),
+                width = value == null ? 0 : Math.max(1, (100 * Number(value)) / maximum);
+              return (
+                <button
+                  key={row.grupo}
+                  className="q1-bar-row"
+                  aria-pressed={
+                    selected === String(row.grupo) || (!selected && active?.grupo === row.grupo)
+                  }
+                  onClick={() => {
+                    setSelected(String(row.grupo));
+                    if (scope.visao === 'partido')
+                      setCompare((current) =>
+                        current.includes(row.grupo)
+                          ? current.filter((item) => item !== row.grupo)
+                          : [...current.slice(-1), row.grupo],
+                      );
+                  }}
+                >
+                  <span className="q1-bar-name">{row.grupo}</span>
+                  <span className="q1-bar-track">
+                    <i
+                      style={{
+                        width: width + '%',
+                        background:
+                          scope.visao === 'estado' ? COLORS[row.grupo] || '#174A8B' : '#176B50',
+                      }}
+                    />
+                  </span>
+                  <strong>{readout(row, scope.indicador)}</strong>
+                  <small>{num(row.eleitos)} eleitos</small>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {scope.visao === 'evolucao' && delta != null && (
+          <p className="q1-comparison-note">
+            Diferença nominal: {delta >= 0 ? '+' : ''}
+            {money(delta)}
+            {firstValue > 0
+              ? ` · ${pct((100 * delta) / firstValue)} em relação ao primeiro pleito`
+              : ''}
+            . Valores de cada eleição sem correção pela inflação.
+          </p>
+        )}
+        {scope.visao === 'estado' && active && stateMedian != null && (
+          <p className="q1-comparison-note">
+            Mediana dos {valid.length} indicadores estaduais: {money(stateMedian)} (
+            {money(Math.abs(rowValue(active, scope.indicador) - stateMedian))}{' '}
+            {rowValue(active, scope.indicador) >= stateMedian ? 'acima' : 'abaixo'}). Cada UF tem
+            peso igual nesta referência.
+          </p>
+        )}
+        {scope.visao === 'municipio' && active && stateReference && (
+          <p className="q1-comparison-note">
+            {active.grupo}: {readout(active, scope.indicador)}. Referência para {scope.uf},
+            calculada com o mesmo indicador, ano, cargo e partido:{' '}
+            {readout(stateReference, scope.indicador)}. Os denominadores são {num(active.eleitos)}{' '}
+            eleitos no município e {num(stateReference.eleitos)} no estado.
+          </p>
+        )}
+        {scope.visao === 'partido' && compare.length === 2 && (
+          <div className="q1-party-pair">
+            {compare.map((key) => {
+              const row = rows.find((item) => item.grupo === key);
+              return (
+                <article key={key}>
+                  <strong>{key}</strong>
+                  <p>
+                    {money(row?.total_despesas)} declarados · {num(row?.eleitos)} eleitos ·{' '}
+                    {num(row?.candidaturas)} candidaturas
+                  </p>
+                  <b>{readout(row, scope.indicador)}</b>
+                  <details>
+                    <summary>Outros indicadores</summary>
+                    <p>
+                      Gasto mediano dos eleitos: {money(row?.mediana_eleitos)} · taxa de eleição:{' '}
+                      {pct(row?.taxa_eleicao)}.{' '}
+                      {row?.candidaturas < 10 ? 'Poucas candidaturas neste recorte.' : ''}
+                    </p>
+                  </details>
+                </article>
+              );
+            })}
+          </div>
+        )}
+        {active && (
+          <details className="q1-case-detail">
+            <summary>Conferir o grupo selecionado: {active.grupo}</summary>
+            <p>
+              {num(active.candidaturas)} candidaturas · {num(active.eleitos)} eleitos ·{' '}
+              {num(active.com_gasto)} despesas conhecidas · {num(active.sem_gasto)} ausentes.{' '}
+              {active.eleitos === 0
+                ? 'Nenhuma cadeira conquistada; o indicador por cadeira não é calculado.'
+                : ''}
+            </p>
+            {scope.visao === 'partido' && (
+              <button onClick={() => update({ partido: active.grupo })}>
+                Filtrar por {active.grupo} ↗
+              </button>
+            )}
+            {scope.visao === 'municipio' && (
+              <button
+                onClick={() =>
+                  follow('atlas', '', {
+                    q1_municipioId: active.municipio_id,
+                    q1_municipioNome: active.grupo,
+                  })
+                }
+              >
+                Ver no Atlas ↗
+              </button>
+            )}
+            {scope.visao === 'perfil' && (
+              <button
+                onClick={() => {
+                  setProfileGroup(active.grupo);
+                  setShowPeople(true);
+                }}
+              >
+                Conhecer eleitos deste perfil ↗
+              </button>
+            )}
+          </details>
+        )}
+      </div>
+      <details className="q1-method">
+        <summary>Como foi calculado este valor?</summary>
+        <p>
+          <strong>Gasto declarado por cadeira conquistada:</strong> soma das despesas conhecidas de
+          todas as candidaturas do recorte ÷ candidaturas com resultado de eleitas. Sem eleitos, não
+          há divisão.
+        </p>
+        <p>
+          <strong>Eleito típico:</strong> mediana das despesas informadas dos eleitos.{' '}
+          <strong>Taxa por faixa:</strong> eleitos ÷ candidaturas com resultado definido na faixa ×
+          100.
+        </p>
+        <p>
+          Base de dados: Candidatura, Eleicao e Resultado_Candidatura; primeiro turno ordinário de
+          CE, MA, MS, RJ, RN e RS. Ausência de despesa não equivale a R$ 0. Valores nominais.
+          Associação não demonstra causalidade.
+        </p>
+        {active && (
+          <p>
+            Grupo selecionado: {num(active.candidaturas)} candidaturas, {num(active.eleitos)}{' '}
+            eleitos e {num(active.sem_gasto)} despesas ausentes.
+          </p>
+        )}
+      </details>
+      <details
+        className="q1-people"
+        open={showPeople}
+        onToggle={(event) => setShowPeople(event.currentTarget.open)}
+      >
+        <summary>Explorar os casos por trás dos números · Plenário 3D</summary>
+        <div className="q1-people-content">
+          {!contestReady ? (
+            <p>
+              Para vincular cadeiras a uma disputa coerente, selecione{' '}
+              {scope.cargo === 'VEREADOR' ? 'um município' : 'uma UF'} nos filtros acima.
+            </p>
+          ) : (
+            <>
+              <p>
+                Resultados eleitorais do acervo oficial, não ocupantes atuais dos mandatos. A
+                posição das cadeiras é uma organização visual.
+              </p>
+              {profileGroup && (
+                <p>
+                  Perfil selecionado: {profileGroup}.{' '}
+                  <button onClick={() => setProfileGroup('')}>
+                    Mostrar todos os eleitos da disputa
+                  </button>
+                </p>
+              )}
+              <label>
+                Colorir por
+                <select value={colorBy} onChange={(event) => setColorBy(event.target.value)}>
+                  {[
+                    ['partido', 'Partido'],
+                    ['gasto', 'Faixa de despesa'],
+                    ['patrimonio', 'Patrimônio'],
+                    ['escolaridade', 'Escolaridade'],
+                    ['idade', 'Faixa etária'],
+                  ].map(([key, title]) => (
+                    <option key={key} value={key}>
+                      {title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {personLoading ? (
+                <p>Carregando eleitos do recorte…</p>
+              ) : contestRows.length ? (
+                <>
+                  <div className="q1-3d">
+                    <Plenario3D
+                      seats={seats}
+                      selectedSeat={selectedSeat}
+                      onPick={setSelectedSeat}
+                    />
+                  </div>
+                  <p>
+                    {num(contestRows.length)} candidaturas exibidas
+                    {people?.source === 'snapshot' ? ' da amostra parcial do acervo' : ''}. A
+                    maquete mostra no máximo 72 nomes, em ordem de votos.
+                  </p>
+                  {selectedSeat?.person && (
+                    <article className="q1-person-card">
+                      <strong>{selectedSeat.person.nome}</strong>
+                      <p>
+                        {selectedSeat.person.partido} ·{' '}
+                        {selectedSeat.person.municipio || selectedSeat.person.uf} ·{' '}
+                        {num(selectedSeat.person.votos)} votos
+                      </p>
+                      <p>
+                        Despesa: {money(selectedSeat.person.gastos)} · Patrimônio:{' '}
+                        {money(selectedSeat.person.patrimonio)} · Escolaridade:{' '}
+                        {selectedSeat.person.escolaridade || 'Não informada'} · Idade:{' '}
+                        {num(selectedSeat.person.idade)}
+                      </p>
+                      <button onClick={() => onOpenRecord?.(selectedSeat.person)}>
+                        Abrir no Fichário ↗
+                      </button>
+                    </article>
+                  )}
+                </>
+              ) : (
+                <p>
+                  {people?.source === 'unavailable'
+                    ? 'A consulta aos eleitos deste perfil está indisponível no momento.'
+                    : 'Não há candidaturas eleitas neste recorte carregado.'}
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      </details>
+      <nav className="q1-next" aria-label="Continue a investigação">
+        <strong>CONTINUE A INVESTIGAÇÃO</strong>
+        <button onClick={() => follow('atlas')}>Diferenças no Atlas ↗</button>
+        <button onClick={() => follow('partidos')}>Partidos no Mural ↗</button>
+        <button onClick={() => follow('arquivo')}>Perfis no Fichário ↗</button>
+        <button onClick={() => follow('adesivos')}>Despesas na Adesivaria ↗</button>
+      </nav>
+    </section>
+  );
 }

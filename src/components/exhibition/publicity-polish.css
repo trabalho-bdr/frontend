@@ -1,19 +1,130 @@
-.expo-spending-bands{margin:24px 0;padding:26px;background:#fffaf0;border:1px solid #c6b99c;color:#173e78}
-.expo-spending-intro,.expo-spending-caption{font-size:14px;line-height:1.7;max-width:75ch}
-.expo-spending-intro{margin:0 0 28px}
-.expo-spending-band+.expo-spending-band{margin-top:28px}
-.expo-spending-band-heading,.expo-spending-band-note{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline}
-.expo-spending-band-heading strong{font-size:16px}.expo-spending-band-heading b{font-size:22px;color:#176B50;font-variant-numeric:tabular-nums}
-.expo-spending-track{height:22px;background:#ede5d3;border:1px solid #c6b99c;margin:10px 0;overflow:hidden}
-.expo-spending-track span{display:block;height:100%;background:#174A8B}
-.expo-spending-band-note{font-size:12px;line-height:1.6;color:#4c5964}
-.expo-spending-scale{display:flex;justify-content:space-between;margin-top:14px;border-top:1px solid #c6b99c;padding-top:8px;font-size:11px;color:#5a625f;font-variant-numeric:tabular-nums}
-.expo-spending-caption{margin:22px 0 0;padding-top:16px;border-top:1px dashed #c6b99c}
-.expo-publicity-distribution .data-table thead th{position:static;background:#174A8B;color:#fffaf0;font-size:13px;padding:14px 16px}
-.expo-publicity-distribution .data-table tbody th{position:static;background:transparent;color:#173e78;border-bottom:1px solid #c6b99c;padding:14px 16px;vertical-align:middle;font-size:14px;line-height:1.45}
-.expo-publicity-distribution .data-table tbody th button{color:#173e78;text-decoration:none;text-align:left;font-weight:700;min-height:32px}
-.expo-publicity-distribution .data-table tbody th button:hover{text-decoration:underline}
-.expo-publicity-distribution .data-table td{padding:14px 16px;font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap}
-.expo-publicity-history select{min-height:48px;width:100%}.expo-publicity-history select:disabled{opacity:.65}
-@media(max-width:600px){.expo-spending-bands{padding:18px 14px}.expo-spending-band-heading strong{font-size:14px}.expo-spending-band-heading b{font-size:19px}.expo-spending-band-note{display:grid;gap:3px}.expo-publicity-distribution .data-table tbody th{min-width:180px}}
-@media(prefers-reduced-motion:reduce){.expo-publicity .expo-publicity-cloud button{transition:none}}
+.expo-spending-bands {
+  margin: 24px 0;
+  padding: 26px;
+  background: #fffaf0;
+  border: 1px solid #c6b99c;
+  color: #173e78;
+}
+.expo-spending-intro,
+.expo-spending-caption {
+  font-size: 14px;
+  line-height: 1.7;
+  max-width: 75ch;
+}
+.expo-spending-intro {
+  margin: 0 0 28px;
+}
+.expo-spending-band + .expo-spending-band {
+  margin-top: 28px;
+}
+.expo-spending-band-heading,
+.expo-spending-band-note {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+.expo-spending-band-heading strong {
+  font-size: 16px;
+}
+.expo-spending-band-heading b {
+  font-size: 22px;
+  color: #176b50;
+  font-variant-numeric: tabular-nums;
+}
+.expo-spending-track {
+  height: 22px;
+  background: #ede5d3;
+  border: 1px solid #c6b99c;
+  margin: 10px 0;
+  overflow: hidden;
+}
+.expo-spending-track span {
+  display: block;
+  height: 100%;
+  background: #174a8b;
+}
+.expo-spending-band-note {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #4c5964;
+}
+.expo-spending-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 14px;
+  border-top: 1px solid #c6b99c;
+  padding-top: 8px;
+  font-size: 11px;
+  color: #5a625f;
+  font-variant-numeric: tabular-nums;
+}
+.expo-spending-caption {
+  margin: 22px 0 0;
+  padding-top: 16px;
+  border-top: 1px dashed #c6b99c;
+}
+.expo-publicity-distribution .data-table thead th {
+  position: static;
+  background: #174a8b;
+  color: #fffaf0;
+  font-size: 13px;
+  padding: 14px 16px;
+}
+.expo-publicity-distribution .data-table tbody th {
+  position: static;
+  background: transparent;
+  color: #173e78;
+  border-bottom: 1px solid #c6b99c;
+  padding: 14px 16px;
+  vertical-align: middle;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.expo-publicity-distribution .data-table tbody th button {
+  color: #173e78;
+  text-decoration: none;
+  text-align: left;
+  font-weight: 700;
+  min-height: 32px;
+}
+.expo-publicity-distribution .data-table tbody th button:hover {
+  text-decoration: underline;
+}
+.expo-publicity-distribution .data-table td {
+  padding: 14px 16px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.expo-publicity-history select {
+  min-height: 48px;
+  width: 100%;
+}
+.expo-publicity-history select:disabled {
+  opacity: 0.65;
+}
+@media (max-width: 600px) {
+  .expo-spending-bands {
+    padding: 18px 14px;
+  }
+  .expo-spending-band-heading strong {
+    font-size: 14px;
+  }
+  .expo-spending-band-heading b {
+    font-size: 19px;
+  }
+  .expo-spending-band-note {
+    display: grid;
+    gap: 3px;
+  }
+  .expo-publicity-distribution .data-table tbody th {
+    min-width: 180px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .expo-publicity .expo-publicity-cloud button {
+    transition: none;
+  }
+}

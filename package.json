@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "node --test tests/*.test.mjs",
+    "test:api": "node scripts/quality.mjs test-api",
+    "format": "node scripts/quality.mjs format",
+    "check": "node scripts/quality.mjs check"
   },
   "dependencies": {
     "@react-three/drei": "^10.0.0",
@@ -27,6 +31,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.4.0",
+    "prettier": "3.6.2",
     "vite": "^6.2.0"
   }
 }
