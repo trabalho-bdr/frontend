@@ -5,6 +5,8 @@ import { request } from '../../data/client.js';
 import { Explore } from './Story.jsx';
 import CandidateSearch from './CandidateSearch.jsx';
 import PublicityCloud from './PublicityCloud.jsx';
+import PublicityComparison from './PublicityComparison.jsx';
+import { formatPercent as percent } from './publicityComparison.js';
 import {
   ALL_OFFICES,
   buildDespesasQuery,
@@ -24,8 +26,6 @@ const money = (value) =>
         maximumFractionDigits: 0,
       });
 const number = (value) => (value == null ? '—' : Number(value).toLocaleString('pt-BR'));
-const percent = (value) =>
-  value == null ? '—' : `${Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
 const ufs = ['CE', 'MA', 'MS', 'RJ', 'RN', 'RS'];
 
 export default function PublicityInvestigation() {
@@ -89,23 +89,14 @@ export default function PublicityInvestigation() {
     [loading, setLoading] = useState(true),
     [error, setError] = useState(''),
     [retry, setRetry] = useState(0);
-  const [focus, setFocus] = useState(null),
-    [parties, setParties] = useState([]),
-    [party, setParty] = useState(''),
-    [history, setHistory] = useState(null),
-    [historyLoading, setHistoryLoading] = useState(false);
-  const [historyMode, setHistoryMode] = useState('partido'),
-    [candidate, setCandidate] = useState(null);
+  const [focus, setFocus] = useState(null);
+  const [candidate, setCandidate] = useState(null);
 
   // Uma candidatura de outro ano, cargo, UF ou município é descartada
   const person = candidateMatchesScope(candidate, scope) ? candidate : null;
   useEffect(() => {
     if (candidate && !person) setCandidate(null);
   }, [candidate, person]);
-
-  const [partiesLoading, setPartiesLoading] = useState(true),
-    [partiesError, setPartiesError] = useState(false),
-    [historyError, setHistoryError] = useState(false);
 
   useEffect(() => {
     const validOffices = OFFICES_BY_YEAR[scope.ano] || [];
@@ -139,62 +130,6 @@ export default function PublicityInvestigation() {
     retry,
     person?.id_candidatura,
   ]);
-  useEffect(() => {
-    const ac = new AbortController();
-    setPartiesLoading(true);
-    setPartiesError(false);
-    setParties([]);
-    setHistory(null);
-    const query = new URLSearchParams({ cargo: scope.cargo });
-    if (scope.uf) query.set('uf', scope.uf);
-    request('/bdr/q9/partidos?' + query, { signal: ac.signal, timeout: 45000 })
-      .then((result) => {
-        if (!ac.signal.aborted) {
-          setParties(result.partidos || []);
-          setParty((current) =>
-            (result.partidos || []).some((row) => String(row.id_partido) === String(current))
-              ? current
-              : '',
-          );
-        }
-      })
-      .catch(() => {
-        if (!ac.signal.aborted) setPartiesError(true);
-      })
-      .finally(() => {
-        if (!ac.signal.aborted) setPartiesLoading(false);
-      });
-    return () => ac.abort();
-  }, [scope.cargo, scope.uf, retry]);
-  useEffect(() => {
-    if ((historyMode === 'partido' && !party) || (historyMode === 'candidato' && !person)) {
-      setHistory(null);
-      setHistoryLoading(false);
-      setHistoryError(false);
-      return;
-    }
-    const ac = new AbortController();
-    setHistoryLoading(true);
-    setHistoryError(false);
-    setHistory(null);
-    const query = new URLSearchParams({ cargo: scope.cargo, criterio: scope.criterio });
-    if (scope.uf) query.set('uf', scope.uf);
-    query.set(
-      historyMode === 'partido' ? 'id_partido' : 'id_candidato',
-      historyMode === 'partido' ? party : person.id_candidato,
-    );
-    request('/bdr/q9/evolucao?' + query, { signal: ac.signal, timeout: 45000 })
-      .then((result) => {
-        if (!ac.signal.aborted) setHistory(result);
-      })
-      .catch(() => {
-        if (!ac.signal.aborted) setHistoryError(true);
-      })
-      .finally(() => {
-        if (!ac.signal.aborted) setHistoryLoading(false);
-      });
-    return () => ac.abort();
-  }, [historyMode, party, person?.id_candidato, scope.cargo, scope.uf, scope.criterio, retry]);
   const groups = data?.grupos || [],
     categories = data?.categorias || [],
     summary = data?.resumo;
@@ -254,7 +189,8 @@ export default function PublicityInvestigation() {
         </div>
       </header>
       <p className="expo-reading-scope">
-        Recorte: {scope.ano} · {scope.cargo} · {scope.uf ? `${scope.uf}${munLabel}` : 'CE, MA, MS, RJ, RN e RS'} ·{' '}
+        Recorte: {scope.ano} · {scope.cargo} ·{' '}
+        {scope.uf ? `${scope.uf}${munLabel}` : 'CE, MA, MS, RJ, RN e RS'} ·{' '}
         {person ? `candidatura: ${candidateLabel(person)}` : 'todos os candidatos'} · valores
         contratados
       </p>
@@ -475,106 +411,12 @@ export default function PublicityInvestigation() {
           )}
         </ol>
       </section>
-      <section className="expo-publicity-history">
-        <span className="expo-kicker">ESTRATÉGIA ENTRE ELEIÇÕES</span>
-        <h3>Estratégia publicitária e sucesso eleitoral</h3>
-        <p>
-          Compare os anos disponíveis no mesmo cargo e estado. O filtro de ano acima vale para a
-          nuvem e a distribuição.
-        </p>
-        <div className="expo-publicity-mode">
-          <button
-            aria-pressed={historyMode === 'partido'}
-            onClick={() => setHistoryMode('partido')}
-          >
-            Por partido
-          </button>
-          <button
-            aria-pressed={historyMode === 'candidato'}
-            onClick={() => setHistoryMode('candidato')}
-          >
-            Por candidato
-          </button>
-        </div>
-        {historyMode === 'partido' ? (
-          <label>
-            Partido
-            <select
-              disabled={partiesLoading || partiesError}
-              value={party}
-              onChange={(event) => {
-                setParty(event.target.value);
-                setHistory(null);
-                setHistoryError(false);
-              }}
-            >
-              <option value="">
-                {partiesLoading
-                  ? 'Carregando partidos…'
-                  : partiesError
-                    ? 'Partidos indisponíveis'
-                    : parties.length
-                      ? 'Selecione um partido'
-                      : 'Nenhum partido neste recorte'}
-              </option>
-              {parties.map((row) => (
-                <option key={row.id_partido} value={row.id_partido}>
-                  {row.sigla} · {row.nome}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : person ? (
-          <p>
-            <strong>{person.nome}</strong> · {person.uf}. Esta série acompanha a pessoa (
-            <code>id_candidato</code>) em todas as eleições disponíveis; a análise acima usa apenas
-            a candidatura de {person.ano} (<code>id_candidatura</code>).{' '}
-            <button onClick={() => setCandidate(null)}>Limpar candidato</button>
-          </p>
-        ) : (
-          <p>
-            Para acompanhar uma pessoa entre eleições, escolha-a em “Pesquisar candidato”, nos
-            filtros acima. O mesmo candidato vale para a análise principal e para esta série.
-          </p>
-        )}
-        {partiesError && (
-          <p role="alert">
-            Não foi possível carregar os partidos.{' '}
-            <button onClick={() => setRetry((n) => n + 1)}>Tentar novamente</button>
-          </p>
-        )}
-        {historyError ? (
-          <p role="alert">
-            A série não pôde ser consultada.{' '}
-            <button onClick={() => setRetry((n) => n + 1)}>Tentar novamente</button>
-          </p>
-        ) : historyLoading ? (
-          <p role="status">Comparando investimentos e resultados eleitorais…</p>
-        ) : history?.serie?.length ? (
-          <div className="expo-publicity-years">
-            {history.serie.map((row) => (
-              <article key={row.ano}>
-                <span>{row.ano}</span>
-                <strong>{row.candidaturas ? money(row.publicidade) : 'Sem candidatura'}</strong>
-                <p>Taxa de eleição: {percent(row.resultado?.taxa)}</p>
-                <small>
-                  {number(row.resultado?.eleitas)} eleitas de {number(row.resultado?.analisadas)}{' '}
-                  com resultado definido
-                </small>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p>
-            {historyMode === 'partido' ? 'Selecione um partido' : 'Selecione uma candidatura'} para
-            acompanhar a série disponível.
-          </p>
-        )}
-        <p>
-          A composição das candidaturas pode mudar entre eleições; diferenças de investimento não
-          demonstram efeito causal na eleição.
-        </p>
-      </section>
+      <PublicityComparison
+        scope={scope}
+        person={person}
+        onSelect={setCandidate}
+        onClear={() => setCandidate(null)}
+      />
       <Explore title="Classificação, cobertura e registros">
         <label>
           <input

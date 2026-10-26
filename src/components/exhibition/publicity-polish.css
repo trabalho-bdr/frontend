@@ -105,6 +105,155 @@
 .expo-publicity-history select:disabled {
   opacity: 0.65;
 }
+.q9-comparison {
+  min-width: 0;
+}
+.q9-comparison-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr;
+  gap: 16px;
+  align-items: start;
+  margin: 24px 0 12px;
+}
+.q9-comparison-controls label {
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+}
+.q9-comparison-controls > *,
+.q9-election-cards > * {
+  min-width: 0;
+}
+.q9-election-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin: 24px 0;
+}
+.q9-election-card {
+  background: #fffaf0;
+  border: 1px solid #c6b99c;
+  padding: 22px;
+}
+.q9-election-card h4 {
+  margin: 0 0 16px;
+  color: #174a8b;
+  font-size: 24px;
+}
+.q9-election-card dl {
+  margin: 0;
+}
+.q9-election-card dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid #ded5c1;
+}
+.q9-election-card dt {
+  font-size: 13px;
+}
+.q9-election-card dd {
+  margin: 0;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.q9-comparison .q9-coverage {
+  font-size: 12px;
+  line-height: 1.65;
+  color: #47596a;
+}
+.q9-deltas,
+.q9-comparison-outcome,
+.q9-change-notes {
+  padding: 14px 18px;
+  background: #ede5d3;
+  margin: 18px 0;
+}
+.q9-compositions {
+  display: grid;
+  gap: 20px;
+  margin: 24px 0;
+}
+.q9-composition > b {
+  font-size: 14px;
+}
+.q9-composition-track {
+  display: flex;
+  width: 100%;
+  height: 30px;
+  margin-top: 10px;
+  background: #ded5c1;
+  overflow: hidden;
+  border: 1px solid #c6b99c;
+}
+.q9-composition-track > span {
+  display: block;
+  height: 100%;
+  flex-shrink: 0;
+}
+.q9-comparison-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid #c6b99c;
+}
+.q9-comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  background: #fffaf0;
+}
+.q9-comparison-table caption {
+  text-align: left;
+  padding: 14px;
+  font-weight: 700;
+  color: #173e78;
+}
+.q9-comparison-table th,
+.q9-comparison-table td {
+  padding: 14px;
+  text-align: right;
+  border-bottom: 1px solid #ded5c1;
+  font-variant-numeric: tabular-nums;
+}
+.q9-comparison-table thead th {
+  background: #174a8b;
+  color: #fffaf0;
+  position: static;
+  white-space: nowrap;
+}
+.q9-comparison-table th:first-child {
+  text-align: left;
+  min-width: 180px;
+}
+.q9-comparison-table td {
+  white-space: nowrap;
+}
+.q9-modality-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 8px;
+}
+@media (max-width: 700px) {
+  .q9-comparison-controls {
+    grid-template-columns: 1fr 1fr;
+  }
+  .q9-comparison-controls > :last-child {
+    grid-column: 1 / -1;
+  }
+  .q9-election-cards {
+    grid-template-columns: 1fr;
+  }
+  .q9-election-card {
+    padding: 16px;
+  }
+  .q9-election-card dl > div {
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+}
 @media (max-width: 600px) {
   .expo-spending-bands {
     padding: 18px 14px;

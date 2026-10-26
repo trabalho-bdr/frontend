@@ -1,3 +1,4 @@
+import { formatPercent as percent } from './publicityComparison.js';
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   CLOUD_FONT_STACK,
@@ -19,8 +20,6 @@ const money = (value) =>
         currency: 'BRL',
         maximumFractionDigits: 0,
       });
-const percent = (value) =>
-  value == null ? '—' : `${Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
 
 let canvas;
 const measureText = (text, size, weight) => {
@@ -252,9 +251,9 @@ export default function PublicityCloud({ rows, selectedKey, onSelect }) {
         </p>
         <p className="q9-cloud-legend-note">
           A cor segue um mapa de calor (azul = menor, vermelho = maior) e mede o peso financeiro,
-          não o partido. As dimensões seguem a raiz quadrada do valor
-          (maior categoria = {money(maximum)}); a escala preserva a ordem, mas a área das palavras
-          não é proporcional ao valor.
+          não o partido. As dimensões seguem a raiz quadrada do valor (maior categoria ={' '}
+          {money(maximum)}); a escala preserva a ordem, mas a área das palavras não é proporcional
+          ao valor.
         </p>
         <p className="q9-cloud-count" role="status">
           {selection.eligible
