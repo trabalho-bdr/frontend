@@ -1,3 +1,6 @@
+import StateFlag, { FlagCollection, StateTabs, FlagCredits } from '../catalog/StateFlag.jsx';
+import { archiveStates, stateInfo } from '../catalog/states.js';
+import '../catalog/acervo-collections.css';
 import { useEffect, useState } from 'react';
 import { readContext, writeContext } from '../data/investigationContext.js';
 import {
@@ -10,14 +13,7 @@ import RecordCollection from '../components/RecordCollection.jsx';
 import '../catalog/catalog.css';
 import { emptyCatalogFilters } from '../catalog/logic.js';
 
-const names = {
-  CE: 'Ceará',
-  MA: 'Maranhão',
-  MS: 'Mato Grosso do Sul',
-  RJ: 'Rio de Janeiro',
-  RN: 'Rio Grande do Norte',
-  RS: 'Rio Grande do Sul',
-};
+const names = Object.fromEntries(archiveStates.map((state) => [state.uf, state.name]));
 export default function TerritoryCatalog({ onGo }) {
   const context = readContext(),
     uf = context.uf || '',
@@ -52,13 +48,16 @@ export default function TerritoryCatalog({ onGo }) {
     if (years.length && !years.includes(Number(year))) setYear(String(Math.max(...years)));
     else writeContext({ ano: year, cargo, etapa: 'territorio' });
   }, [municipio, cargo, year, options.data, uf]);
-  const openState = (state) =>
+  const openState = (state) => {
+    setQuery('');
+    setPage(0);
     onGo('territorios', 'estado', '', {
       uf: state,
       municipioId: '',
       municipioNome: '',
       etapa: 'territorio',
     });
+  };
   if (municipio) {
     const data = profile.data,
       place = data?.municipio,
@@ -75,24 +74,30 @@ export default function TerritoryCatalog({ onGo }) {
       ),
     ];
     return (
-      <section className="territory-catalog">
+      <section className="territory-catalog territory-collection">
         <button className="catalog-back" onClick={() => openState(uf)}>
           ← Municípios de {names[uf] || uf}
         </button>
         <CatalogState state={profile} />
         {data && (
           <>
-            <header className="catalog-heading">
-              <span>FICHA TERRITORIAL / {place.uf}</span>
-              <h1>{place.nome}</h1>
-              <p>
-                {names[place.uf]} · {place.regiao}
-              </p>
-              <p>
-                Acervo de candidaturas municipais: {data.candidaturas_municipais.primeiro_ano}–
-                {data.candidaturas_municipais.ultimo_ano} ·{' '}
-                {num(data.candidaturas_municipais.pessoas)} pessoas observadas.
-              </p>
+            <header className="catalog-heading collection-cover territory-cover territory-cover-local">
+              <div className="collection-cover-copy">
+                <span className="collection-eyebrow">FICHA TERRITORIAL / {place.uf}</span>
+                <h1>{place.nome}</h1>
+                <p>
+                  {names[place.uf]} · {place.regiao}
+                </p>
+                <p>
+                  Acervo de candidaturas municipais: {data.candidaturas_municipais.primeiro_ano}–
+                  {data.candidaturas_municipais.ultimo_ano} ·{' '}
+                  {num(data.candidaturas_municipais.pessoas)} pessoas observadas.
+                </p>
+              </div>
+              <div className="territory-cover-flag">
+                <StateFlag uf={place.uf} />
+                <span>{names[place.uf]} / BRASIL</span>
+              </div>
             </header>
             <section className="catalog-profile-section">
               <h2>População e participação eleitoral</h2>
@@ -283,58 +288,132 @@ export default function TerritoryCatalog({ onGo }) {
             </details>
           </>
         )}
+        <FlagCredits />
       </section>
     );
   }
   return (
-    <section className="territory-catalog">
-      <header className="catalog-heading">
-        <span>ÍNDICE TERRITORIAL / SEIS ESTADOS</span>
-        <h1>{uf ? names[uf] || uf : 'Estados e municípios'}</h1>
-        <p>Abra um estado, encontre um município e siga seus registros eleitorais pelo arquivo.</p>
-        <button
-          onClick={() =>
-            onGo('candidatos', '', '', {
-              uf,
-              municipioId: '',
-              catalogoEstado: JSON.stringify({
-                filters: { ...emptyCatalogFilters, uf },
-                order: 'recentes',
-                page: 0,
-              }),
-            })
-          }
-        >
-          Pessoas deste território ↗
-        </button>
-        <button
-          onClick={() =>
-            onGo('legendas', '', '', { uf, municipioId: '', partido: '', ano: year, cargo })
-          }
-        >
-          Partidos deste território ↗
-        </button>
-        {uf && (
-          <button onClick={() => onGo('atlas', 'territorio', '', { uf, municipioId: '' })}>
-            Abrir mapa no Atlas ↗
-          </button>
+    <section className="territory-catalog territory-collection">
+      <header className="catalog-heading collection-cover territory-cover">
+        <div className="collection-cover-copy">
+          <span className="collection-eyebrow">CADERNO DE TERRITÓRIOS / {uf || '06 UFs'}</span>
+          <h1>
+            {uf ? (
+              names[uf] || uf
+            ) : (
+              <>
+                Cada lugar,
+                <br />
+                <em>uma história.</em>
+              </>
+            )}
+          </h1>
+          <p>
+            {uf
+              ? 'Encontre um município e descubra quem disputa, como se vota e o que muda neste território.'
+              : 'Seis estados. Milhares de trajetórias. Escolha uma bandeira e percorra o acervo município por município.'}
+          </p>
+          <span className="collection-coverage">COBERTURA PARCIAL DO BRASIL · 2002–2024</span>
+        </div>
+        {uf ? (
+          <div className="territory-cover-flag">
+            <StateFlag uf={uf} />
+            <span>{stateInfo(uf)?.region} / BRASIL</span>
+          </div>
+        ) : (
+          <FlagCollection />
         )}
       </header>
+      {uf && (
+        <>
+          <StateTabs
+            value={uf}
+            onChange={(state) =>
+              state
+                ? openState(state)
+                : onGo('territorios', '', '', { uf: '', municipioId: '', municipioNome: '' })
+            }
+          />
+          <div className="collection-crosslinks">
+            {' '}
+            <button
+              onClick={() =>
+                onGo('candidatos', '', '', {
+                  uf,
+                  municipioId: '',
+                  catalogoEstado: JSON.stringify({
+                    filters: { ...emptyCatalogFilters, uf },
+                    order: 'recentes',
+                    page: 0,
+                  }),
+                })
+              }
+            >
+              Pessoas deste território ↗
+            </button>
+            <button
+              onClick={() =>
+                onGo('legendas', '', '', { uf, municipioId: '', partido: '', ano: year, cargo })
+              }
+            >
+              Partidos deste território ↗
+            </button>
+            {uf && (
+              <button onClick={() => onGo('atlas', 'territorio', '', { uf, municipioId: '' })}>
+                Abrir mapa no Atlas ↗
+              </button>
+            )}
+          </div>
+        </>
+      )}
       {!uf ? (
         <>
           <CatalogState state={states} />
-          <div className="catalog-state-grid">
-            {(states.data?.rows || []).map((row) => (
-              <button key={row.uf} onClick={() => openState(row.uf)}>
-                <span>{row.uf}</span>
-                <h2>{names[row.uf] || row.uf}</h2>
-                <p>
-                  {num(row.municipios)} municípios · {num(row.pessoas)} pessoas
-                </p>
-                <small>
-                  {row.primeiro_ano}–{row.ultimo_ano}
-                </small>
-                <b>Explorar o estado ↗</b>
+          <div className="collection-section-line">
+            <span>ESCOLHA SEU PONTO DE PARTIDA</span>
+            <span>01 — 06 / ESTADOS DO ACERVO</span>
+          </div>
+          <div className="catalog-state-grid state-postcards">
+            {(states.data?.rows || []).map((row, index) => (
+              <button
+                className="state-postcard"
+                key={row.uf}
+                style={{ '--state-ink': stateInfo(row.uf)?.ink, '--card-order': index }}
+                onClick={() => openState(row.uf)}
+              >
+                <div className="postcard-image">
+                  <StateFlag uf={row.uf} />
+                  <span className="postcard-edition">
+                    ARQUIVO
+                    <br />
+                    TERRITORIAL
+                  </span>
+                </div>
+                <div className="postcard-body">
+                  <div className="postcard-topline">
+                    <span>{stateInfo(row.uf)?.region}</span>
+                    <span>{String(index + 1).padStart(2, '0')} / 06</span>
+                  </div>
+                  <h2>{names[row.uf] || row.uf}</h2>
+                  <dl>
+                    <div>
+                      <dt>Municípios</dt>
+                      <dd>{num(row.municipios)}</dd>
+                    </div>
+                    <div>
+                      <dt>Pessoas no acervo</dt>
+                      <dd>{num(row.pessoas)}</dd>
+                    </div>
+                  </dl>
+                  <div className="postcard-footer">
+                    <span>
+                      {row.primeiro_ano}—{row.ultimo_ano}
+                    </span>
+                    <b>
+                      Explorar {row.uf} <span aria-hidden="true">↗</span>
+                    </b>
+                  </div>
+                </div>
               </button>
             ))}
           </div>
@@ -361,23 +440,39 @@ export default function TerritoryCatalog({ onGo }) {
           </label>
           <CatalogState state={towns} empty={!!towns.data && !towns.data.rows.length} />
           {towns.data && (
-            <RecordCollection
-              pageSize={24}
-              key={page + '-' + query}
-              title={towns.data ? `${num(towns.data.total)} municípios em ${uf}` : ''}
-              items={(towns.data?.rows || []).map((row) => ({
-                id: row.id,
-                title: row.nome,
-                subtitle: row.regiao,
-                onSelect: () =>
-                  onGo('territorios', 'municipio', '', {
-                    uf,
-                    municipioId: row.id,
-                    municipioNome: row.nome,
-                  }),
-                actionLabel: 'Abrir perfil eleitoral',
-              }))}
-            />
+            <>
+              <div className="collection-section-line">
+                <span>
+                  {num(towns.data.total)} MUNICÍPIOS EM {uf}
+                </span>
+                <span>PÁGINA {page + 1}</span>
+              </div>
+              <div className="municipality-index">
+                {(towns.data.rows || []).map((row, index) => (
+                  <button
+                    key={row.id}
+                    onClick={() =>
+                      onGo('territorios', 'municipio', '', {
+                        uf,
+                        municipioId: row.id,
+                        municipioNome: row.nome,
+                      })
+                    }
+                  >
+                    <span className="municipality-number">
+                      {String(page * 24 + index + 1).padStart(3, '0')}
+                    </span>
+                    <div>
+                      <small>{row.regiao || names[uf]}</small>
+                      <h2>{row.nome}</h2>
+                      <span>
+                        Abrir perfil eleitoral <b aria-hidden="true">↗</b>
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </>
           )}
           {towns.data?.total > 24 && (
             <nav className="catalog-pagination">
@@ -397,6 +492,7 @@ export default function TerritoryCatalog({ onGo }) {
           )}
         </>
       )}
+      <FlagCredits />
     </section>
   );
 }
