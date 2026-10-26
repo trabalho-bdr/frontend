@@ -6,8 +6,13 @@ const TV = lazy(() => import('../components/Televisao3D.jsx'));
 
 export default function HomeEditorial({ onGo, onResearch, data, context }) {
   const [channel, setChannel] = useState(0);
+  const [tvExpanded, setTvExpanded] = useState(false);
   const prop = useEvidence('proporcional');
-  const wealth = useEvidence('patrimonio', { ano: 2024, cargo: 'VEREADOR' });
+  const wealth = useEvidence(
+    'patrimonio',
+    { ano: 2024, cargo: 'VEREADOR' },
+    { enabled: tvExpanded && channel === 1 },
+  );
   const pair = prop.data?.rows || [],
     quartiles = wealth.data?.rows || [];
   const hasPair = pair.length === 2;
@@ -165,7 +170,7 @@ export default function HomeEditorial({ onGo, onResearch, data, context }) {
         </div>
         {context}
       </section>
-      <Explore title="Ver reportagens na TV Eleitoral">
+      <Explore title="Ver reportagens na TV Eleitoral" onExpandedChange={setTvExpanded}>
         <div className="expo-tv">
           <Suspense fallback={<p>Carregando a TV Eleitoral…</p>}>
             <TV

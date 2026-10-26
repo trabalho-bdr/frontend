@@ -6,8 +6,22 @@ WITH base AS (SELECT c.id_candidatura id,c.id_candidato,c.id_eleicao,c.id_munici
       WHERE e.ano=? AND UPPER(e.cargo)=? AND e.turno=1 AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
       AND c.uf IN ('CE','MA','MS','RJ','RN','RS') AND (?='' OR c.uf=?) AND (?='' OR c.id_municipio=?)
       QUALIFY ROW_NUMBER() OVER(PARTITION BY c.id_candidatura ORDER BY r.id_resultado)=1
-      ), pairs AS (SELECT a.id maior,b.id menor FROM base a JOIN base b
-        ON a.id_eleicao=b.id_eleicao AND a.uf=b.uf AND (a.cargo<>'VEREADOR' OR a.id_municipio=b.id_municipio)
-        WHERE UPPER(a.resultado) IN ('NÃO ELEITO','NAO ELEITO','SUPLENTE') AND UPPER(b.resultado) LIKE 'ELEITO%'
-        AND a.votos>b.votos ORDER BY a.votos-b.votos DESC,a.id,b.id LIMIT 1)
+      ), ranked AS (
+        SELECT *,CASE WHEN cargo='VEREADOR' THEN id_municipio ELSE '' END territory,
+        ROW_NUMBER() OVER (
+          PARTITION BY id_eleicao,uf,CASE WHEN cargo='VEREADOR' THEN id_municipio ELSE '' END,
+            CASE WHEN UPPER(resultado) LIKE 'ELEITO%' THEN 1 ELSE 0 END
+          ORDER BY CASE WHEN UPPER(resultado) LIKE 'ELEITO%' THEN votos END ASC NULLS LAST,
+            CASE WHEN UPPER(resultado) NOT LIKE 'ELEITO%' THEN votos END DESC NULLS LAST,id
+        ) selection_rank
+        FROM base WHERE votos IS NOT NULL
+        AND (cargo<>'VEREADOR' OR id_municipio IS NOT NULL)
+        AND (UPPER(resultado) IN ('NÃO ELEITO','NAO ELEITO','SUPLENTE') OR UPPER(resultado) LIKE 'ELEITO%')
+      ), pairs AS (
+        SELECT a.id maior,b.id menor FROM ranked a JOIN ranked b
+        ON a.id_eleicao=b.id_eleicao AND a.uf=b.uf AND a.territory=b.territory
+        WHERE a.selection_rank=1 AND b.selection_rank=1
+        AND UPPER(a.resultado) IN ('NÃO ELEITO','NAO ELEITO','SUPLENTE')
+        AND UPPER(b.resultado) LIKE 'ELEITO%' AND a.votos>b.votos
+        ORDER BY a.votos-b.votos DESC,a.id,b.id LIMIT 1)
       SELECT base.* FROM base JOIN pairs ON base.id IN (pairs.maior,pairs.menor) ORDER BY votos DESC

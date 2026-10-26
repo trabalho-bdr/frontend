@@ -7,8 +7,11 @@ from decimal import Decimal
 from .config import DB
 
 _lock = threading.RLock()
+_cache_lock = threading.Lock()
 _con = None
 _query_cache = {}
+QUERY_CACHE_TTL = 900
+QUERY_CACHE_SIZE = 128
 # Nome real do banco; usado diretamente nas consultas.
 
 
@@ -38,27 +41,40 @@ def _rows(sql, params=()):
     if not re.match(r"^\s*(SELECT|WITH|DESCRIBE|PRAGMA)\b", sql, re.I):
         raise RuntimeError("A API permite somente consultas de leitura")
     key = (sql, tuple(params))
+
+    def cached_rows():
+        # Cache hits must not wait for an unrelated database query.
+        with _cache_lock:
+            cached = _query_cache.get(key)
+            if cached and time.monotonic() - cached[0] < QUERY_CACHE_TTL:
+                return deepcopy(cached[1])
+        return None
+
+    cached = cached_rows()
+    if cached is not None:
+        return cached
     with _lock:
-        cached = _query_cache.get(key)
-        if cached and time.monotonic() - cached[0] < 60:
-            return deepcopy(cached[1])
+        # Another request may have populated this key while we waited.
+        cached = cached_rows()
+        if cached is not None:
+            return cached
         con = _open()
         cur = con.execute(sql, list(params))
         cols = [x[0] for x in cur.description]
         result = cur.fetchall()
 
-    def clean(v):
-        if isinstance(v, Decimal):
-            return float(v)
-        if isinstance(v, (datetime, date)):
-            return v.isoformat()
-        return v
+        def clean(v):
+            if isinstance(v, Decimal):
+                return float(v)
+            if isinstance(v, (datetime, date)):
+                return v.isoformat()
+            return v
 
-    rows = [dict(zip(cols, (clean(v) for v in row))) for row in result]
-    with _lock:
-        if len(_query_cache) >= 128:
-            _query_cache.pop(next(iter(_query_cache)))
-        _query_cache[key] = (time.monotonic(), rows)
+        rows = [dict(zip(cols, (clean(v) for v in row))) for row in result]
+        with _cache_lock:
+            if len(_query_cache) >= QUERY_CACHE_SIZE:
+                _query_cache.pop(next(iter(_query_cache)))
+            _query_cache[key] = (time.monotonic(), rows)
     return deepcopy(rows)
 
 

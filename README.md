@@ -56,6 +56,20 @@ python scripts/verify_research.py --baseline 026596e
 
 Elas produzem somente relatórios agregados em `artifacts/`. O segundo comando compara o contrato das nove questões da API geral com o commit de base; Q09 conserva sua API detalhada e testes específicos.
 
+## Carregamento e cache
+
+Consultas de leitura usam um cache em memória de até 128 resultados por 15 minutos no servidor.
+Respostas já armazenadas não aguardam a conexão ocupada por outra consulta. Após atualizar a base,
+reinicie a API para invalidar esse cache imediatamente; sem reinício, alterações podem levar até
+15 minutos para aparecer. O navegador compartilha chamadas idênticas e guarda até 64 respostas
+por um minuto; erros não são armazenados. Recarregar a página limpa o cache do navegador.
+
+Os filtros de contexto são consultados ao abrir o painel. A análise de patrimônio da TV carrega
+ao abrir a reportagem correspondente. Atlas e Descobertas carregam seu código ao acessar essas
+áreas. As opções do catálogo preservam a seleção do último turno sem consultar resultados ou
+calcular o histórico individual; o exemplo proporcional usa os extremos de cada disputa, evitando
+comparar todas as combinações de candidaturas.
+
 ## Dados e limites
 
 Cobertura parcial de CE, MA, MS, RJ, RN e RS entre 2002 e 2024. Não equivale ao Brasil inteiro. Ausência não é zero; não divulgável permanece separado. Pessoa, candidatura, resultado registrado e mandato exercido têm significados distintos.

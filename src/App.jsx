@@ -1,4 +1,3 @@
-import Atlas from './pages/Atlas.jsx';
 import ThemeSection from './pages/ThemeSection.jsx';
 import { parseRoute, moneyDestination } from './data/routes.js';
 import AcervoNav from './catalog/AcervoNav.jsx';
@@ -19,8 +18,9 @@ import gsap from 'gsap';
 import { Menu, ChevronDown } from 'lucide-react';
 import HomeEditorial from './pages/HomeEditorial.jsx';
 import useMotionPreference from './hooks/useMotionPreference.js';
-import Descobertas from './pages/Descobertas.jsx';
-import { getHealth, getOverview, request } from './data/client.js';
+import { getOverview, request } from './data/client.js';
+const Atlas = lazy(() => import('./pages/Atlas.jsx'));
+const Descobertas = lazy(() => import('./pages/Descobertas.jsx'));
 const ProportionalStory = lazy(() => import('./components/exhibition/ProportionalStory.jsx'));
 const PeopleStory = lazy(() => import('./components/exhibition/PeopleStory.jsx'));
 const PartyStory = lazy(() => import('./components/exhibition/PartyStory.jsx'));
@@ -82,11 +82,17 @@ export default function App() {
     };
   }, [parseRoute]);
   useEffect(() => {
-    getHealth().then((h) => {
-      if (h.connected) setMode('live');
+    if (page !== 'inicio') return;
+    let active = true;
+    getOverview().then((data) => {
+      if (!active) return;
+      setCounts(data);
+      if (data.mode === 'live') setMode('live');
     });
-    getOverview().then(setCounts);
-  }, []);
+    return () => {
+      active = false;
+    };
+  }, [page]);
   useEffect(() => {
     window.scrollTo({
       top: 0,

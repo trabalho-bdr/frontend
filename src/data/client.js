@@ -1,21 +1,6 @@
 import { overview as base, analyses, states } from './catalog.js';
-const API_TIMEOUT = 15000;
-
-export async function request(path, { signal, timeout = API_TIMEOUT } = {}) {
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), timeout);
-  const cancel = () => controller.abort();
-  if (signal?.aborted) cancel();
-  else signal?.addEventListener('abort', cancel, { once: true });
-  try {
-    const r = await fetch('/api' + path, { signal: controller.signal });
-    if (!r.ok) throw new Error('API ' + r.status);
-    return await r.json();
-  } finally {
-    clearTimeout(t);
-    signal?.removeEventListener('abort', cancel);
-  }
-}
+import { createRequestClient } from './requestClient.js';
+export const request = createRequestClient();
 
 export async function getHealth() {
   try {

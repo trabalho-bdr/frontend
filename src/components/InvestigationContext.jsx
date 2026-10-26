@@ -11,6 +11,7 @@ const officeNames = {
   'DEPUTADO FEDERAL': 'Deputado federal',
 };
 export default function InvestigationContext({ onChange, fields = defaultFields }) {
+  const [expanded, setExpanded] = useState(false);
   const scope = normalizeInvestigationScope(readContext()),
     has = (key) => fields.includes(key);
   const [state, setState] = useState(null),
@@ -24,6 +25,7 @@ export default function InvestigationContext({ onChange, fields = defaultFields 
     revision,
   ]);
   useEffect(() => {
+    if (!expanded) return;
     const ac = new AbortController();
     setState(null);
     Promise.all(
@@ -52,7 +54,7 @@ export default function InvestigationContext({ onChange, fields = defaultFields 
         if (!ac.signal.aborted) setState({ key, error: true });
       });
     return () => ac.abort();
-  }, [key]);
+  }, [key, expanded]);
   const data = state?.key === key ? state.data : null,
     loading = !state || state.key !== key,
     error = state?.key === key && state.error;
@@ -68,7 +70,7 @@ export default function InvestigationContext({ onChange, fields = defaultFields 
     .filter(Boolean)
     .join(' · ');
   return (
-    <details className="expo-context">
+    <details className="expo-context" onToggle={(e) => setExpanded(e.currentTarget.open)}>
       <summary>
         Filtros da investigação <span className="context-active">· {active}</span>
       </summary>

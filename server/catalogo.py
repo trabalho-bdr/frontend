@@ -47,6 +47,14 @@ BASE = query_sql(
     fragment_4=DB,
     fragment_5=DB,
 )
+OPTIONS_BASE = query_sql(
+    "catalog/sql/catalogo_options_base.sql",
+    fragment_0=DB,
+    fragment_1=DB,
+    fragment_3=DB,
+    fragment_4=DB,
+    fragment_5=DB,
+)
 PUBLIC_FIELDS = "id,id_candidato,nome,nome_civil,numero,ano,cargo,uf,municipio_id,municipio,partido,escolaridade,situacao_registro,genero,raca,ocupacao,patrimonio,gastos,votos,resultado,situacao,idade,primeiro_ano,candidaturas_observadas"
 
 
@@ -374,10 +382,10 @@ def options(ano: int | None = None, uf: str = "", cargo: str = ""):
         patrimonio_max=None,
     )
     condition, params = where(f)
-    coverage = read(BASE + query_sql("catalog/sql/catalogo_options_04.sql"))[0]
-    elections = read(BASE + query_sql("catalog/sql/catalogo_options_01.sql"))
+    coverage = read(OPTIONS_BASE + query_sql("catalog/sql/catalogo_options_04.sql"))[0]
+    elections = read(OPTIONS_BASE + query_sql("catalog/sql/catalogo_options_01.sql"))
     facets = read(
-        BASE
+        OPTIONS_BASE
         + query_sql(
             "catalog/sql/catalogo_options_02.sql",
             fragment_0=condition,

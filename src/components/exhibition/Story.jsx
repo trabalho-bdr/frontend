@@ -4,7 +4,7 @@ import { loadEvidence, savedEvidence, csvDownload, fmt } from '../../data/exhibi
 import { readContext } from '../../data/investigationContext.js';
 import './exhibition.css';
 import './reading.css';
-export function useEvidence(kind, params = {}) {
+export function useEvidence(kind, params = {}, { enabled = true } = {}) {
   const context = readContext();
   if (['patrimonio', 'escolaridade', 'gastos', 'partidos'].includes(kind))
     params = {
@@ -19,6 +19,7 @@ export function useEvidence(kind, params = {}) {
     [state, setState] = useState(null),
     [revision, setRevision] = useState(0);
   useEffect(() => {
+    if (!enabled) return;
     const controller = new AbortController();
     setState({ key, data: savedEvidence(kind, params), loading: true });
     loadEvidence(kind, params, { signal: controller.signal })
@@ -29,7 +30,7 @@ export function useEvidence(kind, params = {}) {
         if (!controller.signal.aborted) setState({ key, error: true });
       });
     return () => controller.abort();
-  }, [kind, key, revision]);
+  }, [kind, key, revision, enabled]);
   const current = state?.key === key ? state : null;
   return {
     ...current,
@@ -113,13 +114,22 @@ export function Meaning({ children, limit }) {
     </div>
   );
 }
-export function Explore({ children, title = 'Explore você mesmo', open = false, id }) {
+export function Explore({
+  children,
+  title = 'Explore você mesmo',
+  open = false,
+  id,
+  onExpandedChange,
+}) {
   const [expanded, setExpanded] = useState(open);
   return (
     <details
       className="expo-explore"
       open={expanded}
-      onToggle={(e) => setExpanded(e.currentTarget.open)}
+      onToggle={(e) => {
+        setExpanded(e.currentTarget.open);
+        onExpandedChange?.(e.currentTarget.open);
+      }}
       id={id}
     >
       <summary>
