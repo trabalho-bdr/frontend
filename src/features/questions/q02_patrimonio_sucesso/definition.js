@@ -1,0 +1,1 @@
+export default {id:2,title:'Como patrimônio e sucesso eleitoral se relacionam?',original:'É possível observar alguma relação entre o patrimônio de um candidato e sua taxa de sucesso em eleições?',theme:'Dinheiro e poder',status:'Resposta descritiva',place:['campanhas','patrimonio'],note:'Faixas de patrimônio, taxas e precisão dos grupos.'};

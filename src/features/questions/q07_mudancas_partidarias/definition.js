@@ -1,0 +1,1 @@
+export default {id:7,title:'O que permanece no mapa dos partidos?',original:'Como a orientação político-partidária dos municípios e regiões varia ou se mantém ao longo do tempo?',theme:'Territórios e eleições',status:'Resposta parcial',place:['atlas','lideranca'],note:'Distribuição dos votos, estabilidade e eventos organizacionais; sem inferir ideologia.'};

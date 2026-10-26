@@ -1,0 +1,1 @@
+export default {id:9,title:'Em que publicidade as campanhas investem?',original:'Em quais tipos de publicidade e propaganda eleitoral os candidatos concentram seus gastos de campanha?',theme:'Dinheiro e poder',status:'Classificação revisável',place:['campanhas','publicidade'],note:'Grupos normalizados, descrições originais e evolução dos investimentos.'};

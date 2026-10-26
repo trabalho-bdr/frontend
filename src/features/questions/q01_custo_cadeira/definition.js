@@ -1,0 +1,1 @@
+export default {id:1,title:'Qual o custo financeiro por cadeira?',theme:'Dinheiro e poder',status:'Resposta descritiva',place:['campanhas','custo'],note:'Custos, mediana e cobertura com denominadores explícitos.'};

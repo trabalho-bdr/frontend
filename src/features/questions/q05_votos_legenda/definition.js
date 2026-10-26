@@ -1,0 +1,1 @@
+export default {id:5,title:'Quanto do voto vai para a legenda?',original:'Qual é a participação dos votos de legenda na votação total dos partidos e como essa participação varia entre eleições?',theme:'Votos e representação',status:'Resposta descritiva',place:['partidos','legenda'],note:'Contagens e participação por sigla em eleições equivalentes.'};

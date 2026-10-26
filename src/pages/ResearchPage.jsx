@@ -18,22 +18,8 @@ import '../catalog/candidate-explorer.css';
 import '../catalog/acervo.css';
 import './research.css';
 
-const municipalQuestions=[3,4,6],proportionalQuestions=[5,7];
+import {getQuestion,describe} from '../features/questions/registry.js';
 const fmt=(v,unit)=>v==null?'Não informado':unit==='money'?money(v):num(v)+(unit==='percent'?'%':'');
-function describe(data,q){
- if(!data)return '';
- const rows=data.rows||[],s=data.summary;
- if(data.status==='em_validacao')return 'Os dados históricos deste recorte precisam de validação. Escolha 2024 para consultar a comparação liberada.';
- if(data.status==='fonte_pendente')return 'Ainda não há receitas importadas e vinculadas para este recorte.';
- if(!rows.length)return 'Este recorte não tem registros suficientes para uma conclusão.';
- if(q===1)return s?.valor!=null?`As despesas conhecidas de todas as candidaturas equivalem a ${money(s.valor)} por eleito registrado em ${s.ano}.`:'Não há despesas conhecidas e eleitos suficientes para calcular a razão neste ano.';
- if(q===2||q===8){const valid=rows.filter(r=>r.valor!=null&&r.grupo!=='Origem incompleta');if(valid.length<2)return 'Há apenas um grupo com taxa conhecida; não há contraste suficiente neste recorte.';const lo=valid[0],hi=valid.at(-1);return `${lo.grupo}: ${num(lo.valor)}% de eleição. ${hi.grupo}: ${num(hi.valor)}%. A comparação é descritiva.`}
- if([3,6].includes(q))return s?.pearson!=null?`Entre ${num(s.n)} municípios com os dois valores, a correlação linear é ${num(s.pearson)}. Isso descreve o território, sem revelar o voto individual.`:'Escolha um partido ou um recorte com pares completos para comparar os indicadores.';
- if(q===4){const upper=rows.find(r=>r.grupo==='Superior completo');return upper?.valor!=null&&upper?.referencia!=null?`Superior completo aparece em ${num(upper.valor)}% das candidaturas e ${num(upper.referencia)}% do eleitorado de referência com escolaridade conhecida. A comparação municipal reúne ${num(s?.n)} pares completos.`:'Não há escolaridade conhecida suficiente nos dois universos para calcular a comparação.'}
- if(q===5){const complete=rows.filter(r=>r.valor!=null),first=complete[0],last=complete.at(-1);return first&&last?(first.ano===last.ano?`Em ${last.ano}, os votos de legenda representam ${num(last.valor)}% da votação deste recorte.`:`A parcela dos votos de legenda passou de ${num(first.valor)}% em ${first.ano} para ${num(last.valor)}% em ${last.ano}: variação de ${num(last.valor-first.valor)} pontos percentuais.`):'Não há contagens completas suficientes para calcular a participação dos votos de legenda.'}
- if(q===7)return `${num(s?.['Mesma organização'])} municípios mantiveram a organização líder; ${num(s?.['Fusão/incorporação'])} transições envolvem fusões ou incorporações no par encerrado no ano selecionado.`;
- const returns=rows.find(r=>r.grupo.startsWith('Retorno')),single=rows.find(r=>r.grupo.startsWith('Uma eleição'));return `Entre ${num(s?.pessoas)} pessoas com identidade consistente, ${num(single?.valor||0)}% têm uma eleição observada e ${num(returns?.valor||0)}% apresentam retorno após intervalo maior que quatro anos. A cobertura é limitada ao acervo.`;
-}
 
 export default function ResearchPage({question,onGo,embedded=false}){
  const q=Number(question)||0,definition=researchQuestions.find(r=>r.id===q);
@@ -42,8 +28,8 @@ export default function ResearchPage({question,onGo,embedded=false}){
 }
 
 function Question({q,definition,onGo,embedded}){
- const [initial]=useState(readContext),[year,setYear]=useState([4,6].includes(q)?'2024':initial.ano||'2024');
- const allowed=municipalQuestions.includes(q)?['VEREADOR','PREFEITO']:proportionalQuestions.includes(q)?['VEREADOR','DEPUTADO ESTADUAL','DEPUTADO FEDERAL']:null;
+ const [initial]=useState(readContext),[year,setYear]=useState(getQuestion(q).validatedYear?'2024':initial.ano||'2024');
+ const allowed=getQuestion(q).allowedCargos;
  const [cargo,setCargo]=useState(allowed&&!allowed.includes(initial.cargo)?'VEREADOR':initial.cargo||'VEREADOR'),[uf,setUf]=useState(initial.uf||''),[party,setParty]=useState(q===7?'':initial.partido||''),[town,setTown]=useState(['VEREADOR','PREFEITO'].includes(initial.cargo)?initial.municipioId||'':'');
  const [metric,setMetric]=useState('populacao'),[target,setTarget]=useState(initial.partido?'participacao_partido':'abstencao'),[youth,setYouth]=useState('16_24'),[universe,setUniverse]=useState('18mais'),[focusedRecord,setFocusedRecord]=useState(null),[explorationMode,setExplorationMode]=useState(''),[costMetric,setCostMetric]=useState('valor'),[historico,setHistorico]=useState(false);
  const metaState=useCatalog('opcoes',{ano:year,uf,cargo}),meta=metaState.data;
@@ -62,7 +48,7 @@ function Question({q,definition,onGo,embedded}){
  return <section className="research-detail">{!embedded&&<button className="catalog-back" onClick={()=>onGo('perguntas')}>← As dez perguntas</button>}
  <Lead kicker={embedded?definition.theme.toUpperCase():'PERGUNTA '+String(q).padStart(2,'0')+' / '+definition.theme.toUpperCase()} question={definition.title} discovery={state.loading?'Conferindo os dados deste recorte…':state.error?'A consulta não respondeu. Nenhuma conclusão foi preenchida.':describe(data,q)}/>
  {definition.original&&<details className="research-original"><summary>Pergunta original da pesquisa</summary><p>{definition.original}</p></details>}
- <div className="research-filters"><SearchSelect label={q===10?'Referência do recorte · série 2002–2024':'Ano da eleição'} value={year} options={(years.length?years:[year]).map(value=>({value,label:value+([4,6].includes(q)&&value!=='2024'?' · em validação':'')}))} onChange={setYear}/><SearchSelect label="Cargo" value={cargo} options={allowed||[...new Set((meta?.eleicoes||[]).map(e=>e.cargo))]} onChange={v=>{setCargo(v);setTown('')}}/><SearchSelect label="Estado" value={uf} options={[{value:'',label:'Seis estados'},...['CE','MA','MS','RJ','RN','RS']]} onChange={v=>{setUf(v);setTown('')}}/><SearchSelect label="Município" value={town} options={[{value:'',label:'Todos os municípios'},...(meta?.municipios||[]).map(m=>({value:m.id,label:m.nome}))]} onChange={setTown} disabled={!uf||!['VEREADOR','PREFEITO'].includes(cargo)}/>{q!==7&&<PartySelect value={party} options={meta?.facets?.partido||[]} onChange={setParty}/>}
+ <div className="research-filters"><SearchSelect label={q===10?'Referência do recorte · série 2002–2024':'Ano da eleição'} value={year} options={(years.length?years:[year]).map(value=>({value,label:value+(getQuestion(q).validatedYear&&value!=='2024'?' · em validação':'')}))} onChange={setYear}/><SearchSelect label="Cargo" value={cargo} options={allowed||[...new Set((meta?.eleicoes||[]).map(e=>e.cargo))]} onChange={v=>{setCargo(v);setTown('')}}/><SearchSelect label="Estado" value={uf} options={[{value:'',label:'Seis estados'},...['CE','MA','MS','RJ','RN','RS']]} onChange={v=>{setUf(v);setTown('')}}/><SearchSelect label="Município" value={town} options={[{value:'',label:'Todos os municípios'},...(meta?.municipios||[]).map(m=>({value:m.id,label:m.nome}))]} onChange={setTown} disabled={!uf||!['VEREADOR','PREFEITO'].includes(cargo)}/>{q!==7&&<PartySelect value={party} options={meta?.facets?.partido||[]} onChange={setParty}/>}
  {q===3&&<><SearchSelect label="Indicador municipal" value={metric} onChange={setMetric} options={[{value:'populacao',label:'População · 2022'},{value:'idhm',label:'IDHM · referência 2010'},{value:'idade_mediana',label:'Idade mediana · 2022'},{value:'indice_envelhecimento',label:'Índice de envelhecimento · 2022'}]}/><SearchSelect label="Relacionar com" value={target} onChange={setTarget} options={[{value:'abstencao',label:'Abstenção'},{value:'participacao_partido',label:'Participação do partido selecionado'}]}/></>}
  {q===4&&<SearchSelect label="Eleitorado de referência · distribuição" value={universe} onChange={setUniverse} options={[{value:'18mais',label:'18 anos ou mais'},{value:'todos',label:'Todas as idades eleitorais'}]}/>}
  {q===6&&<SearchSelect label="Eleitorado jovem" value={youth} onChange={setYouth} options={[{value:'16_17',label:'16 e 17 anos'},{value:'18_24',label:'18 a 24 anos'},{value:'16_24',label:'16 a 24 anos'},{value:'16_29',label:'16 a 29 anos'}]}/>}
