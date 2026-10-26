@@ -29,7 +29,7 @@ test('adesivaria separa síntese, nuvem normalizada e investigação de candidat
  const jsx=file('src/pages/Adesivaria.jsx');
  assert.ok(jsx.includes('<MaterialOverview'));assert.ok(!jsx.includes('<MaterialCloud'));
  const publicity=file('src/components/exhibition/PublicityInvestigation.jsx');
- assert.ok(publicity.includes('expo-cloud-words'));assert.ok(publicity.includes('expo-cloud-word'));
+ assert.ok(publicity.includes('<PublicityCloud'));assert.ok(file('src/components/exhibition/PublicityCloud.jsx').includes('q9-word'));
  assert.ok(jsx.includes('gastos_classificados'));assert.ok(jsx.includes('Maiores gastos'));assert.ok(jsx.includes('Mais votos'));
  assert.ok(!jsx.includes('<PodiumStickers'));assert.ok(jsx.includes('CandidatePanel'));
  assert.ok(jsx.includes('topic="adesivos"'));assert.ok(jsx.includes('O município é o local da candidatura'));

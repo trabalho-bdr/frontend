@@ -39,7 +39,7 @@ def _fontes(consultar):
     )
 
 
-def _recorte(refs, ano, cargo, uf, id_candidatura=None):
+def _recorte(refs, ano, cargo, uf, id_candidatura=None, id_municipio=None):
     source = (
         f"{refs['despesa_candidatura']} d JOIN {refs['candidatura']} c USING(id_candidatura) "
         f"JOIN {refs['eleicao']} e USING(id_eleicao)"
@@ -49,18 +49,23 @@ def _recorte(refs, ano, cargo, uf, id_candidatura=None):
     if uf:
         where += " AND c.uf=?"
         params.append(uf)
+    if id_municipio:
+        where += " AND c.id_municipio=?"
+        params.append(str(id_municipio))
     if id_candidatura:
         where += " AND c.id_candidatura=?"
         params.append(id_candidatura)
     return source, where, params
 
 
-def _buscar_candidatos(consultar, refs, ano, cargo, uf, busca="", id_candidatura=None):
+def _buscar_candidatos(
+    consultar, refs, ano, cargo, uf, busca="", id_candidatura=None, id_municipio=None
+):
     if not all(t in refs for t in ("candidato", "municipio", "partido")):
         raise HTTPException(
             503, "O banco não contém o cadastro necessário para pesquisar candidatos."
         )
-    source, where, params = _recorte(refs, ano, cargo, uf, id_candidatura)
+    source, where, params = _recorte(refs, ano, cargo, uf, id_candidatura, id_municipio)
     if busca:
         where += """ AND (contains(upper(strip_accents(coalesce(c.nome_urna,''))),?)
             OR contains(upper(strip_accents(coalesce(a.nome_civil,''))),?))"""
@@ -78,18 +83,20 @@ def _buscar_candidatos(consultar, refs, ano, cargo, uf, busca="", id_candidatura
     )
 
 
-def candidatos(consultar, ano, cargo, busca, uf=None):
+def candidatos(consultar, ano, cargo, busca="", uf=None, id_municipio=None):
     if ano not in ANOS or not cargo or not cargo.strip():
         raise HTTPException(422, "Selecione um ano e cargo válidos para a Q9.")
     uf = uf.upper() if uf else None
     if uf and uf not in UFS:
         raise HTTPException(422, "UF fora do recorte disponível.")
-    busca = busca.strip()
-    if len(busca) < 2:
+    busca = busca.strip() if busca else ""
+    if len(busca) == 1:
         return {"candidatos": [], "tem_mais": False}
     if len(busca) > 120:
         raise HTTPException(422, "A busca aceita até 120 caracteres.")
-    rows = _buscar_candidatos(consultar, _fontes(consultar), ano, cargo, uf, busca)
+    rows = _buscar_candidatos(
+        consultar, _fontes(consultar), ano, cargo, uf, busca, id_municipio=id_municipio
+    )
     return {"candidatos": rows[:20], "tem_mais": len(rows) > 20}
 
 
@@ -216,7 +223,15 @@ def _normalizacao(consultar, refs, categorias):
     return arrays, origem
 
 
-def resumo(consultar, ano, cargo, uf=None, criterio="sugeridas", id_candidatura=None):
+def resumo(
+    consultar,
+    ano,
+    cargo,
+    uf=None,
+    criterio="sugeridas",
+    id_candidatura=None,
+    id_municipio=None,
+):
     if ano not in ANOS:
         raise HTTPException(422, "A Q9 aceita os anos 2018, 2020, 2022 e 2024.")
     if not cargo or not cargo.strip():
@@ -237,7 +252,7 @@ def resumo(consultar, ano, cargo, uf=None, criterio="sugeridas", id_candidatura=
                 404, "Candidatura sem despesas no ano, cargo e estado selecionados."
             )
         candidato = encontrados[0]
-    source, where, params = _recorte(refs, ano, cargo, uf, id_candidatura)
+    source, where, params = _recorte(refs, ano, cargo, uf, id_candidatura, id_municipio)
     # Agrega na fonte antes de trazer a classificação para o processo Python.
     # Um JOIN entre arrays locais e todas as despesas pode deslocar a leitura
     # inteira do MotherDuck para a máquina do servidor.
@@ -338,6 +353,7 @@ def resumo(consultar, ano, cargo, uf=None, criterio="sugeridas", id_candidatura=
         "ano": ano,
         "cargo": _codigo(cargo),
         "uf": uf,
+        "id_municipio": id_municipio,
         "ufs_cobertas": list(UFS),
         "criterio": criterio,
         "origem_normalizacao": origem,

@@ -307,13 +307,21 @@ def evolucao_q9(
 
 
 @lru_cache(maxsize=24)
-def _resumo_q9_cache(banco, ano, cargo, uf, criterio, janela, id_candidatura=None):
-    return q9.resumo(_consultar, ano, cargo, uf, criterio, id_candidatura)
+def _resumo_q9_cache(
+    banco, ano, cargo, uf, criterio, janela, id_candidatura=None, id_municipio=None
+):
+    return q9.resumo(_consultar, ano, cargo, uf, criterio, id_candidatura, id_municipio)
 
 
 @app.get("/q9/candidatos")
-def candidatos_q9(ano: int, cargo: str, busca: str, uf: str | None = None):
-    return q9.candidatos(_consultar, ano, cargo, busca, uf)
+def candidatos_q9(
+    ano: int,
+    cargo: str,
+    busca: str = "",
+    uf: str | None = None,
+    id_municipio: str | None = None,
+):
+    return q9.candidatos(_consultar, ano, cargo, busca, uf, id_municipio)
 
 
 @app.get("/q9/despesas")
@@ -324,9 +332,17 @@ def despesas_q9(
     criterio: str = "sugeridas",
     atualizar: bool = False,
     id_candidatura: str | None = None,
+    id_municipio: str | None = None,
 ):
     if atualizar:
         _resumo_q9_cache.cache_clear()
     return _resumo_q9_cache(
-        BANCO, ano, cargo, uf, criterio, int(time.monotonic() // 180), id_candidatura
+        BANCO,
+        ano,
+        cargo,
+        uf,
+        criterio,
+        int(time.monotonic() // 180),
+        id_candidatura,
+        id_municipio,
     )
