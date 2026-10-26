@@ -1,0 +1,33 @@
+{
+  "read_only": true,
+  "extracted_at": "2026-10-26T09:15:52.449996+00:00",
+  "checks": {
+    "candidate_integrity": [
+      {
+        "registros": 608591,
+        "duplicate_ids": 0,
+        "missing_person": 0,
+        "unknown_wealth": 472182,
+        "zero_wealth": 139,
+        "negative_wealth": 0,
+        "unknown_expenses": 395530,
+        "zero_expenses": 63976
+      }
+    ],
+    "result_grain": [
+      {
+        "duplicate_groups": 0
+      }
+    ],
+    "vote_grain": [
+      {
+        "duplicate_groups": 0
+      }
+    ],
+    "orphan_people": [
+      {
+        "missing_people": 0
+      }
+    ]
+  }
+}

@@ -1,65 +1,65 @@
-# Arquivo da Democracia — v10 | Comparações dentro do portal
+# Arquivo da Democracia
 
-**Novidade:** sistema único de gráficos interativos e tabelas integrado às seções **já existentes**, sem alterações na identidade nem novas opções de navegação. Inclui evolução temporal do voto de legenda por partido, abstenção por UF, gasto agregado por eleito, escolaridade, patrimônio, categorias de propaganda e comparações entre fichas e municípios. Oferece filtros, tabela e CSV. Os dados ao vivo vêm de agregações somente-leitura do acervo; há snapshot auditado com recortes limitados quando a API não está conectada.
-
-**Veja os detalhes, limites e filtros em [`docs/COMPARACOES_V10.md`](docs/COMPARACOES_V10.md).**
-
-# Arquivo da Democracia — v9 | Fichário indexado 3D e documentos fiscais
-
-Esta versão substitui **a cena do armário de gavetas** por uma **caixa horizontal de fichas indexadas** como a referência enviada. A interface gráfica geral foi preservada.
-
-## Correções desta versão
-
-- **Plenário 3D restaurado:** corrigido import ausente de `Text` em `src/components/Plenario3D.jsx`, que fazia o erro de runtime acionar a visualização plana. Mesa diretora elevada, tribuna, bancadas semicirculares e 72 assentos interativos permanecem 3D. As cores dos blocos são **meramente cenográficas**, pois não há classificação partidária/ideológica validada.
-- **Caixa de fichas 3D:** `src/components/Arquivo3D.jsx` é uma caixa horizontal de metal com papel e divisórias por ano, partido, cargo ou estado. As divisórias mudam de página: não há limite artificial de seis partidos. A busca paginada encontra uma candidatura; a ficha sai da caixa no espaço 3D, com número, partido, nome, resultado e verso com os dados. Clique na ficha para virá-la; botões permitem comparar ou ver gastos. O fallback sem WebGL reproduz uma caixa em perspectiva, não uma tabela vazia.
-- **Folhas fiscais:** `src/pages/PrestacaoDeContas.jsx` abre os lançamentos diretamente ao escolher a campanha. Cada registro é diagramado como uma folha de prestação de contas, com categoria, valor e identificação da campanha. **Não é nota fiscal original**. A base não fornece XML/PDF/DANFE, chave de acesso, fornecedor ou data; esses campos são explicitamente marcados como indisponíveis, nunca fabricados.
-- **Todos os lançamentos acessíveis pela API:** `server/app.py` agora expõe paginação de despesas (`limit`, `offset`, `categoria`) para folhear os registros completos de uma candidatura com a conexão ao vivo. A prévia desconectada permanece uma amostra.
-- **Restante do portal preservado:** TV, atlas GeoJSON municipal, mural, Adesivaria, Descobertas e dez investigações.
+Portal de exploração eleitoral organizado pelas dez perguntas da pesquisa. Preserva a identidade visual de arquivo, com catálogo de pessoas, perfis, álbum de candidaturas, gráficos, mapas, mural e Plenário.
 
 ## Executar
 
-```bash
-npm install
-npm run dev
-```
+Requisitos: Node 22+, Python 3.10+ e acesso de leitura ao banco configurado no servidor.
 
-Abra http://localhost:5173. Sem configurar a API, o site oferece uma amostra arquivada auditada, limitada, com exemplos de lançamentos e candidaturas reais.
-
-### Consultar o acervo completo no MotherDuck
-
-O token fica **somente no servidor**, nunca no navegador. No diretório `server/`, copie `.env.example` para `.env`, preencha suas próprias credenciais e execute:
-
-```bash
-python -m pip install -r server/requirements.txt
+```powershell
+npm ci
+python -m pip install -r requirements-dev.txt
 python server/run.py
 ```
 
-Execute o React no outro terminal com `npm run dev`. O proxy Vite redireciona `/api` ao backend. O backend é somente-leitura e usa o compartilhamento `pipeline_bdr_der_completo_v3`.
+Em outro terminal:
 
-**Cobertura:** 608.587 candidaturas, 1.236 municípios dos seis estados CE, MA, MS, RJ, RN, RS; **não representa todos os municípios do Brasil**. A busca de candidaturas e os documentos fiscais individuais são paginados para não carregar a base inteira no navegador. A interface não mostra informações técnicas sobre MotherDuck.
-
-## Limites e interpretação
-
-- A apresentação lembra um documento fiscal, mas **não equivale a uma nota fiscal verdadeira**. Sem arquivo fiscal original seria incorreto gerar número de nota, QR Code de autorização, fornecedor ou data de emissão fictícios.
-- Votos, gastos e bens exibem `Não informado` quando ausentes; ausência não é zero. O arquivo v3 não oferece perfil etário de eleitores nem discriminação da origem de financiamento público/privado, portanto os estudos correlatos seguem parciais.
-- A animação 3D depende de navegador com WebGL ativado. Se desativado, há uma alternativa visual navegável. Não há necessidade de recursos externos adicionais para a modelagem do fichário.
-
-## Testes
-
-```bash
-npm run build
-node --test tests/*.test.mjs
-python -m unittest discover -s tests -p 'test_*.py' -q
+```powershell
+npm run dev
 ```
 
-Build e testes passaram. A renderização visual no navegador não foi confirmada neste ambiente porque a navegação automatizada para URLs locais foi bloqueada. Teste o 3D em seu Chrome/Firefox com WebGL ativado.
+Abra http://127.0.0.1:5173. O Vite encaminha `/api` para `127.0.0.1:8000`.
 
-## Arquivos principais
+Configure `server/.env` a partir de `server/.env.example`: `MOTHERDUCK_TOKEN` e, opcionalmente, `MOTHERDUCK_DATABASE=md:pipeline_bdr_der_completo_v4`. Credenciais ficam somente no servidor. A conexão abre exclusivamente a v4 em modo somente leitura. Não há substituição silenciosa de resultados por amostras quando a API falha.
 
-- `src/components/Arquivo3D.jsx`: caixa indexada, divisórias, santinho 3D e animação de extração.
-- `src/components/Plenario3D.jsx`: plenário real em Three.js/React Three Fiber.
-- `src/pages/PrestacaoDeContas.jsx`: folhas fiscais e navegação pelos lançamentos.
-- `server/app.py`: API paginada e parametrizada, leitura somente.
-- `public/maps/`: GeoJSON de estados e 1.236 municípios cobertos.
-- `docs/ANALISES_E_LIMITACOES.md`: definições dos indicadores e cautelas.
+## Organização
 
+- `src/features/questions/q01_*` até `q10_*`: definição, interpretação, capacidades do mapa/Plenário e gráficos específicos.
+- `src/features/questions/shared/`: carregamento cancelável e interpretações comuns.
+- `src/pages/ResearchPage.jsx`: composição visual, filtros e estados da investigação.
+- `server/questions/q01_*` até `q10_*`: serviços, SQL e documentação metodológica por pergunta.
+- `server/questions/shared/`: consultas com granularidade comum, recortes e estatística.
+- `server/core/`: conexão, cache, configuração, protocolo de execução e carregamento SQL.
+- `server/domain/` e `shared/`: normalização versionada, contratos comuns ao Python/JavaScript e auditoria de integridade.
+- `server/catalog/`: SQL do catálogo de pessoas; APIs anteriores mantêm seus contratos de compatibilidade.
+- `tests/fixtures/legacy/`: amostras históricas usadas apenas em testes; não fazem parte do catálogo de produção.
+
+Leia [arquitetura e manutenção](docs/refactoring/ARCHITECTURE.md), [normalização](docs/refactoring/NORMALIZATION.md) e [sequência dos commits](docs/refactoring/COMMITS.md).
+
+## Verificar alterações
+
+```powershell
+npm test
+npm run test:api
+npm run check
+npm run build
+```
+
+`npm run format` aplica Prettier ao JavaScript/JSX/CSS e Ruff ao Python de produção. Instale `requirements-dev.txt` para disponibilizar `ruff` no PATH. `PYTHON` pode apontar para o executável do ambiente Python usado por `npm run test:api`.
+
+Auditorias opcionais com a conexão local, sem escrita no banco:
+
+```powershell
+python scripts/audit_normalization.py
+python scripts/verify_research.py --baseline 026596e
+```
+
+Elas produzem somente relatórios agregados em `artifacts/`. O segundo comando compara o contrato das nove questões da API geral com o commit de base; Q09 conserva sua API detalhada e testes específicos.
+
+## Dados e limites
+
+Cobertura parcial de CE, MA, MS, RJ, RN e RS entre 2002 e 2024. Não equivale ao Brasil inteiro. Ausência não é zero; não divulgável permanece separado. Pessoa, candidatura, resultado registrado e mandato exercido têm significados distintos.
+
+O perfil do eleitorado está liberado para comparação em 2024; histórico não validado continua bloqueado. Indicadores censitários e IDHM têm referências temporais próprias. Financiamento continua uma análise descritiva parcial. Todas as respostas devem manter método, cobertura e limitações visíveis.
+
+A documentação de versões anteriores está em `docs/history/`; ela descreve comportamentos históricos, não o estado atual.
