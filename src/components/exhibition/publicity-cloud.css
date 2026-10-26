@@ -422,3 +422,123 @@
     transform: none;
   }
 }
+
+/* ---------- Acomodação Espaçosa da Nuvem e Painéis (Redução de compressão vertical) ---------- */
+.expo-publicity-sections {
+  display: block !important;
+  margin: 24px 0 32px !important;
+}
+.expo-publicity-sections > section.expo-publicity-cloud-container {
+  padding: 24px 28px;
+  background: #fffaf0;
+  border: 1px solid #c6b99c;
+}
+.expo-publicity-cloud-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 28px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+.expo-publicity-cloud-heading {
+  flex: 1 1 480px;
+  min-width: min(100%, 300px);
+}
+.expo-publicity-cloud-heading h3 {
+  margin: 8px 0 10px;
+}
+.expo-publicity-focus {
+  flex: 0 1 380px;
+  min-width: min(100%, 280px);
+  padding: 16px 20px;
+  background: #fbf5e6;
+  border: 1px solid #c6b99c;
+  border-left: 4px solid #173e78;
+  box-shadow: 0 2px 8px rgba(23, 62, 120, 0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.expo-publicity-focus .expo-kicker {
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  color: #173e78;
+}
+.expo-publicity-focus h3 {
+  font-size: clamp(17px, 1.8vw, 22px);
+  line-height: 1.25;
+  color: #173e78;
+  margin: 4px 0 8px;
+}
+.expo-publicity-focus-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 2px 0 6px;
+}
+.expo-publicity-focus strong {
+  font-size: clamp(22px, 2.2vw, 30px);
+  color: #a64235;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.expo-publicity-focus b {
+  font-size: 20px;
+  color: #173e78;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.expo-publicity-focus p {
+  margin: 2px 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #46515e;
+}
+.expo-publicity-focus small {
+  font-size: 12px;
+  font-weight: 600;
+  color: #173e78;
+}
+.expo-publicity-focus button {
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 5px 12px;
+  border: 1px solid #173e78;
+  background: #173e78;
+  color: #fffaf0;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+.expo-publicity-focus button:hover {
+  opacity: 0.88;
+}
+
+/* Otimização vertical das métricas superiores */
+.expo-publicity-metrics {
+  margin: 18px 0 24px !important;
+  gap: 14px !important;
+}
+.expo-publicity-metrics article {
+  padding: 16px 20px !important;
+}
+.expo-publicity-metrics strong {
+  margin: 6px 0 !important;
+  font-size: clamp(22px, 2.6vw, 36px) !important;
+}
+
+/* Distribuição em 2 colunas para desafogar a rolagem vertical */
+.expo-publicity-distribution .expo-publicity-bars {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)) !important;
+  gap: 14px 24px !important;
+  margin: 18px 0 !important;
+}
+.expo-publicity-distribution .expo-publicity-bars li + li {
+  margin-top: 0 !important;
+}
+

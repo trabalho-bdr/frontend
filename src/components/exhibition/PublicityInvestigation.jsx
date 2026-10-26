@@ -337,14 +337,41 @@ export default function PublicityInvestigation() {
         </article>
       </div>
       <div className="expo-publicity-sections">
-        <section>
-          <span className="expo-kicker">O PESO DE CADA CATEGORIA</span>
-          <h3>Categorias em destaque</h3>
-          <p>
-            Valor contratado por categoria de publicidade identificada
-            {person ? ` em ${person.nome}` : ' neste recorte'}. Escolha uma palavra para conferir o
-            valor e a participação.
-          </p>
+        <section className="expo-publicity-cloud-container">
+          <div className="expo-publicity-cloud-top">
+            <div className="expo-publicity-cloud-heading">
+              <span className="expo-kicker">O PESO DE CADA CATEGORIA</span>
+              <h3>Categorias em destaque</h3>
+              <p>
+                Valor contratado por categoria de publicidade identificada
+                {person ? ` em ${person.nome}` : ' neste recorte'}. Escolha uma palavra para conferir o
+                valor e a participação.
+              </p>
+            </div>
+            <aside className="expo-publicity-focus">
+              <span className="expo-kicker">
+                {focus ? 'SEU RECORTE EM DESTAQUE' : 'MAIOR CONCENTRAÇÃO'}
+              </span>
+              <h3>
+                {loading
+                  ? 'Lendo os investimentos…'
+                  : spotlight?.categoria || spotlight?.grupo || 'Nenhum tipo identificado'}
+              </h3>
+              <div className="expo-publicity-focus-stats">
+                <strong>{loading ? '—' : money(spotlight?.valor)}</strong>
+                <b>{loading ? '—' : percent(spotlight?.participacao)}</b>
+              </div>
+              <p>
+                contratados {focus?.categoria ? 'nesta categoria' : 'neste tipo de publicidade'} ·{' '}
+                <small>Candidaturas: {loading ? '—' : number(spotlight?.candidaturas)}</small>
+              </p>
+              {focus && (
+                <button type="button" onClick={() => setFocus(null)}>
+                  Ver todos os tipos ↗
+                </button>
+              )}
+            </aside>
+          </div>
           {loading ? (
             <p role="status">
               Organizando as categorias… Calculando os valores de {scope.cargo.toLowerCase()} em{' '}
@@ -363,23 +390,6 @@ export default function PublicityInvestigation() {
           ) : (
             <p>Não há categorias de publicidade identificada neste recorte.</p>
           )}
-        </section>
-        <section className="expo-publicity-focus">
-          <span className="expo-kicker">
-            {focus ? 'SEU RECORTE EM DESTAQUE' : 'MAIOR CONCENTRAÇÃO'}
-          </span>
-          <h3>
-            {loading
-              ? 'Lendo os investimentos…'
-              : spotlight?.categoria || spotlight?.grupo || 'Nenhum tipo identificado'}
-          </h3>
-          <strong>{loading ? '—' : money(spotlight?.valor)}</strong>
-          <p>contratados {focus?.categoria ? 'nesta categoria' : 'neste tipo de publicidade'}</p>
-          <b>{loading ? '—' : percent(spotlight?.participacao)}</b>
-          <p>do investimento em publicidade identificada</p>
-          <small>Candidaturas: {loading ? '—' : number(spotlight?.candidaturas)}</small>
-          <p>Clique em uma palavra ou em um tipo abaixo para explorar o valor investido.</p>
-          {focus && <button onClick={() => setFocus(null)}>Ver todos os tipos ↗</button>}
         </section>
       </div>
       <section className="expo-publicity-distribution">
