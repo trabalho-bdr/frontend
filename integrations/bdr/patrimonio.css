@@ -1,0 +1,44 @@
+/* Análise de patrimônio: usa o mesmo grid do mapa (.layout.layout-painel) das outras análises. */
+.layout.analysis-patrimonio.layout-painel { grid-template-rows:auto auto minmax(420px,58vh) auto auto auto; }
+.layout.analysis-patrimonio>.mapa .uf.cob { fill:var(--theme-map-nodata,#2b2b31); }
+.layout.analysis-patrimonio>.q2-situacao,.layout.analysis-patrimonio>.q2-method { grid-column:1/-1; }
+.layout.analysis-patrimonio>aside { align-self:stretch; overflow:auto; }
+
+.q2-aviso { padding:11px 14px; border:1px solid var(--theme-border,#8a6a3c); border-radius:7px; background:var(--theme-surface-warning,#3a3020); color:var(--theme-text-warning,#f3deb8); font-size:12px; line-height:1.5; }
+.q2-aviso strong { color:var(--theme-text-warning,#ffe7b3); }
+.q2-aviso.q2-info { border-color:var(--theme-border,#4d628f); background:var(--theme-surface,#25314d); color:var(--theme-text-info,#cfdcf7); }
+.q2-eixo { display:flex; justify-content:space-between; margin:8px 5px 0; color:var(--theme-text-secondary,#9fa9c5); font-size:10px; }
+
+.q2-ranking .dash-ranking button { grid-template-columns:120px minmax(0,1fr) 84px; cursor:pointer; }
+.q2-ranking .dash-ranking strong { white-space:nowrap; }
+.q2-situacao { padding:17px; border:1px solid var(--theme-border,#424667); border-radius:7px; background:var(--theme-surface,#282d46); }
+.q2-situacao h2 { margin:0 0 3px; font-size:17px; font-weight:600; }
+.q2-situacao p { margin:0 0 14px; color:var(--theme-text-secondary,#9fa9c5); font-size:12px; }
+.q2-situacao .dash-rank-row { grid-template-columns:120px minmax(0,1fr) 84px; }
+
+.layout>aside>.q2-uf-lista { order:1; display:grid; gap:2px; padding:12px 0 0; border-top:1px solid var(--theme-border,#3b4561); border-bottom:0; }
+.q2-uf-lista h3 { margin:0 0 8px; color:var(--theme-text,#d6ddf1); font-size:12px; }
+.q2-uf-lista button { display:grid; grid-template-columns:44px minmax(0,1fr) 70px; align-items:center; gap:8px; width:100%; padding:7px 2px; border:0; border-bottom:1px solid var(--theme-border,#343d55); border-radius:0; background:transparent; color:var(--theme-text,#e3e8f6); text-align:left; cursor:pointer; }
+.q2-uf-lista button:hover { background:var(--theme-surface,#303650); }
+.q2-uf-lista button>span { display:flex; align-items:center; gap:7px; }
+.q2-uf-lista .state-track { display:block; height:7px; border-radius:5px; background:var(--theme-surface-raised,#3b4763); }
+.q2-uf-lista .state-track b { display:block; height:100%; border-radius:5px; }
+.q2-uf-lista strong { text-align:right; font-size:11px; font-weight:600; white-space:nowrap; }
+.q2-uf-lista small { margin-top:9px; color:var(--theme-text-secondary,#aeb8d0); font-size:10px; }
+.q2-aside-decis h3 { margin:0 0 8px; color:var(--theme-text,#d6ddf1); font-size:12px; }
+.dash-distribution-compacta { height:110px; gap:3px; padding:6px 2px 0; }
+.dash-distribution-compacta>div { gap:2px; font-size:9px; }
+.dash-distribution-compacta small { min-height:0; font-size:9px; }
+.dash-empty-compacta { margin:0; padding:14px 0; color:var(--theme-text-secondary,#9fa9c5); font-size:11px; text-align:center; }
+.layout>aside>.q2-voltar { order:3; align-self:flex-start; padding:7px 0; border:0; background:transparent; color:var(--theme-text-accent,#f7abd3); font-size:12px; cursor:pointer; }
+.q2-voltar:hover { text-decoration:underline; }
+
+.q2-method { border:1px solid var(--theme-border,#37415a); border-radius:10px; background:var(--theme-surface-soft,#1b2235); }
+.q2-method summary { padding:17px 20px; color:var(--theme-text-purple,#d4cce3); cursor:pointer; font-size:12px; }
+.q2-method summary>span { float:right; margin-left:15px; color:var(--theme-text-muted,#8e9ab7); font-size:11px; }
+.q2-method>div { padding:0 20px 15px; border-top:1px solid var(--theme-border,#303a53); color:var(--theme-text-secondary,#9fabca); font-size:12px; line-height:1.7; }
+.q2-method p { max-width:1050px; margin:10px 0; }
+.q2-method strong { color:var(--theme-text-purple,#dbc5e6); }
+
+@media (max-width:700px) { .q2-ranking .dash-ranking button,.q2-situacao .dash-rank-row { grid-template-columns:96px minmax(0,1fr) 76px; } }
+.layout.analysis-patrimonio .app-filter-row label:nth-of-type(4) select { min-width:170px; }

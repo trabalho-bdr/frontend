@@ -29,7 +29,7 @@ APIs editoriais antigas ainda consumidas permanecem em seus módulos, com SQL em
 
 O inventário `unreachable-after.json` registra os módulos sem caminho desde `src/main.jsx` após a retirada das funções não renderizadas do App. As telas sem consumidores foram removidas. Amostras ainda necessárias a testes foram movidas para `tests/fixtures/legacy`; as demais referências históricas não são fallback em produção. O Atlas foi extraído para `pages/Atlas.jsx`.
 
-Não foram tocadas as integrações locais ainda não versionadas, credenciais, logs ou artefatos temporários do usuário.
+Os painéis em `integrations/bdr/` são consumidos por `components/PaineisBDR.jsx` e precisam acompanhar o código versionado. A omissão desses arquivos nos commits iniciais foi corrigida em um commit complementar. Credenciais e temporários de execução permanecem fora do versionamento.
 
 ## Validação
 
