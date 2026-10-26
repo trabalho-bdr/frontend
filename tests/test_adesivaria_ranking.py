@@ -13,23 +13,23 @@ import adesivaria as api
 
 class AdesivariaRanking(unittest.TestCase):
     def setUp(self):
-        self.con=duckdb.connect(':memory:');self.con.execute("ATTACH ':memory:' AS v4")
-        self.con.execute('CREATE TABLE v4.main.Eleicao(id_eleicao VARCHAR,ano INTEGER,cargo VARCHAR,tipo_eleicao VARCHAR,turno INTEGER)')
-        self.con.execute("""INSERT INTO v4.main.Eleicao VALUES('v',2024,'VEREADOR','ORDINÁRIA',1),
+        self.con=duckdb.connect(':memory:');self.con.execute("ATTACH ':memory:' AS pipeline_bdr_der_completo_v4")
+        self.con.execute('CREATE TABLE pipeline_bdr_der_completo_v4.main.Eleicao(id_eleicao VARCHAR,ano INTEGER,cargo VARCHAR,tipo_eleicao VARCHAR,turno INTEGER)')
+        self.con.execute("""INSERT INTO pipeline_bdr_der_completo_v4.main.Eleicao VALUES('v',2024,'VEREADOR','ORDINÁRIA',1),
          ('p1',2024,'PREFEITO','ORDINÁRIA',1),('p2',2024,'PREFEITO','ORDINÁRIA',2),
          ('f',2022,'DEPUTADO FEDERAL','ORDINÁRIA',1),('s',2024,'VEREADOR','SUPLEMENTAR',1)""")
-        self.con.execute('CREATE TABLE v4.main.Municipio(id_municipio VARCHAR,nome VARCHAR,uf VARCHAR)')
-        self.con.execute("INSERT INTO v4.main.Municipio VALUES('2304400','Fortaleza','CE'),('2303709','Caucaia','CE'),('3304557','Rio de Janeiro','RJ')")
-        self.con.execute('CREATE TABLE v4.main.Partido(id_partido INTEGER,sigla VARCHAR)')
-        self.con.execute("INSERT INTO v4.main.Partido VALUES(1,'PT'),(2,'PL')")
-        self.con.execute('''CREATE TABLE v4.main.Candidatura(id_candidatura VARCHAR,nome_urna VARCHAR,numero_urna INTEGER,
+        self.con.execute('CREATE TABLE pipeline_bdr_der_completo_v4.main.Municipio(id_municipio VARCHAR,nome VARCHAR,uf VARCHAR)')
+        self.con.execute("INSERT INTO pipeline_bdr_der_completo_v4.main.Municipio VALUES('2304400','Fortaleza','CE'),('2303709','Caucaia','CE'),('3304557','Rio de Janeiro','RJ')")
+        self.con.execute('CREATE TABLE pipeline_bdr_der_completo_v4.main.Partido(id_partido INTEGER,sigla VARCHAR)')
+        self.con.execute("INSERT INTO pipeline_bdr_der_completo_v4.main.Partido VALUES(1,'PT'),(2,'PL')")
+        self.con.execute('''CREATE TABLE pipeline_bdr_der_completo_v4.main.Candidatura(id_candidatura VARCHAR,nome_urna VARCHAR,numero_urna INTEGER,
           id_partido INTEGER,id_eleicao VARCHAR,id_municipio VARCHAR,uf VARCHAR,patrimonio DOUBLE,gastos_campanha_total DOUBLE)''')
-        self.con.execute('CREATE TABLE v4.main.Resultado_Candidatura(id_candidatura VARCHAR,turno INTEGER,resultado VARCHAR,votos BIGINT)')
-        self.con.execute('CREATE TABLE v4.main.Despesa_Candidatura(id_despesa VARCHAR,id_candidatura VARCHAR,categoria VARCHAR,valor DOUBLE)')
+        self.con.execute('CREATE TABLE pipeline_bdr_der_completo_v4.main.Resultado_Candidatura(id_candidatura VARCHAR,turno INTEGER,resultado VARCHAR,votos BIGINT)')
+        self.con.execute('CREATE TABLE pipeline_bdr_der_completo_v4.main.Despesa_Candidatura(id_despesa VARCHAR,id_candidatura VARCHAR,categoria VARCHAR,valor DOUBLE)')
         for i in range(40):
             self.person(i,town='2304400' if i<20 else '2303709' if i<30 else '3304557',uf='CE' if i<30 else 'RJ',votes=None if i==39 else 1000-i)
             if i!=38:self.expense(str(i),i,'ADESIVO PERFURADO',None if i==37 else -12 if i==36 else i*10)
-        self.con.execute('INSERT INTO v4.main.Resultado_Candidatura VALUES(?,?,?,?),(?,?,?,?),(?,?,?,?)',
+        self.con.execute('INSERT INTO pipeline_bdr_der_completo_v4.main.Resultado_Candidatura VALUES(?,?,?,?),(?,?,?,?),(?,?,?,?)',
          [self.cid(0),1,'ELEITO',1000,self.cid(0),2,'ELEITO',999999,self.cid(1),1,'NÃO ELEITO',9999])
         self.expense('equal-value-distinct-id',2,'ADESIVO PERFURADO',20)
         self.expense('mixed',3,'ADESIVOS E BANDEIRAS',1000000)
@@ -45,11 +45,11 @@ class AdesivariaRanking(unittest.TestCase):
     def cid(i):return f'{i:032x}'
 
     def person(self,i,office='v',town='2304400',uf='CE',votes=100):
-        self.con.execute('INSERT INTO v4.main.Candidatura VALUES(?,?,?,?,?,?,?,?,?)',[self.cid(i),f'Nome {i:02}',10000+i,1+i%2,office,town,uf,None,50000])
-        self.con.execute('INSERT INTO v4.main.Resultado_Candidatura VALUES(?,?,?,?)',[self.cid(i),2 if office=='p2' else 1,'ELEITO',votes])
+        self.con.execute('INSERT INTO pipeline_bdr_der_completo_v4.main.Candidatura VALUES(?,?,?,?,?,?,?,?,?)',[self.cid(i),f'Nome {i:02}',10000+i,1+i%2,office,town,uf,None,50000])
+        self.con.execute('INSERT INTO pipeline_bdr_der_completo_v4.main.Resultado_Candidatura VALUES(?,?,?,?)',[self.cid(i),2 if office=='p2' else 1,'ELEITO',votes])
 
     def expense(self,id,i,category,value):
-        self.con.execute('INSERT INTO v4.main.Despesa_Candidatura VALUES(?,?,?,?)',[id,self.cid(i),category,value])
+        self.con.execute('INSERT INTO pipeline_bdr_der_completo_v4.main.Despesa_Candidatura VALUES(?,?,?,?)',[id,self.cid(i),category,value])
 
     def tearDown(self):self.con.close()
 
@@ -124,6 +124,19 @@ class AdesivariaRanking(unittest.TestCase):
         first=self.summary();second=self.summary(offset_categorias=25)
         self.assertEqual(len(first['categories']),25);self.assertGreater(len(second['categories']),0)
         self.assertFalse(set(row['categoria'] for row in first['categories'])&set(row['categoria'] for row in second['categories']))
+
+    def test_normalized_cloud_keeps_originals_and_separates_its_partial_universe(self):
+        with patch.object(app,'_rows',self.rows):
+            first=api.summary(material='todos')
+            second=api.summary(material='todos',offset_categorias=25)
+        self.assertEqual(first['cloud'],second['cloud'])
+        self.assertEqual(first['cloud_scope']['origens_incluidas'],len({
+            (origin['categoria_original'],item['tipo'])
+            for item in first['cloud'] for origin in item['origens']}))
+        self.assertTrue(any(item['tipo']=='Santinhos' for item in first['cloud']))
+        self.assertTrue(any(item['tipo']=='Bandeiras' for item in first['cloud']))
+        self.assertTrue(all(origin['status_classificacao'] for item in first['cloud'] for origin in item['origens']))
+        self.assertTrue(all('categoria_normalizada' in row for row in first['categories']))
 
     def test_classifier_rejects_services_mixed_products_and_generic_materials(self):
         for description in ['SANTINHOS E BANNERS','ADESIVOS E BANDEIRAS','BANDEIRAS - LOCAÇÃO','RETIRADA DE ADESIVOS','MATERIAL GRÁFICO','ADESIVAGEM']:

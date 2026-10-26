@@ -1,43 +1,34 @@
-import {useState} from 'react';
-import {MotionConfig} from 'motion/react';
-import {ArrowRight,ArrowUpRight,FolderOpen,MapPin,Coins,Landmark,RotateCcw,BookOpen} from 'lucide-react';
-import Televisao3D from '../components/Televisao3D.jsx';
-import Descobertas from './Descobertas.jsx';
-import {PrintLabel,EditorialHeading,SourceNote} from '../components/Editorial.jsx';
-import {comparisonSnapshot} from '../data/comparisonSnapshot.js';
+import {lazy,Suspense,useState} from 'react';
+import {themes,fmt} from '../data/exhibition.js';
+import {Explore,useEvidence} from '../components/exhibition/Story.jsx';
+import './home-editorial.css';
+const TV=lazy(()=>import('../components/Televisao3D.jsx'));
 
-const number=value=>value==null?'—':Number(value).toLocaleString('pt-BR',{maximumFractionDigits:2});
-const CHAPTERS=[
- ['arquivo','ARQUIVO DE CANDIDATURAS','Puxe as fichas e compare perfis.',FolderOpen,'TRAJETÓRIAS'],
- ['atlas','ATLAS TERRITORIAL','Abra o mapa por estado e município.',MapPin,'TERRITÓRIOS'],
- ['campanhas','CONTAS DE CAMPANHA','Abra envelopes e gastos eleitorais.',Coins,'RECURSOS'],
- ['plenario','A SALA DO PODER','Entre no plenário 3D.',Landmark,'REPRESENTAÇÃO']
-];
-const legendRows=comparisonSnapshot('legenda',{cargo:'VEREADOR'}).rows;
-const legend2020=legendRows.find(row=>row.ano===2020).valor;
-const legend2024=legendRows.find(row=>row.ano===2024).valor;
-
-export default function HomeEditorial({onGo,onResearch,mode,data}){
+export default function HomeEditorial({onGo,onResearch,data,context}){
  const [channel,setChannel]=useState(0);
+ const prop=useEvidence('proporcional');
+ const wealth=useEvidence('patrimonio',{ano:2024,cargo:'VEREADOR'});
+ const pair=prop.data?.rows||[],quartiles=wealth.data?.rows||[];
+ const hasPair=pair.length===2;
  const channels=[
-  {name:'Os municípios do acervo',value:number(data.coverage),detail:'6 UFs · cobertura parcial',to:'atlas'},
-  {name:'Pessoas registradas',value:number(data.people),detail:'Todos os anos e cargos disponíveis · 6 UFs',to:'arquivo'},
-  {name:'Permanência do partido líder',value:'36,57%',detail:'2020 → 2024 · vereador · 6 UFs · recorte arquivado',to:'investigacoes'},
-  {name:'Despesas da disputa',value:'R$ 4,37 bi',detail:'Todos os anos disponíveis · 6 UFs · recorte arquivado',to:'campanhas'}
+  {name:'O nome e a sigla',value:'Votos de legenda',detail:'Consulte a comparação entre eleições equivalentes.',to:5},
+  {name:'O patrimônio e a eleição',value:quartiles.length?fmt(quartiles[0].taxa)+'% → '+fmt(quartiles.at(-1).taxa)+'%':'Dados indisponíveis',detail:'Quartis de patrimônio · vereador 2024 · seis UFs',to:2},
+  {name:'Mais votos, outro resultado',value:pair.length?pair.map(r=>fmt(r.votos,0)).join(' / '):'Dados indisponíveis',detail:pair.map(r=>r.nome).join(' e '),to:1}
  ];
- const next=()=>setChannel(value=>(value+1)%channels.length);
- return <MotionConfig reducedMotion="user"><div className="br-home br-scope">
-  <div className="br-edition-line"><span>PUBLICAÇÃO INDEPENDENTE</span><span>ELEIÇÕES · TERRITÓRIOS · MEMÓRIA</span><span>EDIÇÃO DIGITAL / 01</span></div>
-  <header className="br-home-masthead"><p>UM ACERVO PARA LER O BRASIL</p><h1>ARQUIVO <span>DA</span><br/>DEMOCRACIA</h1><div><span>Dados públicos.<br/>Histórias em disputa.</span><PrintLabel tone="red">ACERVO INDEPENDENTE</PrintLabel></div></header>
-  <section className="br-home-front" aria-label="Capa do acervo">
-   <div className="br-cover-poster br-enter"><div className="br-poster-registration"><span>CADERNOS DA DEMOCRACIA</span><span>CE · MA · MS · RJ · RN · RS</span></div><h2>CADA VOTO<br/>TEM UMA<br/><em>HISTÓRIA.</em></h2><p>Por trás de cada santinho há um nome. Por trás de cada voto, uma história. Explore os números de um Brasil em disputa.</p><div className="br-cover-actions"><button className="br-button br-button-yellow" onClick={()=>onGo('atlas')}>ABRIR O ATLAS <ArrowUpRight size={19}/></button><button className="br-cover-link" onClick={()=>onGo('arquivo')}>PUXAR UMA FICHA <FolderOpen size={17}/></button></div><div className="br-cover-bottom"><span>OS DADOS SAEM DO PAPEL.</span><span className="br-print-rosette" aria-hidden="true">✳</span></div></div>
-   <div className="br-cover-stories"><button className="br-story-paper br-story-ballot br-enter" onClick={()=>onResearch(5)}><span className="br-story-kicker">01 / PARTIDOS EM PERSPECTIVA</span><h2>O VOTO É NO<br/>NOME OU<br/><em>NA SIGLA?</em></h2><div className="br-story-values"><span>{number(legend2020)}%<small>2020</small></span><ArrowRight aria-hidden="true"/><span>{number(legend2024)}%<small>2024</small></span></div><p>Participação dos votos de legenda · vereador · seis UFs. Recorte auditado em 21/10/2026.</p><span className="br-story-read">ABRIR A INVESTIGAÇÃO <ArrowUpRight size={20}/></span></button>
-    <button className="br-story-paper br-story-territory" onClick={()=>onGo('atlas')}><div><span className="br-story-kicker">02 / CARTOGRAFIA ELEITORAL</span><h3>UM PAÍS.<br/>MUITOS RECORTES.</h3><p>{number(data.coverage)} municípios em seis estados.<br/>O mapa conta o que a média esconde.</p></div><MapPin size={46} strokeWidth={1.25}/><ArrowUpRight className="br-paper-arrow" size={23}/></button></div>
+ const resultLabel=value=>({SUPLENTE:'Suplente','ELEITO POR QP':'Eleito por quociente partidário','ELEITO POR MÉDIA':'Eleito por média',ELEITO:'Eleito'})[String(value).toUpperCase()]||value;
+ return <div className="br-home br-scope expo-home home-revised">
+  <header className="home-intro"><div className="home-intro-badge"><img src="/logo.jpg" alt="Logotipo Arquivo da Democracia" className="home-intro-logo"/><div><p className="expo-kicker">DADOS PÚBLICOS · DESCOBERTAS ELEITORAIS</p><h1>Uma pergunta.<br/><em>Um novo olhar sobre as eleições.</em></h1></div></div><p>Explore histórias, compare candidaturas e entenda o que os números revelam.</p><p className="home-coverage-inline">Cobertura parcial: CE, MA, MS, RJ, RN e RS. <button onClick={()=>onGo('metodologia')}>Entenda os limites ↗</button></p></header>
+  <section className="home-discovery" aria-labelledby="home-discovery-title">
+   <div className="home-discovery-copy"><span className="expo-kicker">DESCOBERTA EM DESTAQUE / VOTOS E REPRESENTAÇÃO</span><h2 id="home-discovery-title">Mais votos.<br/><em>Uma cadeira a menos?</em></h2><p>Na eleição proporcional, ter mais votos que outro candidato não garante uma vaga. Os votos do partido ou da federação também entram na conta.</p><button className="home-primary-action" onClick={()=>onGo('plenario','proporcional','voto')}>Entender a distribuição das vagas <span aria-hidden="true">→</span></button></div>
+   <div className="home-discovery-evidence" aria-live="polite">
+    {hasPair?<><p className="home-evidence-label">DUAS CANDIDATURAS DA MESMA DISPUTA</p><div className="home-vote-pair">{pair.map((row,index)=><article key={row.id||index}><h3>{row.nome}</h3><strong>{fmt(row.votos,0)} <small>votos</small></strong><span className={`home-result ${String(row.resultado).startsWith('ELEITO')?'home-result-elected':''}`}>{resultLabel(row.resultado)}</span></article>)}</div><p className="home-evidence-source">{[pair[0].municipio,pair[0].uf,pair[0].cargo,pair[0].ano].filter(Boolean).join(' · ')}<br/>Fonte: Tribunal Superior Eleitoral · consulta ao acervo.</p><p className="home-evidence-note">Exemplo selecionado pela maior diferença de votos observada. Confira as regras e o contexto na investigação.</p></>:<div className="home-evidence-state"><strong>O resultado vai além do voto individual.</strong><p role="status">{prop.loading?'Consultando duas candidaturas da mesma disputa…':'O exemplo não está disponível agora. A investigação explica como as vagas são distribuídas.'}</p>{!prop.loading&&<button onClick={prop.retry}>Tentar carregar o exemplo</button>}</div>}
+   </div>
   </section>
-  <section className="br-home-census" aria-label="Dimensão do acervo"><div><PrintLabel>O ACERVO EM NÚMEROS</PrintLabel><p>Todos os anos e cargos disponíveis<br/>CE · MA · MS · RJ · RN · RS</p></div>{[[data.coverage,'MUNICÍPIOS'],[data.states,'UNIDADES FEDERATIVAS'],[data.applications,'CANDIDATURAS'],[data.people,'PESSOAS']].map(([value,label])=><div key={label}><strong>{number(value)}</strong><span>{label}</span></div>)}</section>
-  <p className="br-coverage-ribbon"><b>RECORTE REAL, NÃO NACIONAL.</b> A base cobre municípios de seis UFs. Os demais estados não estão representados neste levantamento.</p>
-  <section className="br-home-index"><EditorialHeading number="01" kicker="GUIA DE LEITURA" title={<>Cada dado guarda<br/><em>uma história.</em></>}><p>Escolha por onde começar. Cruze um nome, um território e uma eleição para encontrar novas perguntas.</p></EditorialHeading><div className="br-chapter-grid">{CHAPTERS.map(([id,title,detail,Icon,tag],index)=><button key={id} className={`br-chapter br-chapter-${index}`} onClick={()=>onGo(id)}><span className="br-chapter-top"><span>{String(index+1).padStart(2,'0')} / {tag}</span><Icon size={25}/></span><strong>{title}</strong><p>{detail}</p><span className="br-chapter-bottom">EXPLORAR O ACERVO <ArrowUpRight size={21}/></span></button>)}</div></section>
-  <section className="br-home-broadcast" aria-label="Transmissão do acervo"><div className="br-broadcast-receiver"><div className="br-broadcast-caption"><PrintLabel tone="yellow">TV ELEITORAL</PrintLabel><span>{mode==='live'?'ACERVO ATUALIZADO':'ACERVO CONSULTÁVEL'}</span></div><div className="br-television-stage"><Televisao3D channel={channels[channel]} onNext={next}/></div><div className="br-channel"><div><span>CANAL {String(channel+1).padStart(2,'0')} / 04</span><h3>{channels[channel].name}</h3><p>{channels[channel].detail}</p></div><button onClick={next} aria-label="Trocar canal"><RotateCcw size={22}/></button></div><button className="br-transmission-link" onClick={()=>channel===2?onResearch(7):onGo(channels[channel].to)}>INVESTIGAR ESTA TRANSMISSÃO <ArrowUpRight size={19}/></button></div><article className="br-broadcast-article"><PrintLabel tone="blue">PERGUNTAS & EVIDÊNCIAS</PrintLabel><h2>OS NÚMEROS<br/>NÃO FALAM<br/><em>SOZINHOS.</em></h2><p>Quanto custa uma cadeira? O voto é na sigla? Quem financia? Dez investigações conectam as perguntas aos dados disponíveis.</p><button className="br-button br-button-blue" onClick={()=>onGo('investigacoes')}>VER AS INVESTIGAÇÕES <BookOpen size={18}/></button><SourceNote>Cada análise apresenta seu ano, cargo, cobertura e método. Dados ausentes continuam sendo dados ausentes.</SourceNote></article></section>
-  <Descobertas mode={mode} onGo={onGo} compact/>
- </div></MotionConfig>;
+
+  <section className="expo-theme-guide" aria-labelledby="home-themes-title"><span className="expo-kicker">EXPLORE POR TEMA</span><h2 id="home-themes-title">Qual assunto você quer investigar?</h2><p className="home-section-description">Escolha um tema para conhecer as perguntas e consultar suas evidências.</p><div className="expo-theme-grid">{themes.map((t,i)=><button key={t.id} onClick={()=>onGo(t.page,'',t.id)}><span>0{i+1}</span><h3>{t.title}</h3><p>{t.description}</p><b>Explorar o tema <span aria-hidden="true">→</span></b></button>)}</div></section>
+  <section className="research-home-entry"><span className="expo-kicker">A PESQUISA POR TRÁS DO ARQUIVO</span><h2>Dez perguntas. Evidências para conferir.</h2><p>Conheça as respostas disponíveis, os recortes e as lacunas de cada investigação.</p><button onClick={()=>onGo('perguntas')}>Abrir as dez perguntas →</button></section><section className="home-data-tools" aria-label="Consultar o acervo"><div><span className="expo-kicker">CONSULTE OS DADOS</span><h2>Pessoas, territórios e partidos.</h2><p>Entre pelo nome de uma pessoa, pelo território ou pela legenda e acompanhe as conexões no acervo.</p><div className="home-catalog-actions"><button onClick={()=>onGo('candidatos')}>Pesquisar pessoas →</button><button onClick={()=>onGo('territorios')}>Consultar estados e municípios →</button><button onClick={()=>onGo('legendas')}>Explorar partidos →</button></div></div>{context}</section>
+  <Explore title="Ver reportagens na TV Eleitoral"><div className="expo-tv"><Suspense fallback={<p>Carregando a TV Eleitoral…</p>}><TV channel={channels[channel]} onNext={()=>setChannel(n=>(n+1)%channels.length)}/></Suspense><h3>{channels[channel].name}</h3><p>{channels[channel].detail}</p><button onClick={()=>setChannel(n=>(n+1)%channels.length)}>Próxima reportagem</button><button onClick={()=>channel===2?onGo('plenario','proporcional','voto'):onResearch(channels[channel].to)}>Conferir os dados ↗</button></div></Explore>
+  <aside className="expo-home-coverage" aria-label="Cobertura e limites do acervo"><strong>Sobre o acervo</strong><p>{data.coverage!=null?`${fmt(data.coverage,0)} municípios de seis estados no acervo.`:'O acervo reúne municípios de seis estados.'} A disponibilidade varia por ano, cargo e fonte; cada descoberta informa seu próprio recorte.</p><button onClick={()=>onGo('metodologia')}>Consultar fontes, critérios e limites ↗</button></aside>
+ </div>;
 }
+

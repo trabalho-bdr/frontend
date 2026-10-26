@@ -1,3 +1,4 @@
+import RecordCollection from './RecordCollection.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -1604,41 +1605,8 @@ export default function CustoCadeiraDossie({ mode = 'snapshot', onOpenCandidate 
         </div>
       )}
 
-      {/* Tabela Consolidada Expansível */}
-      <details className="school-table" style={{ marginTop: 8 }}>
-        <summary>Ver tabela consolidada dos dados por partido ({cargo} · {ano})</summary>
-        <div>
-          <table>
-            <thead>
-              <tr>
-                <th>Partido</th>
-                <th>Candidaturas</th>
-                <th>Cadeiras (Eleitos)</th>
-                <th>Gasto Total (R$)</th>
-                <th>Custo / Cadeira (R$)</th>
-                <th>Q1 (25%)</th>
-                <th>Mediana (50%)</th>
-                <th>Q3 (75%)</th>
-                <th>Teto Declarado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {porPartido.map((r) => (
-                <tr key={r.partido}>
-                  <td><strong>{r.partido}</strong></td>
-                  <td>{fNum(r.candidaturas)}</td>
-                  <td>{fNum(r.eleitos)}</td>
-                  <td>{moneyFull(r.gasto_total)}</td>
-                  <td><strong>{moneyFull(r.custo_por_cadeira)}</strong></td>
-                  <td>{money(r.q1_gasto)}</td>
-                  <td>{money(r.mediana_gasto)}</td>
-                  <td>{money(r.q3_gasto)}</td>
-                  <td>{money(r.max_gasto)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <details className="school-records" style={{marginTop:8}}><summary>Explorar as fichas dos partidos ({cargo} · {ano})</summary>
+        <RecordCollection items={porPartido.map(r=>({id:r.partido,title:r.partido,value:moneyFull(r.custo_por_cadeira),subtitle:'Gasto agregado por cadeira',fields:[{label:'Candidaturas',value:fNum(r.candidaturas)},{label:'Eleitos',value:fNum(r.eleitos)},{label:'Gasto total',value:moneyFull(r.gasto_total)},{label:'1º quartil de gasto',value:money(r.q1_gasto)},{label:'Mediana de gasto',value:money(r.mediana_gasto)},{label:'3º quartil de gasto',value:money(r.q3_gasto)},{label:'Maior gasto declarado',value:money(r.max_gasto)}]}))}/>
       </details>
     </div>
   );

@@ -19,6 +19,6 @@ class IntegrationTests(unittest.TestCase):
     'src/pages/MuralCampanhas.jsx':['topic="partidos"']
   }
   for f,markers in cases.items():
-   txt=(ROOT/f).read_text()
+   txt=(ROOT/f).read_text(encoding='utf-8')
    for marker in markers:self.assertIn(marker,txt)
 if __name__=='__main__':unittest.main()

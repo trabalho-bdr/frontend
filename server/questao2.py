@@ -26,40 +26,6 @@ INSUCESSO = ('NÃO ELEITO', 'NAO ELEITO', 'SUPLENTE')
 IBGE_REGEX = re.compile(r'^\d{7}$')
 
 # Dados oficiais do TSE de patrimônio declarado de Presidente (2018 e 2022)
-PRESIDENTE_Q2 = {
-    2022: {
-        'candidaturas': [
-            {'nome': 'LULA', 'partido': 'PT', 'uf': 'BR', 'patrimonio': 7423725.78, 'eleito': 1},
-            {'nome': 'JAIR BOLSONARO', 'partido': 'PL', 'uf': 'BR', 'patrimonio': 2313600.00, 'eleito': 0},
-            {'nome': 'SIMONE TEBET', 'partido': 'MDB', 'uf': 'BR', 'patrimonio': 2329828.00, 'eleito': 0},
-            {'nome': 'CIRO GOMES', 'partido': 'PDT', 'uf': 'BR', 'patrimonio': 3039761.97, 'eleito': 0},
-            {'nome': 'SORAYA THRONICKE', 'partido': 'UNIÃO', 'uf': 'BR', 'patrimonio': 783000.00, 'eleito': 0},
-            {'nome': 'FELIPE D AVILA', 'partido': 'NOVO', 'uf': 'BR', 'patrimonio': 24619624.91, 'eleito': 0},
-            {'nome': 'PADRE KELMON', 'partido': 'PTB', 'uf': 'BR', 'patrimonio': 0.0, 'eleito': 0},
-            {'nome': 'LEO PERICLES', 'partido': 'UP', 'uf': 'BR', 'patrimonio': 197.00, 'eleito': 0},
-            {'nome': 'SOFIA MANZANO', 'partido': 'PCB', 'uf': 'BR', 'patrimonio': 498000.00, 'eleito': 0},
-            {'nome': 'VERA', 'partido': 'PSTU', 'uf': 'BR', 'patrimonio': 8805.00, 'eleito': 0},
-            {'nome': 'EYMAEL', 'partido': 'DC', 'uf': 'BR', 'patrimonio': 6570000.00, 'eleito': 0},
-        ]
-    },
-    2018: {
-        'candidaturas': [
-            {'nome': 'JAIR BOLSONARO', 'partido': 'PSL', 'uf': 'BR', 'patrimonio': 2286779.48, 'eleito': 1},
-            {'nome': 'FERNANDO HADDAD', 'partido': 'PT', 'uf': 'BR', 'patrimonio': 428451.00, 'eleito': 0},
-            {'nome': 'CIRO GOMES', 'partido': 'PDT', 'uf': 'BR', 'patrimonio': 1695203.15, 'eleito': 0},
-            {'nome': 'GERALDO ALCKMIN', 'partido': 'PSDB', 'uf': 'BR', 'patrimonio': 1379131.70, 'eleito': 0},
-            {'nome': 'JOAO AMOEDO', 'partido': 'NOVO', 'uf': 'BR', 'patrimonio': 425366485.46, 'eleito': 0},
-            {'nome': 'CABO DACIOLO', 'partido': 'PATRI', 'uf': 'BR', 'patrimonio': 0.0, 'eleito': 0},
-            {'nome': 'HENRIQUE MEIRELLES', 'partido': 'MDB', 'uf': 'BR', 'patrimonio': 377496700.70, 'eleito': 0},
-            {'nome': 'MARINA SILVA', 'partido': 'REDE', 'uf': 'BR', 'patrimonio': 118835.13, 'eleito': 0},
-            {'nome': 'ALVARO DIAS', 'partido': 'PODE', 'uf': 'BR', 'patrimonio': 16036184.22, 'eleito': 0},
-            {'nome': 'GUILHERME BOULOS', 'partido': 'PSOL', 'uf': 'BR', 'patrimonio': 15598.00, 'eleito': 0},
-            {'nome': 'EYMAEL', 'partido': 'DC', 'uf': 'BR', 'patrimonio': 6135000.00, 'eleito': 0},
-            {'nome': 'VERA', 'partido': 'PSTU', 'uf': 'BR', 'patrimonio': 20000.00, 'eleito': 0},
-            {'nome': 'JOAO GOULART FILHO', 'partido': 'PPL', 'uf': 'BR', 'patrimonio': 8591400.00, 'eleito': 0},
-        ]
-    }
-}
 
 
 def _get_query_runner():
@@ -146,10 +112,6 @@ def opcoes_q2():
             key=lambda o: (-o['ano'], ordem.get(o['cargo'], 99))
         )
         # Adiciona Presidente para 2018 e 2022
-        if not any(p['ano'] == 2022 and p['cargo'] == 'PRESIDENTE' for p in pares):
-            pares.append({'ano': 2022, 'cargo': 'PRESIDENTE'})
-        if not any(p['ano'] == 2018 and p['cargo'] == 'PRESIDENTE' for p in pares):
-            pares.append({'ano': 2018, 'cargo': 'PRESIDENTE'})
         pares.sort(key=lambda o: (-o['ano'], ordem.get(o['cargo'], 99)))
         return {'opcoes': pares, 'anos': list(ANOS), 'ufs': list(UFS)}
     except Exception as exc:
@@ -218,23 +180,6 @@ def municipios_q2(ano: Optional[int] = 2024, cargo: Optional[str] = 'VEREADOR', 
 def _resumo_cached(ano: Optional[int], cargo: Optional[str], uf: Optional[str], municipio: Optional[str]):
     _rows, _resolve_db = _get_query_runner()
 
-    if cargo == 'PRESIDENTE' and ano in PRESIDENTE_Q2:
-        cands = PRESIDENTE_Q2[ano]['candidaturas']
-        eleitos = [c for c in cands if c['eleito'] == 1]
-        nao_eleitos = [c for c in cands if c['eleito'] == 0]
-        med_eleito = eleitos[0]['patrimonio'] if eleitos else 0
-        pats_nao = sorted([c['patrimonio'] for c in nao_eleitos])
-        med_nao = pats_nao[len(pats_nao)//2] if pats_nao else 0
-        return {
-            'ano': ano, 'cargo': cargo, 'uf': uf, 'municipio': municipio, 'ufs_cobertas': list(UFS),
-            'resumo_situacao': [
-                {'situacao': 'eleito', 'candidaturas': len(eleitos), 'patrimonio_medio': med_eleito, 'patrimonio_mediano': med_eleito},
-                {'situacao': 'nao_eleito', 'candidaturas': len(nao_eleitos), 'patrimonio_medio': sum(pats_nao)/len(pats_nao) if pats_nao else 0, 'patrimonio_mediano': med_nao}
-            ],
-            'correlacao': {'linear': 0.12, 'log': 0.18, 'candidaturas': len(cands)},
-            'decis': [],
-            'cobertura': {'total': len(cands), 'validos': len(cands), 'negativos': 0, 'sem_resultado_definido': 0, 'cobertura_pct': 100.0}
-        }
 
     cte, p = _base_sql(ano, cargo, uf, municipio)
     valido = 'patrimonio IS NOT NULL AND patrimonio >= 0 AND eleito IS NOT NULL'

@@ -1,6 +1,6 @@
+import RecordCollection from './RecordCollection.jsx';
 import {useEffect,useMemo,useState} from 'react';
 import {getComparison} from '../data/client.js';
-import {comparisonSnapshot} from '../data/comparisonSnapshot.js';
 import useMotionPreference from '../hooks/useMotionPreference.js';
 import './escolaridade-dossie.css';
 
@@ -36,10 +36,10 @@ export default function EscolaridadeDossie(){
      }).finally(()=>{if(active)setLoading(false)});
    return()=>{active=false};
  },[scope]);
- const archived=useMemo(()=>comparisonSnapshot('escolaridade',{ano,cargo}),[scope]);
+ const archived=null;
  const liveRows=getRows(result);
  const rows=uf?(states[uf]||[]):(liveRows.length?liveRows:getRows(archived));
- const source=uf?'Consulta por UF':liveRows.length?'Consulta atual':'Recorte arquivado · 21/10/2026';
+ const source=uf?(states[uf]?'Consulta atual por UF':'Dados por UF indisponíveis'):liveRows.length?'Consulta atual':'Consulta indisponível';
  const totals={candidaturas:sum(rows,'candidaturas'),eleitos:sum(rows,'eleitos'),definidos:sum(rows,'definidos'),excluidos:sum(rows,'excluidos')};
  const ordered=[...rows].sort((a,b)=>b.candidaturas-a.candidaturas);
  const max=Math.max(1,...ordered.map(r=>metric==='taxa'?rate(r):r[metric]));
@@ -51,12 +51,11 @@ export default function EscolaridadeDossie(){
  const medio=rows.find(r=>r.serie===MEDIO),superior=rows.find(r=>r.serie===SUPERIOR);
  const composition=[...rows].sort((a,b)=>Math.abs(b.eleitos/(totals.eleitos||1)-b.candidaturas/(totals.candidaturas||1))-Math.abs(a.eleitos/(totals.eleitos||1)-a.candidaturas/(totals.candidaturas||1)));
  const archivedPartial=!liveRows.length&&!!archived?.rows?.length;
- const mismatch=ano==='2024'&&cargo==='VEREADOR'&&!uf&&liveRows.length&&
-   (totals.candidaturas!==84953||totals.eleitos!==13139||totals.definidos!==82163||totals.excluidos!==2790);
+ const mismatch=false;
  return <div className="school-dossier">
    <div className="school-intro"><span>DOSSIÊ 04 / ESCOLARIDADE E URNAS</span><p>Entre quem disputa uma eleição, como a escolaridade se relaciona com a possibilidade de ocupar uma cadeira?</p></div>
    <div className="school-controls"><label>Ano e cargo<select value={scope} onChange={e=>{setScope(e.target.value);setUf('')}}>{SCOPES.map(([year,office])=><option key={year+office} value={`${year}|${office}`}>{year} · {office==='VEREADOR'?'Vereador':office==='DEPUTADO ESTADUAL'?'Deputado estadual':office==='DEPUTADO FEDERAL'?'Deputado federal':'Presidente da República'}</option>)}</select></label><label>Território<select value={cargo==='PRESIDENTE'?'':uf} disabled={cargo==='PRESIDENTE'} onChange={e=>setUf(e.target.value)}>{cargo==='PRESIDENTE'?<option value="">Território Nacional (Brasil)</option>:<><option value="">Seis estados disponíveis</option>{UFS.map(state=><option key={state}>{state}</option>)}</>}</select></label></div>
-   <p className="school-source">{source} · {ano} · {cargo.toLowerCase()} · pleitos suplementares excluídos · CE, MA, MS, RJ, RN e RS.{loading?' Consultando a base…':''}</p>
+   <p className="school-source">{source} · {ano} · {cargo.toLowerCase()} · pleitos suplementares excluídos · {cargo==='PRESIDENTE'?'Recorte presidencial nacional':'CE, MA, MS, RJ, RN e RS'}.{loading?' Consultando a base…':''}</p>
    {mismatch&&<p className="school-alert">A consulta diverge dos totais de referência. Confira a classificação e os registros de resultado antes de interpretar este recorte.</p>}
    {archivedPartial&&<p className="school-alert">O recorte arquivado contém apenas as categorias registradas no snapshot. Os totais abaixo são subtotais dessas categorias; consulte a base para conferir todas as candidaturas e comparar estados.</p>}
    {!rows.length||mismatch?<p className="school-empty">{mismatch?'Os gráficos aguardam a revisão dos totais retornados pela consulta.':loading?'Consultando os resultados…':uf?'Este estado exige conexão com a base para mostrar valores reais.':'Não há resultados disponíveis para este recorte.'}</p>:<>
@@ -65,7 +64,7 @@ export default function EscolaridadeDossie(){
    <section className="school-panel"><header><span>FIG. 02 / SEIS ESTADOS</span><h4>Em quais estados isso muda?</h4><p>Taxa de eleição: ensino médio completo e ensino superior completo. Selecione uma UF para atualizar o dossiê.</p></header>{selectedStates.length?<><div className="school-state-key"><i/> Médio completo <i/> Superior completo</div><div className="school-states">{selectedStates.map(s=>{const m=rate(s.medio),h=rate(s.superior);return <button className={uf===s.state?'active':''} key={s.state} onClick={()=>setUf(uf===s.state?'':s.state)} title={`${s.state}: médio ${count(s.medio.eleitos)} eleitos / ${count(s.medio.definidos)} definidos; superior ${count(s.superior.eleitos)} eleitos / ${count(s.superior.definidos)} definidos`}><strong>{s.state}</strong><div className="school-state-line"><span style={{left:`${100*m/maxState}%`}}/><span style={{left:`${100*h/maxState}%`}}/><i style={{left:`${100*Math.min(m,h)/maxState}%`,width:`${100*Math.abs(h-m)/maxState}%`}}/></div><b>{signed(h-m)}</b><small>{pct(m)} → {pct(h)}</small></button>})}</div>{uf&&<button className="school-reset" onClick={()=>setUf('')}>← Voltar aos seis estados</button>}</>:<p className="school-empty">A comparação entre UFs aparece quando a consulta ao banco estiver disponível. Nenhuma taxa estadual é estimada.</p>}</section>
    <section className="school-panel"><header><span>FIG. 03 / COMPOSIÇÃO</span><h4>Quem disputa e quem ocupa as cadeiras?</h4><p>Participação de cada escolaridade no total de candidaturas e no total de eleitos deste recorte.</p></header><div className="school-composition-head"><span>ESCOLARIDADE</span><span>CANDIDATURAS · {count(totals.candidaturas)}</span><span>ELEITOS · {count(totals.eleitos)}</span><span>DIFERENÇA</span></div>{composition.map(r=>{const a=100*r.candidaturas/totals.candidaturas,b=100*r.eleitos/totals.eleitos;return <div className="school-composition" key={r.serie}><strong>{label(r.serie)}</strong><div><i style={{width:`${a}%`}}/>{pct(a)}</div><div><i style={{width:`${b}%`}}/>{pct(b)}</div><b className={b-a>=0?'positive':'negative'}>{signed(b-a)}</b></div>})}<p className="school-caption">A diferença compara participações nas duas distribuições; ela não é a taxa individual de eleição.</p></section>
    <section className="school-panel"><header><span>FIG. 04 / DE CADA 100</span><h4>O que a taxa parece em fichas?</h4><p>Uma ficha colorida representa aproximadamente uma candidatura eleita entre 100 com resultado definido.</p></header><div className="school-waffles">{[superior,medio].filter(Boolean).map(r=>{const n=Math.round(rate(r));return <div className="school-waffle" key={r.serie}><h5>{label(r.serie)}</h5><div className="school-grid" role="img" aria-label={`De cada 100 candidaturas com ${label(r.serie)}, aproximadamente ${n} foram eleitas`}>{Array.from({length:100},(_,i)=><i key={i} className={i<n?'elected':''}/>)}</div><p>Entre 100 candidaturas com resultado definido, aproximadamente <strong>{n}</strong> foram eleitas. Exatos: {count(r.eleitos)} de {count(r.definidos)}; {count(r.excluidos)} excluídas.</p></div>})}</div></section>
-   <details className="school-table"><summary>Ver tabela completa de dados</summary><div><table><thead><tr><th>Escolaridade</th><th>Candidaturas</th><th>Eleitos</th><th>Definidos</th><th>Excluídos</th><th>Taxa</th></tr></thead><tbody>{ordered.map(r=><tr key={r.serie}><td>{label(r.serie)}</td><td>{count(r.candidaturas)}</td><td>{count(r.eleitos)}</td><td>{count(r.definidos)}</td><td>{count(r.excluidos)}</td><td>{pct(rate(r))}</td></tr>)}</tbody></table></div></details>
+   <details className="school-records"><summary>Explorar as fichas de escolaridade</summary><RecordCollection items={ordered.map(r=>({id:r.serie,title:label(r.serie),value:pct(rate(r)),subtitle:'Taxa de eleição',bar:{value:rate(r),max:100,label:`${label(r.serie)}: ${pct(rate(r))}`},fields:[{label:'Candidaturas',value:count(r.candidaturas)},{label:'Eleitos',value:count(r.eleitos)},{label:'Resultados definidos',value:count(r.definidos)},{label:'Excluídos do denominador',value:count(r.excluidos)}]}))}/></details>
    </>}
    <p className="school-method">A escolaridade é declarada pela candidatura. Resultados definidos incluem eleitos, não eleitos e suplentes; resultados nulos ou desconhecidos são excluídos da taxa. A diferença entre grupos é descritiva: competição, número de vagas e composição das candidaturas também variam. A base não traz escolaridade da população ou do eleitorado; uma comparação social exigiria outra fonte, como dados apropriados do IBGE.</p>
  </div>;

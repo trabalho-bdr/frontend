@@ -60,18 +60,18 @@ test('a escala quantitativa escurece continuamente sem usar cores partidárias',
  };
  for(let i=1;i<MAP_COLORS.length;i++)assert.ok(luminance(MAP_COLORS[i])<luminance(MAP_COLORS[i-1]));
 });
-test('amostra informa fichas carregadas e valores ausentes em cada UF',()=>{
+test('cobertura sem catálogo quantitativo usa apenas os municípios consultados',()=>{
  const all=atlasCoverage(municipiosAmostra,'abstencao_2024','');
- assert.deepEqual(all,{total:1236,loaded:18,unloaded:1218,withValue:18,withoutValue:1218});
+ assert.deepEqual(all,{total:18,loaded:18,unloaded:0,withValue:18,withoutValue:0});
  for(const state of states){
    const geo=load(state.uf);
    assert.equal(geo.features.length,state.n);
    const summary=atlasCoverage(municipiosAmostra,'abstencao_2024',state.uf);
    assert.equal(summary.loaded,3);
-   assert.equal(summary.unloaded,state.n-3);
+   assert.equal(summary.unloaded,0);
  }
  const summary=atlasCoverage([{id:'1',uf:'CE',abstencao_2024:0},{id:'2',uf:'CE',abstencao_2024:null}],'abstencao_2024','CE');
- assert.equal(summary.loaded,2);assert.equal(summary.withValue,1);assert.equal(summary.withoutValue,183);
+ assert.equal(summary.loaded,2);assert.equal(summary.withValue,1);assert.equal(summary.withoutValue,1);
 });
 test('consulta carrega todas as fichas da UF sem busca nem corte de 120 registros',async()=>{
  for(const state of states){

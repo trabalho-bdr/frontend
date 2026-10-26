@@ -267,6 +267,18 @@
 .discoveries-controls label{display:grid;gap:5px;font:800 10px 'IBM Plex Mono';color:#193e6c}
 .discoveries-controls select{max-width:210px;min-width:120px;padding:10px;background:#fff8e8;border:1px solid #bba17b;color:#193e6c;font-weight:700}
 .discoveries-proof{margin-left:auto;font:800 9px 'IBM Plex Mono';color:#766443;padding:10px}
+.discoveries-reading{padding:22px clamp(18px,3vw,36px);background:#f5e8cd;border-bottom:1px solid #b6a17d}
+.discoveries-reading>span,.discoveries-compare>strong{font:800 10px 'IBM Plex Mono';letter-spacing:.08em;color:#a54235}
+.discoveries-reading h3{max-width:880px;margin:12px 0;font:700 clamp(21px,2.6vw,34px)/1.2 'Barlow Condensed';color:#173e78}
+.discoveries-reading p{max-width:780px;margin:0;font:500 13px/1.6 'DM Sans';color:#4d5260}
+.discoveries-compare{padding:22px 8px;border-bottom:1px dashed #b6a584}
+.discoveries-compare>div{display:grid;grid-template-columns:minmax(110px,1fr) minmax(110px,2fr) 90px;gap:12px;align-items:center;margin-top:14px;font:700 12px/1.3 'DM Sans';color:#173e78}
+.discoveries-compare>div>div{height:13px;background:#e5d5b6}
+.discoveries-compare i{display:block;height:100%;background:#173e78}
+.discoveries-compare>div:nth-of-type(2) i{background:#b94b3a}
+.discoveries-compare b{text-align:right;white-space:nowrap}
+.discoveries-sheet .expo-explore{margin:20px 0 0}
+@media(max-width:500px){.discoveries-compare>div{grid-template-columns:minmax(80px,1fr) minmax(65px,1fr) 70px;gap:6px;font-size:11px}}
 .discoveries-switch{display:flex;overflow-x:auto;gap:5px;padding:9px 17px;background:#e3cc9e}
 .discoveries-switch button{display:flex;gap:10px;align-items:center;white-space:nowrap;background:#fff7e8;border:1px solid #b59b74;color:#163d73;padding:10px;font:800 10px 'IBM Plex Mono'}
 .discoveries-switch button.active{background:#b94b3a;color:white;border-color:#b94b3a}
@@ -447,3 +459,378 @@
 .fiscal-document-v9 footer{background:transparent;border:0;padding:10px 0 0}
 @media(max-width:620px){.fiscal-stack-stage{padding:25px 7px}.fiscal-document-v9{padding:13px 13px 20px 28px;min-height:565px}.fiscal-doc-top strong{font-size:24px}.fiscal-doc-item{grid-template-columns:1fr}.fiscal-doc-total strong{font-size:22px}.fiscal-folder-stamps{display:none}}
 @media(prefers-reduced-motion:reduce){.index-3d-stage *,.fiscal-document-v9{animation:none!important;transition:none!important}}
+.prestacao-v5 .receipt-experience{grid-template-columns:minmax(235px,.55fr) minmax(0,1.45fr);gap:18px}.prestacao-v5 .receipt-campaigns{grid-row:1 / span 2;min-height:0}.prestacao-v5 .paperstage{min-height:0}.prestacao-v5 .expense-ledger{grid-column:2;min-height:0;padding:18px 22px;background:#f8ebd5;box-shadow:none;border:0;border-top:2px solid #173e78}.prestacao-v5 .campaign-stack{max-height:540px}.prestacao-v5 .campaign-tab{min-height:60px;transform:none;padding:10px}.prestacao-v5 .campaign-tab strong{font-size:21px;line-height:1.1}.prestacao-v5 .campaign-tab small,.prestacao-v5 .campaign-tab b{font-size:13px;line-height:1.4}.prestacao-v5 .campaign-tab-number{font-size:19px}.prestacao-v5 .expense-metrics{padding:0 0 16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.prestacao-v5 .expense-metrics>div{display:grid;gap:5px;padding:12px;border-top:2px solid #173e78}.prestacao-v5 .expense-metrics span{font-size:12px}.prestacao-v5 .expense-metrics b{font-size:18px;text-align:left;color:#173e78}.prestacao-v5 .receipt-category-analysis{padding:14px 0}.prestacao-v5 .receipt-category-analysis h3{font-size:25px;margin:0 0 6px}.prestacao-v5 .receipt-category-analysis p{font-size:14px;line-height:1.6;max-width:70ch}.prestacao-v5 .receipt-category-row{font-size:14px}.prestacao-v5 .receipt-category-row strong{font-size:15px}.prestacao-v5 .entries-panel{border-top:1px solid #bda583}.prestacao-v5 .entries-panel summary{font-size:15px;font-weight:700;color:#173e78;cursor:pointer;padding:12px 0}.prestacao-v5 .ledger-disclaimer{font-size:12px;line-height:1.6}.prestacao-v5 .fiscal-doc-absence{font-size:12px;line-height:1.5;color:#48505a;margin:12px 0}.prestacao-v5 .fiscal-document-v9{min-height:420px}.prestacao-v5 .receipt-navigation>span{display:none}.prestacao-v5 .slice-note{font-size:12px}.prestacao-v5 .receipt-campaigns>p{font-size:13px}.prestacao-v5 .fiscal-doc-area strong{font-size:22px}.prestacao-v5 .fiscal-doc-item strong,.prestacao-v5 .fiscal-doc-item b{font-size:18px}
+@media(max-width:900px){.prestacao-v5 .receipt-experience{grid-template-columns:minmax(0,1fr)}.prestacao-v5 .receipt-campaigns{grid-row:auto}.prestacao-v5 .expense-ledger{grid-column:auto}.prestacao-v5 .campaign-stack{max-height:260px}.prestacao-v5 .expense-metrics{grid-template-columns:1fr}}
+
+/* Identidade Visual - Logotipo Oficial */
+.brand-emblem{width:46px;height:46px;border-radius:4px;object-fit:cover;box-shadow:0 2px 4px rgba(0,0,0,.15);border:1.5px solid var(--navy);flex-shrink:0}
+.footer-brand-wrap{display:flex;align-items:center;gap:14px}
+.footer-logo-img{width:48px;height:48px;border-radius:4px;object-fit:cover;border:1.5px solid #fff2d7}
+.expo-masthead-top{display:flex;align-items:center;gap:22px;margin-bottom:12px}
+.expo-masthead-logo{width:96px;height:96px;border-radius:8px;object-fit:cover;box-shadow:4px 6px 0 rgba(0,0,0,.15);border:2px solid var(--navy);flex-shrink:0}
+@media(max-width:600px){
+  .expo-masthead-top{flex-direction:column;align-items:flex-start;gap:12px}
+  .expo-masthead-logo{width:64px;height:64px}
+  .brand-emblem{width:36px;height:36px}
+}
+
+.home-intro-badge{display:flex;align-items:center;gap:24px;margin-bottom:12px}
+.home-intro-logo{width:84px;height:84px;border-radius:10px;object-fit:cover;box-shadow:3px 5px 0 rgba(0,0,0,.15);border:2px solid var(--navy);flex-shrink:0}
+@media(max-width:600px){
+  .home-intro-badge{flex-direction:column;align-items:flex-start;gap:14px}
+  .home-intro-logo{width:64px;height:64px}
+}
+
+/* Fichário Tátil Nativo — Dossiê e Santinho em HTML/CSS */
+.tactile-fichario-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  background: radial-gradient(circle at 50% 25%, #eedfc7, #c6ad8a 85%);
+  padding: 16px 16px 65px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.tactile-tabs-shelf {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 5px;
+  z-index: 5;
+  margin-top: 2px;
+}
+.tactile-tab-btn {
+  padding: 6px 14px;
+  background: #f4e5c8;
+  color: #173e78;
+  border: 1px solid #9c8366;
+  border-bottom: none;
+  border-top: 5px solid var(--folder-tone, #c85542);
+  border-radius: 6px 6px 0 0;
+  font: 800 11px 'IBM Plex Mono', monospace;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.06);
+}
+.tactile-tab-btn:hover {
+  background: #fff6e6;
+  transform: translateY(-2px);
+}
+.tactile-tab-btn.active {
+  background: #fffef8;
+  color: #173e78;
+  transform: translateY(-3px);
+  box-shadow: 0 -4px 8px rgba(0,0,0,0.12);
+  font-weight: 900;
+  border-top-width: 6px;
+}
+.tactile-card-stage {
+  perspective: 1200px;
+  width: 100%;
+  max-width: 440px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+}
+.tactile-card-shell {
+  width: 100%;
+  max-width: 410px;
+  min-height: 445px;
+  height: 445px;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.2, 0.85, 0.3, 1);
+  cursor: pointer;
+}
+.tactile-card-shell.is-flipped {
+  transform: rotateY(180deg);
+}
+.tactile-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 4px;
+  border: 8px solid #f6ecdb;
+  box-shadow: 0 16px 36px rgba(45, 32, 20, 0.32), 0 2px 5px rgba(0,0,0,0.12);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px 18px;
+  box-sizing: border-box;
+}
+.tactile-face-front {
+  background: #fff6e4;
+  color: #173e78;
+}
+.tactile-face-back {
+  background: #fffdf5;
+  color: #173e78;
+  transform: rotateY(180deg);
+}
+.tactile-empty-desk {
+  text-align: center;
+  color: #173e78;
+  max-width: 360px;
+  padding: 28px 22px;
+  background: #fffaf0ea;
+  border: 2px dashed #b79b76;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+}
+
+/* Enhanced Desk and Archive Rail Styles */
+.folder-row-container {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  position: relative;
+  width: 100%;
+}
+.folder-row-container .folder-tab {
+  flex: 1;
+  min-width: 0;
+}
+.folder-compare-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  background: #173e78;
+  color: #ffecc4;
+  font: 800 10px/1.2 'IBM Plex Mono', monospace;
+  letter-spacing: .05em;
+  border: 1px solid #0d2850;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .15s ease;
+  box-shadow: 2px 2px 0 rgba(0,0,0,.2);
+}
+.folder-compare-pill:hover {
+  background: #255bb0;
+  color: #fff;
+  transform: translateY(-1px);
+}
+.folder-compare-pill.in-desk {
+  background: #2e7d32;
+  color: #fff;
+  border-color: #1b5e20;
+}
+.folder-compare-pill.in-desk:hover {
+  background: #c5473a;
+  color: #fff;
+}
+
+.desk-caption-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.desk-clear-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255,255,255,.18);
+  border: 1px solid rgba(255,255,255,.35);
+  color: #fff7de;
+  font: 700 10px 'IBM Plex Mono', monospace;
+  padding: 3px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.desk-clear-btn:hover {
+  background: #c5473a;
+  color: #fff;
+}
+
+.desk-file.empty-slot {
+  border: 2px dashed rgba(255,255,255,.5);
+  background: rgba(0,0,0,.1);
+  color: #ffe9be;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transition: all .2s ease;
+  min-height: 220px;
+  padding: 20px 14px;
+}
+.desk-file.empty-slot:hover {
+  background: rgba(255,255,255,.15);
+  border-color: #ffe9be;
+  transform: scale(1.02);
+}
+.empty-slot-plus {
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 1;
+  color: #e5c45f;
+  margin-bottom: 4px;
+}
+.empty-slot-cand {
+  font: 900 17px/1.2 'Barlow Condensed', sans-serif;
+  color: #fff;
+  margin: 4px 0;
+}
+
+.desk-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+.desk-party-badge {
+  background: #173e78;
+  color: #ffecc4;
+  font: 800 10px 'IBM Plex Mono', monospace;
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+.desk-year-tag {
+  font: 600 10px 'IBM Plex Mono', monospace;
+  color: #665038;
+}
+.desk-candidate-name {
+  font: 900 22px/1.1 'Barlow Condensed', sans-serif;
+  color: var(--navy);
+  margin-top: 2px;
+}
+.desk-candidate-loc {
+  font: 500 11px 'IBM Plex Mono', monospace;
+  color: #7a6042;
+}
+.desk-result-tag {
+  align-self: flex-start;
+  font: 800 9px 'IBM Plex Mono', monospace;
+  padding: 2px 7px;
+  border-radius: 3px;
+  letter-spacing: .06em;
+  background: #d4dfd4;
+  color: #234b26;
+}
+.desk-result-tag.result-não-eleito, .desk-result-tag.result-nao-eleito {
+  background: #f0d5d5;
+  color: #7b2626;
+}
+.desk-result-tag.result-suplente {
+  background: #faebd7;
+  color: #8b6508;
+}
+
+.desk-card-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  width: 100%;
+  border-top: 1px dotted #c9b48c;
+  padding-top: 8px;
+}
+.desk-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  position: relative;
+}
+.desk-stat-item small {
+  font: 700 8.5px 'IBM Plex Mono', monospace;
+  color: #7c684d;
+  letter-spacing: .05em;
+}
+.desk-stat-item strong {
+  font: 800 14px 'IBM Plex Mono', monospace;
+  color: #274a55;
+}
+.desk-stat-item.stat-highlight {
+  background: rgba(23,62,120,.06);
+  padding: 3px 5px;
+  border-left: 3px solid #173e78;
+}
+.stat-badge {
+  font: 800 8px 'IBM Plex Mono', monospace;
+  color: #173e78;
+  letter-spacing: .05em;
+  background: #e1ebfa;
+  padding: 1px 4px;
+  border-radius: 2px;
+  align-self: flex-start;
+  margin-top: 2px;
+}
+.desk-card-inspect {
+  margin-top: auto;
+  align-self: flex-start;
+  background: transparent;
+  border: 1px solid #a48259;
+  color: #5d462c;
+  font: 700 9.5px 'IBM Plex Mono', monospace;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.desk-card-inspect:hover {
+  background: #173e78;
+  color: #ffecc4;
+  border-color: #173e78;
+}
+
+.archive-quick-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0 8px;
+}
+.archive-quick-pill {
+  background: #e8d7b8;
+  border: 1px solid #baa27c;
+  color: #4b3d2b;
+  font: 700 9.5px 'IBM Plex Mono', monospace;
+  padding: 3px 7px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all .15s;
+}
+.archive-quick-pill.active {
+  background: #173e78;
+  color: #ffecc4;
+  border-color: #0e2954;
+}
+.archive-rail-filter-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.archive-rail-filter-row select {
+  flex: 1;
+  background: #fbf6ec;
+  border: 1px solid #bba37d;
+  color: #2c251d;
+  font: 600 10px 'IBM Plex Mono', monospace;
+  padding: 4px 6px;
+}
+.desk-method-note {
+  margin: 12px 0 4px;
+}
+.desk-method-note p {
+  font: 500 10.5px/1.6 'IBM Plex Mono', monospace;
+  margin: 0;
+  color: #fff2d6;
+}
+.desk-warning {
+  color: #ffe194 !important;
+  font-weight: 700 !important;
+}
+
+/* Fichário: papel de arquivo, fotografia fiel e hierarquia documental. */
+.tactile-face{background-color:#fbf5e8;background-image:linear-gradient(110deg,#c8b68a0a,transparent 40%,#c8b68a0a);border-color:#c7b899;box-shadow:inset 0 0 0 5px #fffcf380,0 3px 9px #493c2218}.filing-official-photo{padding:5px;background:#fffdf8;border:1px solid #d5c8ae;box-shadow:1px 2px 2px #493c2212;transform:rotate(-1deg)}.filing-official-photo .catalog-portrait{width:100px;height:118px;background:#eee9df}.filing-official-photo .catalog-portrait img{object-fit:contain;filter:none}.filing-number-label{font-size:9px;color:#667066;letter-spacing:.1em}.person-profile .catalog-profile-heading .catalog-portrait{filter:none;transform:none}.person-profile .catalog-profile-heading .catalog-portrait img{object-fit:contain;filter:none;background:#f1eee5}

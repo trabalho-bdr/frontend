@@ -1,3 +1,4 @@
+import RecordCollection from './RecordCollection.jsx';
 /**
  * Folha de comparação reutilizada entre as seções existentes. Os gráficos usam
  * agregações auditadas e a mesma fonte de dados das fichas, sem inventar séries.
@@ -9,8 +10,7 @@ import {ArrowLeftRight,ArrowUpRight,ChartNoAxesCombined,Download,FileSpreadsheet
 import {Bar,BarChart,CartesianGrid,Cell,Line,LineChart,
         ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts';
 import {getComparison} from '../data/client.js';
-import {comparisonSnapshot} from '../data/comparisonSnapshot.js';
-import {states} from '../data/snapshot.js';
+import {states} from '../data/catalog.js';
 import {comparisonMetrics,buildComparisonChart,formatComparisonValue,isComparableCandidates} from '../data/comparisonLogic.js';
 import {seriesStyle,comparisonFindings,compactChartValue} from '../data/comparisonPresentation.js';
 import {indicatorSettings} from '../atlas/geography.js';
@@ -68,7 +68,7 @@ const toScopes=arr=>arr.map(([ano,cargo])=>({value:`${ano}|${cargo}`,label:`${an
 const MetricOptions=({kind,metric,setMetric})=><div className="compare-metric-choices" role="group" aria-label="Indicador do gráfico">{comparisonMetrics(kind).map(({key,label})=><button type="button" key={key} className={metric===key?'active':''} aria-pressed={metric===key} onClick={()=>setMetric(key)}>{label}</button>)}</div>;
 const formatTooltip=(value,metric,kind)=>value==null?'Sem informação':formatComparisonValue(value,metric,kind);
 
-export default function ComparisonPanel({topic='investigacoes',mode='snapshot',candidates=[],municipios=[],defaultKind}){
+export default function ComparisonPanel({topic='investigacoes',mode='snapshot',candidates=[],municipios=[],defaultKind,title,subtitle,badgeLabel,description}){
  const choices=OPTIONS[topic]??OPTIONS.investigacoes;
  const [kind,setKind]=useState(defaultKind&&choices.includes(defaultKind)?defaultKind:choices[0]);
  const [cargo,setCargo]=useState('VEREADOR'),[uf,setUf]=useState('');
@@ -77,12 +77,12 @@ export default function ComparisonPanel({topic='investigacoes',mode='snapshot',c
  const [schoolScope,setSchoolScope]=useState('2024|VEREADOR'),[wealthScope,setWealthScope]=useState('2024|VEREADOR');
  const [metric,setMetric]=useState('valor');
  const [rowsResult,setRowsResult]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[version,setVersion]=useState(0);
- const [showTable,setShowTable]=useState(false);
+ const [showRecords,setShowRecords]=useState(false);
  const [lineEffects,setLineEffects]=useState(true);
  const reducedMotion=useMotionPreference();
  const [focusSeries,setFocusSeries]=useState(null),[plotWidth,setPlotWidth]=useState(700);
  const [townOne,setTownOne]=useState(''),[townTwo,setTownTwo]=useState('');
- useEffect(()=>{setMetric(comparisonMetrics(kind)[0].key);setShowTable(false)},[kind]);
+ useEffect(()=>{setMetric(comparisonMetrics(kind)[0].key);setShowRecords(false)},[kind]);
  useEffect(()=>setFocusSeries(null),[kind,firstParty,secondParty,uf,ufs.join(',')]);
  useEffect(()=>{if(!choices.includes(kind))setKind(choices[0])},[topic,choices.join('|')]);
  useEffect(()=>{if(municipios.length<1)return;
@@ -98,7 +98,7 @@ export default function ComparisonPanel({topic='investigacoes',mode='snapshot',c
     if(kind==='patrimonio'){const [ano,cargo]=wealthScope.split('|');return {ano,cargo,uf}}
     return {};
  },[kind,cargo,uf,firstParty,secondParty,promoParty,ufs.join(','),schoolScope,wealthScope]);
- const offline=useMemo(()=>comparisonSnapshot(kind,params),[kind,JSON.stringify(params)]);
+ const offline=null;
  useEffect(()=>{
    let active=true;
    if(kind==='fichas'||kind==='municipios'){setRowsResult(null);setError('');setBusy(false);return;}
@@ -142,8 +142,14 @@ export default function ComparisonPanel({topic='investigacoes',mode='snapshot',c
        ...(kind==='cadeiras'?['Eleitos','Despesas agregadas']:[]),
        ...(kind==='escolaridade'?['Candidaturas','Eleitos','Resultados definidos']:[]),
        ...(kind==='propaganda'?['Lançamentos']:[])];
- return <section className="comparison-panel" aria-label="Painel de gráficos comparativos">
-   <header className="comparison-heading"><div><PrintLabel tone="blue"><ArrowLeftRight size={14}/> CADERNO ESTATÍSTICO / LEITURA CRUZADA</PrintLabel><h3>DOIS RECORTES.<br/><em>OUTRAS LEITURAS.</em></h3><p>Compare os números, acompanhe uma série e confira a fonte. Cada diferença começa com uma pergunta.</p></div><div className="comparison-seal">DADOS<br/>EM<br/>PERSPECTIVA <ArrowUpRight size={25}/></div></header>
+  const isFichasTopic = topic === 'fichas';
+  const headingBadge = badgeLabel || (isFichasTopic ? 'MESA DE COMPARAÇÃO / LEITURA GRÁFICA' : 'CADERNO ESTATÍSTICO / LEITURA CRUZADA');
+  const headingTitle = title || (isFichasTopic ? 'FICHAS LADO A LADO.' : 'DOIS RECORTES.');
+  const headingSub = subtitle || (isFichasTopic ? 'COMPARAÇÃO DIRETA.' : 'OUTRAS LEITURAS.');
+  const headingDesc = description || (isFichasTopic ? 'Compare votos, despesas declaradas e patrimônio das fichas colocadas na mesa de comparação.' : 'Os filtros deste painel alteram somente esta comparação. Escolha os recortes abaixo e confira a fonte dos resultados.');
+  const sealContent = isFichasTopic ? <>COMPARAÇÃO<br/>DIRETA<br/>DE DADOS</> : <>DADOS<br/>EM<br/>PERSPECTIVA</>;
+  return <section className="comparison-panel" aria-label="Painel de gráficos comparativos">
+    <header className="comparison-heading"><div><PrintLabel tone="blue"><ArrowLeftRight size={14}/> {headingBadge}</PrintLabel><h3>{headingTitle}<br/><em>{headingSub}</em></h3><p>{headingDesc}</p></div><div className="comparison-seal">{sealContent} <ArrowUpRight size={25}/></div></header>
    {choices.length>1&&<div className="compare-tabs" role="group" aria-label="Tipos de comparação">{choices.map(k=><button type="button" key={k} aria-pressed={kind===k} className={kind===k?'active':''} onClick={()=>setKind(k)}>{TITLES[k]}</button>)}</div>}
    <div className="compare-document"><div className="compare-doc-cap"><span>◉ {TITLES[kind]}</span><span>{caption}</span></div>
     <div className="compare-filters" aria-label="Filtros da comparação">
@@ -159,18 +165,18 @@ export default function ComparisonPanel({topic='investigacoes',mode='snapshot',c
      </div>
      <MetricOptions kind={kind} metric={metric} setMetric={setMetric}/>
      {chart.type==='line'&&<div className="compare-effect-controls"><button type="button" aria-pressed={lineEffects} disabled={reducedMotion} onClick={()=>setLineEffects(v=>!v)}>{reducedMotion?'MOVIMENTO REDUZIDO':'DESENHO DAS LINHAS '+(lineEffects?'ATIVO':'DESATIVADO')}</button><span>A leitura segue do primeiro ao último ano. Lacunas continuam sem ligação.</span></div>}
-     {busy?<div className="compare-state" role="status"><RefreshCw className="compare-spin"/> Consultando os dados do recorte…</div>:rows.length===0?<div className="compare-state" role="status"><Info size={25}/>{local&&kind==='fichas'?'Retire ao menos duas fichas e coloque-as na mesa para comparar.':(!local&&mode!=='live'?'Este filtro não faz parte da amostra arquivada. Ative a consulta ao acervo para ver o resultado.':error||'Nenhum valor disponível neste recorte.')}</div>:
+     {busy?<div className="compare-state" role="status"><RefreshCw className="compare-spin"/> Consultando os dados do recorte…</div>:rows.length===0?<div className="compare-state" role="status"><Info size={25}/>{local&&kind==='fichas'?'Adicione ao menos duas fichas à mesa de comparação acima (use o botão \'+ Comparar\' nas pastas do arquivo) para visualizar os gráficos lado a lado.':(!local&&mode!=='live'?'Este filtro não faz parte da amostra arquivada. Ative a consulta ao acervo para ver o resultado.':error||'Nenhum valor disponível neste recorte.')}</div>:
      <AnimatePresence mode="wait"><motion.div className="compare-chart-shell" key={kind+'-'+metric+'-'+JSON.stringify(params)} initial={reducedMotion?false:{opacity:.4,y:10}} animate={{opacity:1,y:0}} exit={reducedMotion?undefined:{opacity:0}} transition={{duration:reducedMotion?0:.25}}>
         {error&&<p role="alert" className="compare-alert">{error} Exibindo somente os dados arquivados compatíveis com o filtro.</p>}
         <div className="compare-graph-title"><span className="compare-figure-number">FIG. 01 / {percentageMetric?'PORCENTAGEM':moneyMetric?'VALORES NOMINAIS EM R$':metric==='idhm'?'ÍNDICE MUNICIPAL':'VALORES DO INDICADOR'}</span><h4>{kind==='escolaridade'&&metric==='candidaturas'?'Quem disputa a eleição?':kind==='cadeiras'&&metric==='gasto_total'?'As despesas de cada eleição':result?.titulo||TITLES[kind]}</h4><p>{scope}</p></div>
-        <div className="compare-actions"><div className="compare-view-switch" role="group" aria-label="Forma de leitura"><button type="button" aria-pressed={!showTable} onClick={()=>setShowTable(false)}><ChartNoAxesCombined size={15}/> GRÁFICO</button><button type="button" aria-pressed={showTable} onClick={()=>setShowTable(true)}><FileSpreadsheet size={15}/> TABELA</button></div><button type="button" onClick={()=>downloadRows(`arquivo-comparativo-${kind}.csv`,[...tableHeaders,'Recorte','Indicador','Fonte'],rowsTable.map(row=>[...row,scope,comparisonMetrics(kind).find(m=>m.key===metric)?.label,result?.source==='snapshot'?'Snapshot auditado em 21/10/2026':'Consulta ao acervo']))}><Download size={15}/> BAIXAR CSV</button></div>
-        {chart.type==='line'&&!showTable&&<div className="compare-series-key" aria-label="Destaque uma série">{chart.series.map(serie=><button key={serie} type="button" aria-pressed={focusSeries===serie} onClick={()=>setFocusSeries(v=>v===serie?null:serie)}><i style={{borderColor:seriesStyle(serie).color,borderTopStyle:seriesStyle(serie).dash?'dashed':'solid'}} aria-hidden="true"/>{serie}</button>)}<small>Toque para destacar. As cores identificam séries, sem classificação política.</small></div>}
-        {!showTable?<div className="compare-plot" role="group" aria-label={`Gráfico comparativo · ${scope}; veja a tabela para valores exatos`}><ResponsiveContainer width="100%" height={chart.type==='bar-horizontal'?Math.max(330,chart.points.length*45):350} onResize={width=>setPlotWidth(width)}>
+        <div className="compare-actions"><div className="compare-view-switch" role="group" aria-label="Forma de leitura"><button type="button" aria-pressed={!showRecords} onClick={()=>setShowRecords(false)}><ChartNoAxesCombined size={15}/> GRÁFICO</button><button type="button" aria-pressed={showRecords} onClick={()=>setShowRecords(true)}><FileSpreadsheet size={15}/> FICHAS</button></div><button type="button" onClick={()=>downloadRows(`arquivo-comparativo-${kind}.csv`,[...tableHeaders,'Recorte','Indicador','Fonte'],rowsTable.map(row=>[...row,scope,comparisonMetrics(kind).find(m=>m.key===metric)?.label,result?.source==='snapshot'?'Referência oficial do acervo':'Consulta ao acervo']))}><Download size={15}/> BAIXAR CSV</button></div>
+        {chart.type==='line'&&!showRecords&&<div className="compare-series-key" aria-label="Destaque uma série">{chart.series.map(serie=><button key={serie} type="button" aria-pressed={focusSeries===serie} onClick={()=>setFocusSeries(v=>v===serie?null:serie)}><i style={{borderColor:seriesStyle(serie).color,borderTopStyle:seriesStyle(serie).dash?'dashed':'solid'}} aria-hidden="true"/>{serie}</button>)}<small>Toque para destacar. As cores identificam séries, sem classificação política.</small></div>}
+        {!showRecords?<div className="compare-plot" role="group" aria-label={`Gráfico comparativo · ${scope}; abra as fichas para valores exatos`}><ResponsiveContainer width="100%" height={chart.type==='bar-horizontal'?Math.max(330,chart.points.length*45):350} onResize={width=>setPlotWidth(width)}>
           {chart.type==='line'?<LineChart accessibilityLayer data={chart.points} margin={{top:25,right:plotWidth<500?16:32,left:0,bottom:15}}><CartesianGrid vertical={false} stroke="#BBC9C6" strokeDasharray="2 5"/><XAxis dataKey="periodo" padding={{left:22,right:22}} tick={{fontSize:12,fill:'#274A55',fontWeight:700}} axisLine={{stroke:'#809A9D'}} tickLine={false}/><YAxis tickFormatter={compactChartValue} tick={{fontSize:10,fill:'#50666B'}} width={plotWidth<500?50:70} axisLine={false} tickLine={false}/><Tooltip formatter={v=>formatter(v)} labelFormatter={v=>'ELEIÇÃO '+v} contentStyle={{background:'#FFFCF5',border:'1px solid #547B8C',fontSize:12}}/>{chart.series.map(serie=><Line key={serie} dataKey={serie} name={serie} type="linear" stroke={seriesStyle(serie).color} strokeDasharray={seriesStyle(serie).dash} strokeOpacity={!focusSeries||focusSeries===serie?1:.25} strokeWidth={focusSeries===serie?4:3} dot={{r:5,strokeWidth:2,fill:'#FFFCF5',opacity:!focusSeries||focusSeries===serie?1:.25}} activeDot={{r:7}} connectNulls={false} isAnimationActive={lineEffects&&!reducedMotion} animationDuration={850} animationEasing="ease-out"/>)}</LineChart>:
           <BarChart accessibilityLayer data={chart.points} layout={chart.type==='bar-horizontal'?'vertical':'horizontal'} margin={{top:18,right:16,left:0,bottom:10}}><CartesianGrid stroke="#BBC9C6" strokeDasharray="2 5" vertical={chart.type==='bar-horizontal'} horizontal={chart.type!=='bar-horizontal'}/><XAxis type={chart.type==='bar-horizontal'?'number':'category'} dataKey={chart.type==='bar-horizontal'?undefined:'rotulo'} tick={chart.type==='bar-horizontal'?{fontSize:10}:<CategoryTick/>} tickFormatter={chart.type==='bar-horizontal'?compactChartValue:undefined} height={chart.type==='bar-horizontal'?35:90} interval={chart.type==='bar-horizontal'?'preserveStartEnd':0} tickLine={false} axisLine={{stroke:'#809A9D'}}/><YAxis type={chart.type==='bar-horizontal'?'category':'number'} dataKey={chart.type==='bar-horizontal'?'rotulo':undefined} width={chart.type==='bar-horizontal'?(plotWidth<500?120:175):55} interval={chart.type==='bar-horizontal'?0:undefined} tick={chart.type==='bar-horizontal'?<CategoryTick horizontal/>:{fontSize:10}} tickFormatter={chart.type==='bar-horizontal'?undefined:compactChartValue} tickLine={false} axisLine={false}/><Tooltip formatter={v=>formatter(v)} contentStyle={{background:'#FFFCF5',border:'1px solid #547B8C',fontSize:12}}/><Bar dataKey="valor" name={comparisonMetrics(kind).find(m=>m.key===metric)?.label} maxBarSize={42} isAnimationActive={!reducedMotion} animationDuration={550}>{chart.points.map((p,i)=><Cell key={i} fill={seriesStyle(p.rotulo).color}/>)}</Bar></BarChart>}
-         </ResponsiveContainer></div>:<div className="compare-table-wrap"><table><caption>{TITLES[kind]} · {scope}</caption><thead><tr>{tableHeaders.map(h=><th scope="col" key={h}>{h}</th>)}</tr></thead><tbody>{rowsTable.map((r,i)=><tr key={i}>{r.map((v,j)=><td key={j}>{local&&j===1?formatter(v):j>=2&&typeof v==='number'?valueOf(v):v==null?'—':s(v)}</td>)}</tr>)}</tbody></table></div>}
+         </ResponsiveContainer></div>:<RecordCollection title={`${TITLES[kind]} · ${scope}`} items={rowsTable.map((row,index)=>({id:index,title:s(row[0]),fields:row.slice(1).map((value,j)=>({label:tableHeaders[j+1],value:local&&j+1===1?formatter(value):j+1>=2&&typeof value==='number'?valueOf(value):value==null?'Não informado':s(value)}))}))}/>}
         <FindingNotes findings={findings} formatDelta={deltaFormatter}/>
-        <p className="compare-provenance">{result?.source==='snapshot'?'RECORTE ARQUIVADO · 21/10/2026':'CONSULTA ATUAL DO ACERVO'} · Diferenças calculadas somente sobre os valores disponíveis neste gráfico.</p>
+        <p className="compare-provenance">{result?.source==='snapshot'?'REFERÊNCIA REAL DO ACERVO':'CONSULTA ATUAL DO ACERVO'} · Diferenças calculadas somente sobre os valores disponíveis neste gráfico.</p>
       </motion.div></AnimatePresence>}
      <div className="compare-method"><Info size={18}/><p>{methodology}{kind==='fichas'&&!comparable&&candidates.length>1?' Atenção: fichas de anos, cargos ou UFs diferentes não formam uma disputa equivalente.':''} {kind==='municipios'&&townOne===townTwo?' Você selecionou o mesmo município nos dois campos.':''} <strong>Base limitada aos estados CE, MA, MS, RJ, RN e RS.</strong></p></div>
    </div>

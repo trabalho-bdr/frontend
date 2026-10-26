@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {partyHistory,partyOptionLabel} from '../src/catalog/partyHistory.js';import {partyStyle} from '../src/catalog/partyColors.js';import {restoreCatalog} from '../src/catalog/logic.js';
+test('renaming keeps historical sigla visible',()=>{assert.match(partyOptionLabel('PMDB'),/PMDB.*MDB/);assert.match(partyHistory('PSC',2020),/Incorporado/);assert.match(partyHistory('PL',2002),/histórico/)});
+test('historical filter survives profile navigation',()=>{assert.equal(restoreCatalog({catalogoEstado:JSON.stringify({filters:{partido:'MDB',partido_historico:'1'}})}).filters.partido_historico,'1')});
+test('party badges retain accessible foregrounds',()=>{assert.equal(partyStyle('PT')['--party-color'],'#b71926');assert.equal(partyStyle('PSOL')['--party-ink'],'#25291e');assert.equal(partyStyle('UNKNOWN')['--party-color'],'#173e78')});

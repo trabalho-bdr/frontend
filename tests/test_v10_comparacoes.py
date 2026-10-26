@@ -14,7 +14,7 @@ class ComparisonsTests(unittest.TestCase):
    self.assertEqual(sql.count('?'),len(params))
    self.assertTrue(sql.lstrip().upper().startswith(('SELECT','WITH')))
    self.assertNotIn('DELETE ',sql.upper())
-   self.assertIn('v4.main.',sql)
+   self.assertIn('pipeline_bdr_der_completo_v4.main.',sql)
    self.queries.append((sql,params))
    return [{'ano':2024,'serie':'Teste','valor':10}]
   app._rows=fake

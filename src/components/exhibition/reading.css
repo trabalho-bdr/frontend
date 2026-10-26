@@ -1,0 +1,8 @@
+/* Metadados acessíveis sem repetir as faixas de leitura. */
+.expo-provenance{margin:18px 0 24px;border-top:1px solid #c9bea7;padding:12px 0;color:#465265;font-size:13px;line-height:1.65}
+.expo-provenance>summary{cursor:pointer;color:#173e78;font-weight:700;min-height:44px;align-content:center}
+.expo-provenance p{font:inherit;margin:8px 0;max-width:85ch}
+.expo-provenance :focus-visible{outline:3px solid #176b50;outline-offset:3px}
+.expo-answer:empty{display:none}.expo-explore>summary>span{line-height:1.5}
+.expo-footer-links:empty{display:none}
+@media(max-width:650px){.expo-provenance{font-size:14px}.expo-provenance>summary{padding:8px 0}}

@@ -17,186 +17,18 @@ from fastapi import APIRouter, HTTPException, Query
 
 router = APIRouter(prefix='/api/questao1', tags=['questao1'])
 
-DB = 'v4'
+DB = 'pipeline_bdr_der_completo_v4'
 UF_VALIDAS = {'CE', 'MA', 'MS', 'RJ', 'RN', 'RS'}
 CARGOS_VALIDOS = {'VEREADOR', 'DEPUTADO ESTADUAL', 'DEPUTADO FEDERAL', 'PRESIDENTE'}
 ANOS_VALIDOS = {2018, 2020, 2022, 2024}
+PERFIL_EXPRESSIONS = {
+    'escolaridade': "coalesce(nullif(trim(c.escolaridade_candidatura), ''), 'Não informado')",
+    'idade': "CASE WHEN c.idade_eleicao IS NULL THEN 'Não informado' WHEN c.idade_eleicao < 30 THEN '18–29 anos' WHEN c.idade_eleicao < 45 THEN '30–44 anos' WHEN c.idade_eleicao < 60 THEN '45–59 anos' ELSE '60 anos ou mais' END",
+    'patrimonio': "CASE WHEN c.patrimonio IS NULL OR c.patrimonio < 0 THEN 'Não informado' WHEN c.patrimonio = 0 THEN 'R$ 0 declarado' WHEN c.patrimonio <= 100000 THEN 'Até R$ 100 mil' WHEN c.patrimonio <= 1000000 THEN 'R$ 100 mil a R$ 1 milhão' ELSE 'Mais de R$ 1 milhão' END",
+    'gasto': "CASE WHEN c.gastos_campanha_total IS NULL OR c.gastos_campanha_total < 0 THEN 'Não informado' WHEN c.gastos_campanha_total = 0 THEN 'R$ 0 declarado' WHEN c.gastos_campanha_total <= 10000 THEN 'Até R$ 10 mil' WHEN c.gastos_campanha_total <= 100000 THEN 'R$ 10 mil a R$ 100 mil' ELSE 'Mais de R$ 100 mil' END",
+}
 
 # Dados auditados oficiais do TSE para a eleição presidencial (2018 e 2022)
-PRESIDENT_DATA = {
-    2022: {
-        'overview': {
-            'total_candidaturas': 12,
-            'candidaturas_com_gasto': 11,
-            'candidaturas_gasto_zero': 1,
-            'candidaturas_gasto_positivo': 11,
-            'eleitos': 1,
-            'nao_eleitos': 11,
-            'com_votos': 11,
-            'total_despesas': 310822451.14,
-            'gasto_por_cadeira': 310822451.14,
-            'mediana_gastos_eleitos': 131424312.00,
-            'mediana_gastos_nao_eleitos': 3820000.00,
-            'mediana_votos_eleitos': 57259504.0,
-            'mediana_votos_nao_eleitos': 600955.0,
-            'mediana_custo_voto_eleitos': 2.29,
-            'mediana_custo_voto_nao_eleitos': 7.61
-        },
-        'serie_temporal': [
-            {'ano': 2018, 'gasto_por_cadeira': 196480000.00, 'total_despesas': 196480000.00, 'eleitos': 1, 'total_candidaturas': 13, 'mediana_eleitos': 2456215.00},
-            {'ano': 2022, 'gasto_por_cadeira': 310822451.14, 'total_despesas': 310822451.14, 'eleitos': 1, 'total_candidaturas': 12, 'mediana_eleitos': 131424312.00}
-        ],
-        'por_uf': [
-            {'uf': 'BR', 'eleitos': 1, 'candidaturas': 12, 'total_despesas': 310822451.14, 'gasto_por_cadeira': 310822451.14}
-        ],
-        'insights': [
-            {
-                'tipo': 'eleito_mais_economico',
-                'titulo': 'Menor despesa por voto entre eleitos',
-                'destaque': 'R$ 2,29',
-                'candidato': 'LULA (PT · Brasil)',
-                'detalhe': 'Declarou R$ 131.424.312,00 e recebeu 57.259.504 votos nominais no 1º turno.',
-                'criterio': 'Candidatura eleita com prestação de contas oficial apresentada ao TSE.',
-                'limitacao': 'Prestação de contas oficial consolidada em território nacional.'
-            },
-            {
-                'tipo': 'maior_gasto_nao_eleito',
-                'titulo': 'Maior despesa entre não eleitos',
-                'destaque': 'R$ 88.642.158,00',
-                'candidato': 'JAIR BOLSONARO (PL · Brasil)',
-                'detalhe': 'Recebeu 51.072.345 votos no 1º turno com custo por voto de R$ 1,74.',
-                'criterio': 'Candidatura não eleita no 2º turno com maior volume de gastos.',
-                'limitacao': 'Pleito majoritário disputado em dois turnos.'
-            },
-            {
-                'tipo': 'variacao_temporal',
-                'titulo': 'Evolução do custo por cadeira (2018 → 2022)',
-                'destaque': '+58,2%',
-                'candidato': 'Variação nominal no cargo de Presidente',
-                'detalhe': 'Passou de R$ 196.480.000,00 (2018) para R$ 310.822.451,14 (2022).',
-                'criterio': 'Comparação direta entre os dois pleitos presidenciais consecutivos.',
-                'limitacao': 'Valores nominais sem correção inflacionária automática.'
-            }
-        ],
-        'candidatos': [
-            {'id': 'pres_2022_lula', 'nome': 'LULA', 'numero': 13, 'partido': 'PT', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2022, 'gastos': 131424312.00, 'votos': 57259504, 'resultado': 'ELEITO', 'eleito': 1, 'custo_voto': 2.29},
-            {'id': 'pres_2022_bolsonaro', 'nome': 'JAIR BOLSONARO', 'numero': 22, 'partido': 'PL', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2022, 'gastos': 88642158.00, 'votos': 51072345, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 1.74},
-            {'id': 'pres_2022_tebet', 'nome': 'SIMONE TEBET', 'numero': 15, 'partido': 'MDB', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2022, 'gastos': 41520100.00, 'votos': 4915423, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 8.45},
-            {'id': 'pres_2022_ciro', 'nome': 'CIRO GOMES', 'numero': 12, 'partido': 'PDT', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2022, 'gastos': 38740500.00, 'votos': 3599287, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 10.76},
-            {'id': 'pres_2022_soraya', 'nome': 'SORAYA THRONICKE', 'numero': 44, 'partido': 'UNIÃO', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2022, 'gastos': 37810000.00, 'votos': 600955, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 62.92},
-            {'id': 'pres_2022_davila', 'nome': 'FELIPE D\'AVILA', 'numero': 30, 'partido': 'NOVO', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2022, 'gastos': 3820000.00, 'votos': 559708, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 6.82},
-            {'id': 'pres_2022_kelmon', 'nome': 'PADRE KELMON', 'numero': 14, 'partido': 'PTB', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2022, 'gastos': 1250000.00, 'votos': 81129, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 15.41},
-            {'id': 'pres_2022_pericles', 'nome': 'LÉO PÉRICLES', 'numero': 80, 'partido': 'UP', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2022, 'gastos': 480000.00, 'votos': 53519, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 8.97},
-            {'id': 'pres_2022_manzano', 'nome': 'SOFIA MANZANO', 'numero': 21, 'partido': 'PCB', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2022, 'gastos': 210000.00, 'votos': 45620, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 4.60},
-            {'id': 'pres_2022_vera', 'nome': 'VERA', 'numero': 16, 'partido': 'PSTU', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2022, 'gastos': 195000.00, 'votos': 25622, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 7.61},
-            {'id': 'pres_2022_eymael', 'nome': 'EYMAEL', 'numero': 27, 'partido': 'DC', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2022, 'gastos': 98000.00, 'votos': 16604, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 5.90}
-        ],
-        'partidos': [
-            {'partido': 'PT', 'candidaturas': 1, 'eleitos': 1, 'nao_eleitos': 0, 'gasto_total': 131424312.00, 'custo_por_cadeira': 131424312.00, 'min_gasto': 131424312.00, 'q1_gasto': 131424312.00, 'mediana_gasto': 131424312.00, 'q3_gasto': 131424312.00, 'max_gasto': 131424312.00, 'max_outlier_nao_eleito': 0, 'outlier_nome': 'LULA (Eleito)', 'outlier_votos': 57259504},
-            {'partido': 'PL', 'candidaturas': 1, 'eleitos': 0, 'nao_eleitos': 1, 'gasto_total': 88642158.00, 'custo_por_cadeira': 0, 'min_gasto': 88642158.00, 'q1_gasto': 88642158.00, 'mediana_gasto': 88642158.00, 'q3_gasto': 88642158.00, 'max_gasto': 88642158.00, 'max_outlier_nao_eleito': 88642158.00, 'outlier_nome': 'JAIR BOLSONARO (Não eleito)', 'outlier_votos': 51072345},
-            {'partido': 'MDB', 'candidaturas': 1, 'eleitos': 0, 'nao_eleitos': 1, 'gasto_total': 41520100.00, 'custo_por_cadeira': 0, 'min_gasto': 41520100.00, 'q1_gasto': 41520100.00, 'mediana_gasto': 41520100.00, 'q3_gasto': 41520100.00, 'max_gasto': 41520100.00, 'max_outlier_nao_eleito': 41520100.00, 'outlier_nome': 'SIMONE TEBET (Não eleito)', 'outlier_votos': 4915423},
-            {'partido': 'PDT', 'candidaturas': 1, 'eleitos': 0, 'nao_eleitos': 1, 'gasto_total': 38740500.00, 'custo_por_cadeira': 0, 'min_gasto': 38740500.00, 'q1_gasto': 38740500.00, 'mediana_gasto': 38740500.00, 'q3_gasto': 38740500.00, 'max_gasto': 38740500.00, 'max_outlier_nao_eleito': 38740500.00, 'outlier_nome': 'CIRO GOMES (Não eleito)', 'outlier_votos': 3599287},
-            {'partido': 'UNIÃO', 'candidaturas': 1, 'eleitos': 0, 'nao_eleitos': 1, 'gasto_total': 37810000.00, 'custo_por_cadeira': 0, 'min_gasto': 37810000.00, 'q1_gasto': 37810000.00, 'mediana_gasto': 37810000.00, 'q3_gasto': 37810000.00, 'max_gasto': 37810000.00, 'max_outlier_nao_eleito': 37810000.00, 'outlier_nome': 'SORAYA THRONICKE (Não eleito)', 'outlier_votos': 600955},
-            {'partido': 'NOVO', 'candidaturas': 1, 'eleitos': 0, 'nao_eleitos': 1, 'gasto_total': 3820000.00, 'custo_por_cadeira': 0, 'min_gasto': 3820000.00, 'q1_gasto': 3820000.00, 'mediana_gasto': 3820000.00, 'q3_gasto': 3820000.00, 'max_gasto': 3820000.00, 'max_outlier_nao_eleito': 3820000.00, 'outlier_nome': 'FELIPE D\'AVILA (Não eleito)', 'outlier_votos': 559708}
-        ],
-        'histograma': [
-            {'faixa': 'Até R$ 500 mil', 'eleitos': 0, 'percentual': 0.0},
-            {'faixa': 'R$ 500k–2 mi', 'eleitos': 0, 'percentual': 0.0},
-            {'faixa': 'R$ 2 mi–10 mi', 'eleitos': 0, 'percentual': 0.0},
-            {'faixa': 'R$ 10 mi–40 mi', 'eleitos': 0, 'percentual': 0.0},
-            {'faixa': 'R$ 40 mi–70 mi', 'eleitos': 0, 'percentual': 0.0},
-            {'faixa': 'R$ 70 mi–100 mi', 'eleitos': 0, 'percentual': 0.0},
-            {'faixa': 'Acima de R$ 100 mi', 'eleitos': 1, 'percentual': 100.0}
-        ]
-    },
-    2018: {
-        'overview': {
-            'total_candidaturas': 13,
-            'candidaturas_com_gasto': 13,
-            'candidaturas_gasto_zero': 0,
-            'candidaturas_gasto_positivo': 13,
-            'eleitos': 1,
-            'nao_eleitos': 12,
-            'com_votos': 13,
-            'total_despesas': 196480000.00,
-            'gasto_por_cadeira': 196480000.00,
-            'mediana_gastos_eleitos': 2456215.00,
-            'mediana_gastos_nao_eleitos': 12800000.00,
-            'mediana_votos_eleitos': 49277010.0,
-            'mediana_votos_nao_eleitos': 1288950.0,
-            'mediana_custo_voto_eleitos': 0.05,
-            'mediana_custo_voto_nao_eleitos': 2.16
-        },
-        'serie_temporal': [
-            {'ano': 2018, 'gasto_por_cadeira': 196480000.00, 'total_despesas': 196480000.00, 'eleitos': 1, 'total_candidaturas': 13, 'mediana_eleitos': 2456215.00},
-            {'ano': 2022, 'gasto_por_cadeira': 310822451.14, 'total_despesas': 310822451.14, 'eleitos': 1, 'total_candidaturas': 12, 'mediana_eleitos': 131424312.00}
-        ],
-        'por_uf': [
-            {'uf': 'BR', 'eleitos': 1, 'candidaturas': 13, 'total_despesas': 196480000.00, 'gasto_por_cadeira': 196480000.00}
-        ],
-        'insights': [
-            {
-                'tipo': 'eleito_mais_economico',
-                'titulo': 'Menor despesa por voto entre eleitos',
-                'destaque': 'R$ 0,05',
-                'candidato': 'JAIR BOLSONARO (PSL · Brasil)',
-                'detalhe': 'Declarou R$ 2.456.215,00 e recebeu 49.277.010 votos no 1º turno.',
-                'criterio': 'Candidatura eleita com prestação de contas oficial apresentada ao TSE.',
-                'limitacao': 'Prestação de contas oficial consolidada em território nacional.'
-            },
-            {
-                'tipo': 'maior_gasto_nao_eleito',
-                'titulo': 'Maior despesa entre não eleitos',
-                'destaque': 'R$ 54.000.000,00',
-                'candidato': 'HENRIQUE MEIRELLES (MDB · Brasil)',
-                'detalhe': 'Recebeu 1.288.950 votos com custo por voto de R$ 41,90.',
-                'criterio': 'Candidatura não eleita com maior volume de gastos.',
-                'limitacao': 'Pleito majoritário disputado em território nacional.'
-            },
-            {
-                'tipo': 'variacao_temporal',
-                'titulo': 'Evolução do custo por cadeira (2018 → 2022)',
-                'destaque': '+58,2%',
-                'candidato': 'Variação nominal no cargo de Presidente',
-                'detalhe': 'Passou de R$ 196.480.000,00 (2018) para R$ 310.822.451,14 (2022).',
-                'criterio': 'Comparação direta entre as duas eleições presidenciais.',
-                'limitacao': 'Valores nominais sem correção inflacionária automática.'
-            }
-        ],
-        'candidatos': [
-            {'id': 'pres_2018_bolsonaro', 'nome': 'JAIR BOLSONARO', 'numero': 17, 'partido': 'PSL', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2018, 'gastos': 2456215.00, 'votos': 49277010, 'resultado': 'ELEITO', 'eleito': 1, 'custo_voto': 0.05},
-            {'id': 'pres_2018_haddad', 'nome': 'FERNANDO HADDAD', 'numero': 13, 'partido': 'PT', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2018, 'gastos': 37525400.00, 'votos': 31342051, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 1.20},
-            {'id': 'pres_2018_ciro', 'nome': 'CIRO GOMES', 'numero': 12, 'partido': 'PDT', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2018, 'gastos': 25120000.00, 'votos': 13344371, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 1.88},
-            {'id': 'pres_2018_alckmin', 'nome': 'GERALDO ALCKMIN', 'numero': 45, 'partido': 'PSDB', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2018, 'gastos': 53200000.00, 'votos': 5096349, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 10.44},
-            {'id': 'pres_2018_meirelles', 'nome': 'HENRIQUE MEIRELLES', 'numero': 15, 'partido': 'MDB', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2018, 'gastos': 54000000.00, 'votos': 1288950, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 41.90},
-            {'id': 'pres_2018_amoedo', 'nome': 'JOÃO AMOÊDO', 'numero': 30, 'partido': 'NOVO', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2018, 'gastos': 4900000.00, 'votos': 2679745, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 1.83},
-            {'id': 'pres_2018_daciolo', 'nome': 'CABO DACIOLO', 'numero': 51, 'partido': 'PATRI', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2018, 'gastos': 800.00, 'votos': 1348323, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 0.0006},
-            {'id': 'pres_2018_marina', 'nome': 'MARINA SILVA', 'numero': 18, 'partido': 'REDE', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2018, 'gastos': 12800000.00, 'votos': 1069578, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 11.97},
-            {'id': 'pres_2018_alvaro', 'nome': 'ALVARO DIAS', 'numero': 19, 'partido': 'PODE', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2018, 'gastos': 6300000.00, 'votos': 859601, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 7.33},
-            {'id': 'pres_2018_boulos', 'nome': 'GUILHERME BOULOS', 'numero': 50, 'partido': 'PSOL', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2018, 'gastos': 6100000.00, 'votos': 617122, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 9.88},
-            {'id': 'pres_2018_vera', 'nome': 'VERA', 'numero': 16, 'partido': 'PSTU', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2018, 'gastos': 180000.00, 'votos': 55762, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 3.23},
-            {'id': 'pres_2018_eymael', 'nome': 'EYMAEL', 'numero': 27, 'partido': 'DC', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2018, 'gastos': 90000.00, 'votos': 41710, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 2.16},
-            {'id': 'pres_2018_goulart', 'nome': 'JOÃO GOULART FILHO', 'numero': 54, 'partido': 'PPL', 'uf': 'BR', 'municipio': 'Brasília', 'cargo': 'PRESIDENTE', 'ano': 2018, 'gastos': 32000.00, 'votos': 30176, 'resultado': 'NÃO ELEITO', 'eleito': 0, 'custo_voto': 1.06}
-        ],
-        'partidos': [
-            {'partido': 'PSL', 'candidaturas': 1, 'eleitos': 1, 'nao_eleitos': 0, 'gasto_total': 2456215.00, 'custo_por_cadeira': 2456215.00, 'min_gasto': 2456215.00, 'q1_gasto': 2456215.00, 'mediana_gasto': 2456215.00, 'q3_gasto': 2456215.00, 'max_gasto': 2456215.00, 'max_outlier_nao_eleito': 0, 'outlier_nome': 'JAIR BOLSONARO (Eleito)', 'outlier_votos': 49277010},
-            {'partido': 'PT', 'candidaturas': 1, 'eleitos': 0, 'nao_eleitos': 1, 'gasto_total': 37525400.00, 'custo_por_cadeira': 0, 'min_gasto': 37525400.00, 'q1_gasto': 37525400.00, 'mediana_gasto': 37525400.00, 'q3_gasto': 37525400.00, 'max_gasto': 37525400.00, 'max_outlier_nao_eleito': 37525400.00, 'outlier_nome': 'FERNANDO HADDAD (Não eleito)', 'outlier_votos': 31342051},
-            {'partido': 'PDT', 'candidaturas': 1, 'eleitos': 0, 'nao_eleitos': 1, 'gasto_total': 25120000.00, 'custo_por_cadeira': 0, 'min_gasto': 25120000.00, 'q1_gasto': 25120000.00, 'mediana_gasto': 25120000.00, 'q3_gasto': 25120000.00, 'max_gasto': 25120000.00, 'max_outlier_nao_eleito': 25120000.00, 'outlier_nome': 'CIRO GOMES (Não eleito)', 'outlier_votos': 13344371},
-            {'partido': 'PSDB', 'candidaturas': 1, 'eleitos': 0, 'nao_eleitos': 1, 'gasto_total': 53200000.00, 'custo_por_cadeira': 0, 'min_gasto': 53200000.00, 'q1_gasto': 53200000.00, 'mediana_gasto': 53200000.00, 'q3_gasto': 53200000.00, 'max_gasto': 53200000.00, 'max_outlier_nao_eleito': 53200000.00, 'outlier_nome': 'GERALDO ALCKMIN (Não eleito)', 'outlier_votos': 5096349},
-            {'partido': 'MDB', 'candidaturas': 1, 'eleitos': 0, 'nao_eleitos': 1, 'gasto_total': 54000000.00, 'custo_por_cadeira': 0, 'min_gasto': 54000000.00, 'q1_gasto': 54000000.00, 'mediana_gasto': 54000000.00, 'q3_gasto': 54000000.00, 'max_gasto': 54000000.00, 'max_outlier_nao_eleito': 54000000.00, 'outlier_nome': 'HENRIQUE MEIRELLES (Não eleito)', 'outlier_votos': 1288950},
-            {'partido': 'NOVO', 'candidaturas': 1, 'eleitos': 0, 'nao_eleitos': 1, 'gasto_total': 4900000.00, 'custo_por_cadeira': 0, 'min_gasto': 4900000.00, 'q1_gasto': 4900000.00, 'mediana_gasto': 4900000.00, 'q3_gasto': 4900000.00, 'max_gasto': 4900000.00, 'max_outlier_nao_eleito': 4900000.00, 'outlier_nome': 'JOÃO AMOÊDO (Não eleito)', 'outlier_votos': 2679745}
-        ],
-        'histograma': [
-            {'faixa': 'Até R$ 500 mil', 'eleitos': 0, 'percentual': 0.0},
-            {'faixa': 'R$ 500k–2 mi', 'eleitos': 0, 'percentual': 0.0},
-            {'faixa': 'R$ 2 mi–10 mi', 'eleitos': 1, 'percentual': 100.0},
-            {'faixa': 'R$ 10 mi–40 mi', 'eleitos': 0, 'percentual': 0.0},
-            {'faixa': 'R$ 40 mi–70 mi', 'eleitos': 0, 'percentual': 0.0},
-            {'faixa': 'R$ 70 mi–100 mi', 'eleitos': 0, 'percentual': 0.0},
-            {'faixa': 'Acima de R$ 100 mi', 'eleitos': 0, 'percentual': 0.0}
-        ]
-    }
-}
 
 
 def _valida_recorte(ano: int, cargo: str, uf: str | None = None, municipio_id: str | None = None):
@@ -237,6 +69,142 @@ def _rows(sql, params):
     return run(sql, params)
 
 
+@router.get('/partidos')
+def get_partidos(ano: int = 2024, cargo: str = 'VEREADOR', uf: str = ''):
+    ano, cargo, uf, _ = _valida_recorte(ano, cargo, uf)
+    if cargo == 'PRESIDENTE':
+        return {'partidos': []}
+    sql = f"""SELECT DISTINCT p.sigla partido FROM {DB}.main.Candidatura c
+        JOIN {DB}.main.Eleicao e USING(id_eleicao)
+        JOIN {DB}.main.Partido p USING(id_partido)
+        WHERE e.ano=? AND UPPER(e.cargo)=? AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
+          AND c.uf IN ('CE','MA','MS','RJ','RN','RS') AND (?='' OR c.uf=?)
+        ORDER BY p.sigla"""
+    return {'partidos': [row['partido'] for row in _rows(sql, [ano, cargo, uf, uf])]}
+
+
+@router.get('/eleitos')
+def get_eleitos(ano: int = 2024, cargo: str = 'VEREADOR', uf: str = '', municipio_id: str = '',
+                partido: str = '', perfil: str = '', grupo: str = '',
+                limit: int = Query(72, ge=1, le=72)):
+    """Nomes com resultado de eleito para identificar cadeiras da maquete.
+
+    O limite serve apenas à visualização; a contagem integral vem do overview.
+    """
+    ano, cargo, uf, municipio_id = _valida_recorte(ano, cargo, uf, municipio_id)
+    if cargo == 'PRESIDENTE':
+        return {'rows': [], 'limit': limit, 'criterio': 'A maquete representa disputas legislativas.'}
+    filtros = ["e.ano = ?", "UPPER(e.cargo) = ?", "e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'",
+               "UPPER(r.resultado) LIKE 'ELEITO%'", "c.uf IN ('CE','MA','MS','RJ','RN','RS')"]
+    params = [ano, cargo]
+    if uf:
+        filtros.append('c.uf = ?')
+        params.append(uf)
+    if municipio_id:
+        filtros.append('c.id_municipio = ?')
+        params.append(municipio_id)
+    if partido:
+        filtros.append('UPPER(p.sigla) = ?')
+        params.append(partido.strip().upper())
+    if perfil or grupo:
+        if perfil not in PERFIL_EXPRESSIONS or not grupo or len(grupo) > 120:
+            raise HTTPException(400, 'Perfil selecionado inválido')
+        filtros.append(f"({PERFIL_EXPRESSIONS[perfil]}) = ?")
+        params.append(grupo)
+    sql = f"""SELECT DISTINCT c.id_candidatura id, c.id_candidato, c.id_municipio municipio_id, c.nome_urna nome, p.sigla partido,
+        c.uf, m.nome municipio, r.votos, r.resultado,
+        c.gastos_campanha_total gastos, c.patrimonio, c.idade_eleicao idade,
+        c.escolaridade_candidatura escolaridade, e.ano, UPPER(e.cargo) cargo
+        FROM {DB}.main.Candidatura c
+        JOIN {DB}.main.Eleicao e USING(id_eleicao)
+        JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
+        LEFT JOIN {DB}.main.Partido p USING(id_partido)
+        LEFT JOIN {DB}.main.Municipio m USING(id_municipio)
+        WHERE {' AND '.join(filtros)}
+        ORDER BY r.votos DESC NULLS LAST, c.id_candidatura
+        LIMIT ?"""
+    rows = _rows(sql, [*params, limit])
+    return {'rows': rows, 'limit': limit, 'criterio': 'Candidaturas eleitas do recorte, ordenadas por votos nominais. Lista limitada para a maquete.'}
+
+
+@router.get('/explorar')
+def get_explorar(ano: int = 2024, cargo: str = 'VEREADOR', uf: str = '',
+                 municipio_id: str = '', partido: str = '', visao: str = 'estado',
+                 indicador: str = 'agregado', perfil: str = 'gasto'):
+    """Agregados da mesma coorte para as cinco leituras do custo de uma cadeira."""
+    ano, cargo, uf, municipio_id = _valida_recorte(ano, cargo, uf, municipio_id)
+    if cargo == 'PRESIDENTE':
+        raise HTTPException(400, 'A investigação por cadeira aceita apenas cargos legislativos.')
+    if visao not in ('estado', 'municipio', 'partido', 'perfil', 'evolucao'):
+        raise HTTPException(400, 'Visão desconhecida')
+    if indicador not in ('agregado', 'mediana', 'taxa'):
+        raise HTTPException(400, 'Indicador desconhecido')
+    if perfil not in PERFIL_EXPRESSIONS:
+        raise HTTPException(400, 'Perfil desconhecido')
+    if indicador == 'taxa' and (visao != 'perfil' or perfil != 'gasto'):
+        raise HTTPException(400, 'A taxa por faixa de gasto exige a visão Perfil > Gasto')
+    if visao == 'municipio' and (cargo != 'VEREADOR' or not uf):
+        raise HTTPException(400, 'Selecione uma UF e vereador para comparar municípios')
+    partido = (partido or '').strip().upper()
+    if partido and (len(partido) > 35 or not re.fullmatch(r'[\wÀ-ÿ .-]+', partido)):
+        raise HTTPException(400, 'Sigla partidária inválida')
+
+    anos = (2020, 2024) if cargo == 'VEREADOR' else (2018, 2022)
+    years = list(anos) if visao == 'evolucao' else [ano]
+    filters = [f"e.ano IN ({','.join('?' for _ in years)})", 'UPPER(e.cargo) = ?',
+               "e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'",
+               "c.uf IN ('CE','MA','MS','RJ','RN','RS')"]
+    params = [*years, cargo]
+    # Na visão por estado, manter as seis UFs para permitir comparação e destacar a selecionada.
+    if uf and visao != 'estado':
+        filters.append('c.uf = ?')
+        params.append(uf)
+    if municipio_id and visao not in ('estado', 'municipio'):
+        filters.append('c.id_municipio = ?')
+        params.append(municipio_id)
+    if partido:
+        filters.append('UPPER(p.sigla) = ?')
+        params.append(partido)
+
+    dimension = {
+        'estado': 'c.uf',
+        'municipio': "coalesce(m.nome, c.id_municipio)",
+        'partido': "coalesce(p.sigla, 'Não informado')",
+        'evolucao': 'cast(e.ano AS VARCHAR)',
+        'perfil': PERFIL_EXPRESSIONS[perfil],
+    }[visao]
+    sql = f"""WITH base AS (
+        SELECT {dimension} AS grupo, c.id_municipio municipio_id, c.id_candidatura,
+          CASE WHEN isfinite(c.gastos_campanha_total) AND c.gastos_campanha_total >= 0
+            THEN c.gastos_campanha_total END AS gasto,
+          CASE WHEN UPPER(r.resultado) LIKE 'ELEITO%' THEN 1 ELSE 0 END AS eleito,
+          CASE WHEN UPPER(r.resultado) LIKE 'ELEITO%' OR UPPER(r.resultado) IN
+            ('NÃO ELEITO','NAO ELEITO','SUPLENTE') THEN 1 ELSE 0 END AS definido
+        FROM {DB}.main.Candidatura c
+        JOIN {DB}.main.Eleicao e USING(id_eleicao)
+        LEFT JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
+        LEFT JOIN {DB}.main.Partido p USING(id_partido)
+        LEFT JOIN {DB}.main.Municipio m USING(id_municipio)
+        WHERE {' AND '.join(filters)}
+    ) SELECT grupo, {'municipio_id' if visao == 'municipio' else 'MIN(municipio_id)'} municipio_id,
+        COUNT(*) candidaturas,
+        COUNT(gasto) com_gasto, COUNT(*) FILTER (WHERE gasto IS NULL) sem_gasto,
+        SUM(eleito) eleitos, SUM(definido) resultado_definido,
+        ROUND(SUM(gasto),2) total_despesas,
+        ROUND(SUM(gasto)/NULLIF(SUM(eleito),0),2) gasto_por_cadeira,
+        ROUND(MEDIAN(gasto) FILTER (WHERE eleito=1),2) mediana_eleitos,
+        ROUND(100.0*SUM(eleito)/NULLIF(SUM(definido),0),2) taxa_eleicao
+      FROM base GROUP BY grupo{', municipio_id' if visao == 'municipio' else ''} ORDER BY grupo LIMIT 1200"""
+    rows = _rows(sql, params)
+    for row in rows:
+        row['valor'] = row[{'agregado': 'gasto_por_cadeira', 'mediana': 'mediana_eleitos', 'taxa': 'taxa_eleicao'}[indicador]]
+        row['parcial'] = bool(row['sem_gasto'])
+    return {'ano': ano, 'cargo': cargo, 'uf': uf, 'municipio_id': municipio_id,
+            'partido': partido, 'visao': visao, 'indicador': indicador, 'perfil': perfil,
+            'anos_comparaveis': list(anos), 'rows': rows, 'source': 'live',
+            'method': 'Primeiro turno ordinário; seis UFs. Despesa ausente não é zero. Gastos nominais.'}
+
+
 @router.get('/overview')
 def get_overview(
     ano: int = 2024,
@@ -247,25 +215,6 @@ def get_overview(
     """Retorna indicadores agregados do custo por cadeira e estatísticas descritivas."""
     ano, cargo, uf, municipio_id = _valida_recorte(ano, cargo, uf, municipio_id)
 
-    if cargo == 'PRESIDENTE':
-        pdata = PRESIDENT_DATA.get(ano, PRESIDENT_DATA[2022])
-        return {
-            'ano': ano,
-            'cargo': cargo,
-            'uf': uf,
-            'municipio_id': municipio_id,
-            'data': pdata['overview'],
-            'serie_temporal': pdata['serie_temporal'],
-            'por_uf': pdata['por_uf'],
-            'insights': pdata['insights'],
-            'metadados': {
-                'formula': 'Soma das despesas declaradas no recorte ÷ Candidaturas eleitas no mesmo recorte',
-                'explicacao': 'Dividimos todas as despesas declaradas no recorte pela quantidade de candidaturas eleitas. Para Presidente da República, o cálculo agrega todas as candidaturas do pleito nacional e divide pela cadeira conquistada.',
-                'aviso_maquete': 'O modelo 3D é simbólico. O cargo de Presidente corresponde a 1 vaga no Palácio do Planalto.',
-                'unidade': 'R$ (Valores nominais declarados ao TSE)',
-                'cobertura': 'Território Nacional (Brasil)'
-            }
-        }
 
     filtros = ["e.ano = ?", "UPPER(e.cargo) = ?", "e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'"]
     params = [ano, cargo]
@@ -344,9 +293,11 @@ def get_overview(
             JOIN {DB}.main.Eleicao e USING(id_eleicao)
             LEFT JOIN {DB}.main.Resultado_Candidatura r USING(id_candidatura)
             WHERE e.ano = ? AND UPPER(e.cargo) = ? AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
+              AND c.uf IN ('CE','MA','MS','RJ','RN','RS')
+              AND (? = '' OR c.uf = ?)
             GROUP BY 1 ORDER BY gasto_por_cadeira DESC
         """
-        por_uf = _rows(sql_uf, [ano, cargo])
+        por_uf = _rows(sql_uf, [ano, cargo, uf, uf])
 
     # 4. Descobertas dinâmicas ("O que os números revelam?")
     insights = []
@@ -495,32 +446,6 @@ def get_ranking(
     if ordem not in ordens:
         raise HTTPException(400, f"Ordem inválida. Opções: {list(ordens.keys())}")
 
-    if cargo == 'PRESIDENTE':
-        pdata = PRESIDENT_DATA.get(ano, PRESIDENT_DATA[2022])
-        cands = [dict(c) for c in pdata['candidatos']]
-        if partido:
-            cands = [c for c in cands if c['partido'].upper() == partido]
-        if filtro_resultado == 'eleitos':
-            cands = [c for c in cands if c['eleito'] == 1]
-        elif filtro_resultado == 'nao_eleitos':
-            cands = [c for c in cands if c['eleito'] == 0]
-        if ordem == 'custo_voto':
-            cands.sort(key=lambda x: x.get('custo_voto') or 0, reverse=True)
-        elif ordem == 'gastos':
-            cands.sort(key=lambda x: x.get('gastos') or 0, reverse=True)
-        elif ordem == 'votos':
-            cands.sort(key=lambda x: x.get('votos') or 0, reverse=True)
-        total = len(cands)
-        sliced = cands[off:off+lim]
-        return {
-            'rows': sliced,
-            'total': total,
-            'limit': lim,
-            'offset': off,
-            'ordem': ordem,
-            'filtro_resultado': filtro_resultado,
-            'criterio_ordenacao': f'Candidaturas presidenciais em ordem decrescente de {ordem}'
-        }
 
     filtros = [
         "e.ano = ?",
@@ -618,32 +543,6 @@ def get_dispersao(
     if partido and (len(partido) > 35 or not re.fullmatch(r'[\wÀ-ÿ .-]+', partido)):
         raise HTTPException(400, 'Sigla partidária inválida')
 
-    if cargo == 'PRESIDENTE':
-        pdata = PRESIDENT_DATA.get(ano, PRESIDENT_DATA[2022])
-        cands = [dict(c) for c in pdata['candidatos']]
-        if partido:
-            cands = [c for c in cands if c['partido'].upper() == partido]
-        return {
-            'pontos': cands,
-            'total_exibido': len(cands),
-            'total_universo': len(cands),
-            'total_validos': len(cands),
-            'excluidos_zero_ou_nulo': 0,
-            'amostrado': False,
-            'max_pontos': max_p,
-            'medianas': {
-                'gastos': pdata['overview']['mediana_gastos_eleitos'],
-                'votos': pdata['overview']['mediana_votos_eleitos']
-            },
-            'correlacao': {
-                'r_log': 0.81,
-                'r2_log': 0.65,
-                'r_linear': 0.88,
-                'n': len(cands),
-                'metodo': 'Eleição presidencial brasileira auditada.',
-                'aviso_causalidade': 'A associação estatística indica correlação na base analisada, NÃO relação causal de compra de votos ou garantia de vitória.'
-            }
-        }
 
     filtros = [
         "e.ano = ?",
@@ -758,27 +657,6 @@ def get_dossie(
     """Dados consolidados para os 7 gráficos da Questão 1 (Dossiê 01)."""
     ano, cargo, uf, _ = _valida_recorte(ano, cargo, uf)
 
-    if cargo == 'PRESIDENTE':
-        pdata = PRESIDENT_DATA.get(ano, PRESIDENT_DATA[2022])
-        comparacao_cargos = [
-            {'partido': 'PT', 'custo_estadual': 1438838.24, 'eleitos_estadual': 34, 'custo_federal': 4878609.52, 'eleitos_federal': 21, 'custo_presidencial': 131424312.00, 'eleitos_presidencial': 1},
-            {'partido': 'PL', 'custo_estadual': 1629783.33, 'eleitos_estadual': 42, 'custo_federal': 5325023.08, 'eleitos_federal': 26, 'custo_presidencial': 88642158.00, 'eleitos_presidencial': 0},
-            {'partido': 'UNIÃO', 'custo_estadual': 2038704.35, 'eleitos_estadual': 23, 'custo_federal': 7032157.14, 'eleitos_federal': 14, 'custo_presidencial': 37810000.00, 'eleitos_presidencial': 0},
-            {'partido': 'MDB', 'custo_estadual': 1337792.59, 'eleitos_estadual': 27, 'custo_federal': 6171836.36, 'eleitos_federal': 11, 'custo_presidencial': 41520100.00, 'eleitos_presidencial': 0},
-            {'partido': 'PDT', 'custo_estadual': 1247736.36, 'eleitos_estadual': 22, 'custo_federal': 5124488.89, 'eleitos_federal': 9, 'custo_presidencial': 38740500.00, 'eleitos_presidencial': 0},
-            {'partido': 'NOVO', 'custo_estadual': 0, 'eleitos_estadual': 0, 'custo_federal': 0, 'eleitos_federal': 0, 'custo_presidencial': 3820000.00, 'eleitos_presidencial': 0}
-        ]
-        return {
-            'ano': ano,
-            'cargo': cargo,
-            'uf': uf,
-            'source': 'tse_presidencial_auditado',
-            'por_partido': pdata['partidos'],
-            'por_uf': pdata['por_uf'],
-            'comparacao_cargos': comparacao_cargos,
-            'histograma_eleitos': pdata['histograma'],
-            'pontos_dispersao': pdata['candidatos']
-        }
 
     filtros = [
         "e.ano = ?",

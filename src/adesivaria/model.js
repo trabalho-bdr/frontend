@@ -1,6 +1,6 @@
-import {sampleCandidates} from '../data/candidatos-amostra.js';
-import {sampleExpenses} from '../data/despesas-amostra.js';
-import {municipiosAmostra} from '../data/municipios-amostra.js';
+const sampleCandidates=[];
+const sampleExpenses={};
+const municipiosAmostra=[];
 
 export const MATERIALS={todos:'Conjunto classificado',adesivos:'Adesivos',santinhos:'Santinhos',bandeiras:'Bandeiras'};
 export const PAGE_SIZE=12;

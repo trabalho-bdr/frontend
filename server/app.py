@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 import re
 import threading
+import time
+from copy import deepcopy
 from contextlib import contextmanager
 from datetime import date, datetime
 from decimal import Decimal
@@ -19,11 +21,14 @@ from questao2 import router as questao2_router
 app.include_router(comparacoes_router)
 app.include_router(questao1_router)
 app.include_router(questao2_router)
+from indicadores import router as indicadores_router, diagnostico_base
+app.include_router(indicadores_router)
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"], allow_methods=["GET"], allow_headers=["*"])
 _lock = threading.RLock()
 _con = None
-# Alias de leitura. A URI precisa ser configurada localmente em server/.env.
-DB = 'v4'
+_query_cache = {}
+# Nome real do banco; usado diretamente nas consultas.
+DB = 'pipeline_bdr_der_completo_v4'
 ALLOWED_UF = {'RS', 'MA', 'CE', 'RN', 'RJ', 'MS'}
 YEARS = set(range(2002, 2025, 2))
 
@@ -35,30 +40,28 @@ def _open():
             return _con
         if not os.getenv('MOTHERDUCK_TOKEN'):
             raise RuntimeError('MOTHERDUCK_TOKEN não configurado no servidor')
-        share = os.getenv('MOTHERDUCK_SHARE_URL', '')
-        if not re.fullmatch(r'md:_share/[\w-]+/[0-9a-fA-F-]{36}', share):
-            raise RuntimeError('MOTHERDUCK_SHARE_URL ausente ou inválida')
+        # A extensão MotherDuck lê esta variável em minúsculas. O servidor
+        # recebe a credencial como MOTHERDUCK_TOKEN no arquivo .env.
+        os.environ['motherduck_token'] = os.environ['MOTHERDUCK_TOKEN']
         import duckdb
-        con = duckdb.connect('md:')
-        try:
-            # Shares já usados podem ser anexados automaticamente pelo MotherDuck.
-            # Reutilizar o alias evita "a share with name 'v4' is already attached".
-            attached = {name: path for _, name, path in con.execute('PRAGMA database_list').fetchall()}
-            if DB in attached:
-                if str(attached[DB]).removeprefix('md:') != share.removeprefix('md:'):
-                    raise RuntimeError(f'Alias {DB} já aponta para outro banco')
-            else:
-                # URI lida SOMENTE do ambiente e validada antes de compor o SQL.
-                con.execute(f"ATTACH '{share}' AS {DB} (READ_ONLY)")
-        except Exception:
-            con.close()
-            raise
+        # Start locally, then attach only the verified v4 database read-only.
+        # Workspace auto-attachment can fail on unrelated/stale database aliases.
+        target = os.getenv('MOTHERDUCK_DATABASE', 'md:pipeline_bdr_der_completo_v4')
+        if target != 'md:pipeline_bdr_der_completo_v4':
+            raise RuntimeError('MOTHERDUCK_DATABASE deve apontar para pipeline_bdr_der_completo_v4')
+        con = duckdb.connect(target+'?attach_mode=single', read_only=True)
         _con = con
         return con
 
 
 def _rows(sql, params=()):
+    if not re.match(r'^\s*(SELECT|WITH|DESCRIBE|PRAGMA)\b', sql, re.I):
+        raise RuntimeError('A API permite somente consultas de leitura')
+    key=(sql,tuple(params))
     with _lock:
+        cached=_query_cache.get(key)
+        if cached and time.monotonic()-cached[0]<60:
+            return deepcopy(cached[1])
         con = _open()
         cur = con.execute(sql, list(params))
         cols = [x[0] for x in cur.description]
@@ -67,7 +70,12 @@ def _rows(sql, params=()):
         if isinstance(v, Decimal): return float(v)
         if isinstance(v, (datetime, date)): return v.isoformat()
         return v
-    return [dict(zip(cols, (clean(v) for v in row))) for row in result]
+    rows=[dict(zip(cols, (clean(v) for v in row))) for row in result]
+    with _lock:
+        if len(_query_cache)>=128:
+            _query_cache.pop(next(iter(_query_cache)))
+        _query_cache[key]=(time.monotonic(),rows)
+    return deepcopy(rows)
 
 
 def _year(value: int | None):
@@ -82,13 +90,21 @@ def _uf(value: str | None):
     return value.upper() if value else None
 
 
+@app.get('/api/diagnostico')
+def diagnostico():
+    try:
+        return diagnostico_base()
+    except Exception as exc:
+        return JSONResponse({'status': 'erro', 'motivo': 'Não foi possível consultar a v4. Verifique a configuração e as permissões do servidor.'}, status_code=503)
+
+
 @app.get('/api/health')
 def health():
     try:
         result = _rows(f'SELECT COUNT(*) n FROM {DB}.main.Municipio')
         return {'mode':'live','connected':True,'database':'pipeline_bdr_der_completo_v4','municipalities':result[0]['n'],'coverage':'RS, MA, CE, RN, RJ, MS'}
     except Exception as exc:
-        return JSONResponse({'mode':'snapshot','connected':False,'message':'Consulta detalhada temporariamente indisponível'}, status_code=503)
+        return JSONResponse({'mode':'unavailable','connected':False,'message':'Consulta detalhada temporariamente indisponível'}, status_code=503)
 
 
 @app.get('/api/overview')
@@ -102,8 +118,10 @@ def overview():
 @app.get('/api/candidates')
 def candidates(search: str = Query('', min_length=0, max_length=80), ano:int=2024, uf:str|None=None,
                partido:str=Query('',max_length=35),cargo:str=Query('',max_length=50),resultado:str=Query('',max_length=35),
-               limit:int=Query(12,ge=1,le=36),offset:int=Query(0,ge=0,le=1000000),ordem:str='votos'):
+               limit:int=Query(12,ge=1,le=36),offset:int=Query(0,ge=0,le=1000000),ordem:str='votos',municipio:str=''):
     _year(ano);uf=_uf(uf)
+    if municipio and cargo.upper() not in ('VEREADOR','PREFEITO'):
+        raise HTTPException(400,'Município só pode delimitar uma disputa municipal.')
     # Whitelist de ordenação: nenhum identificador SQL é aceito diretamente da URL.
     if resultado not in ('','ELEITO','NÃO ELEITO','SUPLENTE'):
         raise HTTPException(400,'Resultado não reconhecido')
@@ -112,7 +130,7 @@ def candidates(search: str = Query('', min_length=0, max_length=80), ano:int=202
     order=orders[ordem]
     # Busca completa paginada; filtros como parâmetros preparados.
     sql=f'''
-      SELECT c.id_candidatura id,c.nome_urna nome,c.numero_urna numero,p.sigla partido,
+      SELECT c.id_candidatura id,c.id_candidato,c.id_municipio,c.nome_urna nome,c.numero_urna numero,p.sigla partido,
        UPPER(e.cargo) cargo,e.ano,c.uf,m.nome municipio,c.escolaridade_candidatura escolaridade,
        c.patrimonio patrimonio,c.gastos_campanha_total gastos,r.resultado resultado,r.votos votos,
        COUNT(*) OVER() total_encontrado
@@ -122,6 +140,8 @@ def candidates(search: str = Query('', min_length=0, max_length=80), ano:int=202
       LEFT JOIN {DB}.main.Municipio m ON c.id_municipio=m.id_municipio
       LEFT JOIN {DB}.main.Resultado_Candidatura r ON c.id_candidatura=r.id_candidatura
       WHERE e.ano=? AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
+        AND e.turno=1 AND (r.turno=1 OR r.turno IS NULL)
+        AND c.uf IN ('CE','MA','MS','RJ','RN','RS')
         AND (strip_accents(COALESCE(c.nome_urna,'')) ILIKE strip_accents(?) OR strip_accents(COALESCE(m.nome,'')) ILIKE strip_accents(?) OR strip_accents(COALESCE(p.sigla,'')) ILIKE strip_accents(?) OR CAST(c.numero_urna AS VARCHAR) ILIKE ?)
         AND (? IS NULL OR c.uf=?)
         AND (?='' OR UPPER(p.sigla)=UPPER(?))
@@ -131,22 +151,9 @@ def candidates(search: str = Query('', min_length=0, max_length=80), ano:int=202
              OR (?='SUPLENTE' AND UPPER(COALESCE(r.resultado,''))='SUPLENTE'))
       ORDER BY {order},c.nome_urna,c.id_candidatura
       LIMIT ? OFFSET ?'''
-    params=[ano,*([f'%{search}%']*4),uf,uf,partido,partido,cargo,cargo,resultado,resultado,resultado,resultado,limit,offset]
+    sql=sql.replace('      ORDER BY',"        AND (?='' OR c.id_municipio=?)\n      ORDER BY")
+    params=[ano,*([f'%{search}%']*4),uf,uf,partido,partido,cargo,cargo,resultado,resultado,resultado,resultado,municipio,municipio,limit,offset]
     rows=_rows(sql,params)
-    if not rows and cargo.upper() == 'PRESIDENTE':
-        from questao1 import PRESIDENT_DATA
-        pdata = PRESIDENT_DATA.get(ano, PRESIDENT_DATA.get(2022, {}))
-        cands = list(pdata.get('candidatos', []))
-        if partido:
-            cands = [c for c in cands if c.get('partido', '').upper() == partido.upper()]
-        if resultado:
-            if resultado == 'ELEITO':
-                cands = [c for c in cands if c.get('eleito') == 1]
-            else:
-                cands = [c for c in cands if c.get('eleito') == 0]
-        if search:
-            cands = [c for c in cands if search.lower() in c.get('nome', '').lower()]
-        return {'rows': cands[offset:offset+limit], 'total': len(cands), 'limit': limit, 'offset': offset}
     return {'rows':[{k:v for k,v in row.items() if k!='total_encontrado'} for row in rows],
             'total':rows[0]['total_encontrado'] if rows else 0,'limit':limit,'offset':offset}
 
@@ -182,11 +189,8 @@ def candidate_expenses(candidate_id:str, categoria:str=Query('',max_length=300),
 
 
 def _resolve_db(table_name: str) -> str:
-    try:
-        _rows(f"SELECT 1 FROM {DB}.main.{table_name} LIMIT 1")
-        return DB
-    except Exception:
-        return 'pipeline_bdr_der_completo_v3'
+    _rows(f"SELECT 1 FROM {DB}.main.{table_name} LIMIT 1")
+    return DB
 
 
 @app.get('/api/anos')
@@ -382,10 +386,6 @@ def descobertas(ano: int=2024, cargo: str='VEREADOR', uf: str|None=None):
         WHERE e.ano=? AND UPPER(e.cargo)=? AND e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'
         AND (? IS NULL OR c.uf=?) AND r.votos IS NOT NULL
         ORDER BY r.votos DESC,c.id_candidatura LIMIT 12''',[ano,cargo,uf,uf])
-    if not lideres and cargo == 'PRESIDENTE':
-        from questao1 import PRESIDENT_DATA
-        pdata = PRESIDENT_DATA.get(ano, PRESIDENT_DATA[2022])
-        lideres = pdata['candidatos'][:12]
     # Sem criar ranking de 'melhores' municípios se ano solicitado não tiver participação correspondente.
     alta,baixa,ufs=[],[],[]
     if ano in (2022,2024):
@@ -421,4 +421,46 @@ def adesivaria_candidate(candidate_id:str,ano:int=2024,uf:str='',partido:str=Que
 
 @app.exception_handler(RuntimeError)
 def runtime_error(_,exc:RuntimeError):
-    return JSONResponse({'error':'MotherDuck indisponível','reason':str(exc)},status_code=503)
+    return JSONResponse({'error':'MotherDuck indisponível','reason':'Verifique a conexão e a configuração do servidor.'},status_code=503)
+
+
+# Pain?is migrados: reutilizam a conex?o configurada deste portal.
+from bdr_paineis import main as bdr_paineis
+
+def _consultar_paineis(sql, params=()):
+    try:
+        with _lock:
+            cur = _open().cursor()
+            try:
+                cur.execute('USE "pipeline_bdr_der_completo_v4".main')
+                result = cur.execute(sql, list(params))
+                columns = [item[0] for item in result.description]
+                return [dict(zip(columns, (float(v) if isinstance(v, Decimal) else v for v in row))) for row in result.fetchall()]
+            finally:
+                cur.close()
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(503, 'N?o foi poss?vel consultar este recorte do acervo.')
+
+bdr_paineis._consultar = _consultar_paineis
+bdr_paineis.BANCO = DB
+def _coluna_ano_paineis():
+    rows = _consultar_paineis('DESCRIBE "Participacao_Eleitoral"')
+    columns = {row['column_name'].lower() for row in rows}
+    return 'ano' if 'ano' in columns else 'ano_participacao'
+
+bdr_paineis._obter_coluna_ano = _coluna_ano_paineis
+app.include_router(bdr_paineis.app.router, prefix='/api/bdr')
+
+from exhibition import router as exhibition_router
+app.include_router(exhibition_router)
+from legenda_investigacao import router as legenda_investigacao_router
+app.include_router(legenda_investigacao_router)
+from contexto import router as contexto_router
+app.include_router(contexto_router)
+from catalogo import router as catalogo_router
+app.include_router(catalogo_router)
+
+from pesquisa import router as pesquisa_router
+app.include_router(pesquisa_router)

@@ -6,7 +6,7 @@ from fastapi import HTTPException
 UFS={'CE','MA','MS','RJ','RN','RS'}
 OFFICES={'VEREADOR','PREFEITO','DEPUTADO ESTADUAL','DEPUTADO FEDERAL','SENADOR','GOVERNADOR'}
 TYPES={'adesivos':'Adesivos','santinhos':'Santinhos','bandeiras':'Bandeiras','todos':''}
-DB = 'v4'
+DB = 'pipeline_bdr_der_completo_v4'
 # Anchored product nouns, optional purchase/production prefix. No substring
 # matching: removal, installation, staff, generic printing and mixed types stay out.
 TEXT="UPPER(TRIM(strip_accents(COALESCE(d.categoria,''))))"
@@ -127,7 +127,10 @@ def summary(ano=2024,uf='',partido='',cargo='VEREADOR',abrangencia='',municipio=
     categories_sql='''SELECT tipo,categoria,COUNT(*) registros,COUNT(valor) valores_informados,
       ROUND(SUM(valor),2) valor,COUNT(DISTINCT id) candidaturas
       FROM selected GROUP BY tipo,categoria ORDER BY valor DESC NULLS LAST,categoria,tipo LIMIT 25 OFFSET ?'''
-    sections={'stats':stats_sql,'groups':groups_sql,'rankings':rankings_sql,'parties':parties_sql,'categories':categories_sql}
+    cloud_sql='''SELECT tipo,categoria,COUNT(*) registros,COUNT(valor) valores_informados,
+      ROUND(SUM(valor),2) valor FROM selected GROUP BY tipo,categoria
+      HAVING SUM(valor)>0 ORDER BY valor DESC,categoria,tipo LIMIT 100'''
+    sections={'stats':stats_sql,'groups':groups_sql,'rankings':rankings_sql,'parties':parties_sql,'categories':categories_sql,'cloud':cloud_sql}
     packed=' UNION ALL '.join(f"SELECT '{key}' section,to_json(t) payload FROM ({sql}) t" for key,sql in sections.items())
     records=read(cte+packed,[*args,limit,offset,limit,offset_votos,offset_categorias])
     values={key:[] for key in sections}
@@ -137,9 +140,32 @@ def summary(ano=2024,uf='',partido='',cargo='VEREADOR',abrangencia='',municipio=
     groups.sort(key=lambda row:(row['valor'] is None,-(row['valor'] or 0),row['tipo']))
     parties.sort(key=lambda row:(row['valor'] is None,-(row['valor'] or 0),row['partido']))
     categories.sort(key=lambda row:(row['valor'] is None,-(row['valor'] or 0),row['categoria'],row['tipo']))
+    from q9_normalizacao.gerar_normalizacao import classify
+    cloud_by_key={}
+    for raw in values['cloud']:
+        normalized=classify(raw['categoria'])
+        label=normalized['categoria_padronizada']
+        key=(raw['tipo'],label)
+        item=cloud_by_key.setdefault(key,{'tipo':raw['tipo'],'categoria_normalizada':label,
+            'valor':0.0,'registros':0,'origens':[],'requer_revisao':False})
+        item['valor']+=float(raw['valor'])
+        item['registros']+=raw['registros']
+        item['requer_revisao']|=normalized['requer_revisao']
+        item['origens'].append({'categoria_original':raw['categoria'],'valor':raw['valor'],
+            'registros':raw['registros'],'status_classificacao':normalized['status_classificacao']})
+    cloud=sorted(cloud_by_key.values(),key=lambda item:(-item['valor'],item['categoria_normalizada'],item['tipo']))
+    for item in cloud:item['valor']=round(item['valor'],2)
+    for row in categories:
+        normalized=classify(row['categoria'])
+        row['categoria_normalizada']=normalized['categoria_padronizada']
+        row['status_classificacao']=normalized['status_classificacao']
+        row['requer_revisao']=normalized['requer_revisao']
     return {'scope':scope,'stats':stats,'groups':groups,'candidates':sorted([r for r in rankings if r['ranking']=='despesas'],key=lambda r:r['posicao_gastos']),
       'votes':sorted([r for r in rankings if r['ranking']=='votos'],key=lambda r:r['posicao_votos']),'podium':sorted([r for r in rankings if r['ranking']=='podio'],key=lambda r:r['posicao_gastos']),
-      'parties':parties,'categories':categories,'limit':limit,'offset':offset,'offset_votos':offset_votos,
+      'parties':parties,'categories':categories,'cloud':cloud,
+      'cloud_scope':{'origens_incluidas':len(values['cloud']),'origens_total':stats.get('categorias'),
+          'criterio':'Até 100 descrições originais com maior saldo positivo. Valores da nuvem não equivalem ao total das três barras.'},
+      'limit':limit,'offset':offset,'offset_votos':offset_votos,
       'offset_categorias':offset_categorias,'methodology':METHOD,'turn_methodology':TURN_METHOD,
       'coverage':'Seis estados: CE, MA, MS, RJ, RN e RS. Não representa o Brasil inteiro.',
       'source':'consulta','document_type':'SINTESSE_DE_LANCAMENTOS'}

@@ -7,7 +7,7 @@ from fastapi import HTTPException
 # Adicionar diretório server ao path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'server'))
 import app
-from questao1 import get_overview, get_ranking, get_dispersao, get_dossie, _valida_recorte
+from questao1 import get_overview, get_ranking, get_dispersao, get_dossie, get_eleitos, get_explorar, _valida_recorte
 
 
 class Questao1Tests(unittest.TestCase):
@@ -21,7 +21,7 @@ class Questao1Tests(unittest.TestCase):
             self.assertNotIn('DELETE ', sql.upper())
             self.assertNotIn('DROP ', sql.upper())
             self.assertNotIn('UPDATE ', sql.upper())
-            self.assertIn('v4.main.', sql)
+            self.assertIn('pipeline_bdr_der_completo_v4.main.', sql)
             self.captured_queries.append((sql, list(params)))
 
             # Retorno simulado realista
@@ -125,6 +125,51 @@ class Questao1Tests(unittest.TestCase):
         self.assertIn("SUM(c.gastos_campanha_total) / NULLIF(COUNT(*) FILTER (WHERE UPPER(r.resultado) LIKE 'ELEITO%'), 0)", overview_sql)
         self.assertEqual(params, [2024, 'VEREADOR', 'RS'])
 
+    def test_eleitos_da_maquete_respeitam_ano_cargo_uf_e_municipio(self):
+        result = get_eleitos(ano=2024, cargo='VEREADOR', uf='CE', municipio_id='2304400', limit=24)
+        self.assertEqual(result['limit'], 24)
+        sql, params = self.captured_queries[-1]
+        self.assertIn("UPPER(r.resultado) LIKE 'ELEITO%'", sql)
+        self.assertIn("e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'", sql)
+        self.assertEqual(params, [2024, 'VEREADOR', 'CE', '2304400', 24])
+
+    def test_explorar_estado_e_sem_cadeiras(self):
+        original = app._rows
+        def rows(sql, params=()):
+            self.captured_queries.append((sql, list(params)))
+            return [{'grupo':'CE','candidaturas':100,'com_gasto':98,'sem_gasto':2,
+                     'eleitos':10,'resultado_definido':95,'total_despesas':100000,
+                     'gasto_por_cadeira':10000,'mediana_eleitos':2500,'taxa_eleicao':10.53},
+                    {'grupo':'RN','candidaturas':8,'com_gasto':8,'sem_gasto':0,
+                     'eleitos':0,'resultado_definido':8,'total_despesas':4000,
+                     'gasto_por_cadeira':None,'mediana_eleitos':None,'taxa_eleicao':0}]
+        app._rows = rows
+        try:
+            result = get_explorar(ano=2024,cargo='VEREADOR',uf='CE',visao='estado',indicador='agregado')
+        finally:
+            app._rows = original
+        sql, params = self.captured_queries[-1]
+        self.assertEqual(params,[2024,'VEREADOR'])  # Estado selecionado permanece no ranking de seis UFs.
+        self.assertIn("e.tipo_eleicao NOT ILIKE '%SUPLEMENTAR%'",sql)
+        self.assertIn('NULLIF(SUM(eleito),0)',sql)
+        self.assertEqual(result['rows'][0]['valor'],10000)
+        self.assertTrue(result['rows'][0]['parcial'])
+        self.assertIsNone(result['rows'][1]['valor'])
+
+    def test_explorar_periodos_e_territorios_compativeis(self):
+        result=get_explorar(ano=2024,cargo='VEREADOR',uf='CE',municipio_id='2304400',
+                            partido='PT',visao='evolucao',indicador='agregado')
+        self.assertEqual(result['anos_comparaveis'],[2020,2024])
+        _, params=self.captured_queries[-1]
+        self.assertEqual(params,[2020,2024,'VEREADOR','CE','2304400','PT'])
+        get_explorar(ano=2022,cargo='DEPUTADO FEDERAL',uf='RJ',visao='evolucao')
+        self.assertEqual(self.captured_queries[-1][1],[2018,2022,'DEPUTADO FEDERAL','RJ'])
+        with self.assertRaises(HTTPException):
+            get_explorar(ano=2022,cargo='DEPUTADO FEDERAL',uf='RJ',visao='municipio')
+        with self.assertRaises(HTTPException):
+            get_explorar(ano=2024,cargo='VEREADOR',visao='estado',indicador='taxa')
+
+
     def test_ranking_ordem_custo_voto_filtra_positivos(self):
         res = get_ranking(ano=2024, cargo='VEREADOR', uf='CE', ordem='custo_voto', filtro_resultado='eleitos')
         self.assertEqual(len(res['rows']), 1)
@@ -176,12 +221,12 @@ class Questao1Tests(unittest.TestCase):
             _valida_recorte(2020, 'PRESIDENTE')
         ov = get_overview(ano=2022, cargo='PRESIDENTE')
         self.assertEqual(ov['cargo'], 'PRESIDENTE')
-        self.assertEqual(ov['data']['eleitos'], 1)
-        self.assertGreater(ov['data']['total_despesas'], 300000000)
+        self.assertEqual(ov['data']['eleitos'], 13139)  # Returned by the query fixture, not presidential constants.
+        self.assertTrue(any('PRESIDENTE' in params for _,params in self.captured_queries))
         rk = get_ranking(ano=2022, cargo='PRESIDENTE', ordem='gastos')
-        self.assertGreaterEqual(rk['total'], 11)
-        self.assertEqual(rk['rows'][0]['partido'], 'PT')
-        dp = get_dispersao(ano=2022, cargo='PRESIDENTE')
+        self.assertEqual(rk['total'], 1)
+        self.assertEqual(rk['rows'][0]['partido'], 'PART')
+        dp = get_dispersao(ano=2022, cargo='PRESIDENTE', max_pontos=900)
         self.assertEqual(dp['total_exibido'], len(dp['pontos']))
         ds = get_dossie(ano=2022, cargo='PRESIDENTE')
         self.assertIn('por_partido', ds)

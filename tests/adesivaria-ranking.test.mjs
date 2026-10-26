@@ -13,18 +13,12 @@ test('missing values stay missing and known zero/negative values stay numeric',(
  assert.equal(known(0),true);assert.equal(sumKnown([null]),null);assert.equal(sumKnown([0,null]),0);assert.equal(sumKnown([100,-20]),80);
  assert.equal(ratio(50,100),50);assert.equal(ratio(null,100),0);assert.equal(ratio(-10,100),0);
 });
-test('offline totals and leaders use the full filtered sample independently of pages',()=>{
- const first=offlineData(scope),next=offlineData(scope,{offset:12,offset_votos:12});
- assert.equal(first.stats.candidaturas,24);assert.equal(first.votes.length,12);assert.equal(next.votes.length,12);
- assert.deepEqual(first.stats,next.stats);assert.deepEqual(first.podium,next.podium);
- assert.equal(next.votes[0].posicao_votos,13);assert.equal(first.stats.maior_votacao,first.votes[0].votos);
- assert.equal(first.stats.valor,sumKnown(first.parties.map(row=>row.valor)));
- assert.equal(first.stats.lancamentos,first.categories.reduce((sum,row)=>sum+row.registros,0));
- assert.ok(first.votes.some(row=>row.gastos_classificados===null));
- assert.ok(first.podium.every(row=>row.gastos_classificados!==row.gastos));
+test('a produção não oferece candidaturas offline como substituição da API',()=>{
+ assert.deepEqual(offlineCandidates,[]);assert.deepEqual(offlineData(scope).candidates,[]);assert.equal(offlineData(scope).stats.valor,null);
 });
+
 test('offline filters preserve exact municipal codes and do not invent historical/federal data',()=>{
- const row=offlineCandidates.find(c=>c.uf==='CE');
+ const row={municipio_id:'2304400'};
  const municipal=offlineData({...scope,uf:'CE',abrangencia:'municipio',municipio:row.municipio_id});
  assert.ok(municipal.votes.every(c=>c.uf==='CE'&&c.municipio_id===row.municipio_id));
  assert.equal(offlineData({...scope,ano:2022}).stats.candidaturas,0);

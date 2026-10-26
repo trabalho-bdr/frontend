@@ -21,16 +21,16 @@ import app
 class AtlasLoadingTests(unittest.TestCase):
     def setUp(self):
         self.con = duckdb.connect(':memory:')
-        self.con.execute("ATTACH ':memory:' AS v4")
-        self.con.execute('CREATE TABLE v4.main.Municipio(id_municipio VARCHAR,nome VARCHAR,uf VARCHAR,regiao VARCHAR)')
-        self.con.execute('CREATE TABLE v4.main.Censo_Municipio(id_municipio VARCHAR,ano_referencia INTEGER,populacao DOUBLE,idhm DOUBLE,pib DOUBLE)')
-        self.con.execute('CREATE TABLE v4.main.Participacao_Eleitoral(id_municipio VARCHAR,ano_participacao INTEGER,taxa_abstencao DOUBLE)')
+        self.con.execute("ATTACH ':memory:' AS pipeline_bdr_der_completo_v4")
+        self.con.execute('CREATE TABLE pipeline_bdr_der_completo_v4.main.Municipio(id_municipio VARCHAR,nome VARCHAR,uf VARCHAR,regiao VARCHAR)')
+        self.con.execute('CREATE TABLE pipeline_bdr_der_completo_v4.main.Censo_Municipio(id_municipio VARCHAR,ano_referencia INTEGER,populacao DOUBLE,idhm DOUBLE,pib DOUBLE)')
+        self.con.execute('CREATE TABLE pipeline_bdr_der_completo_v4.main.Participacao_Eleitoral(id_municipio VARCHAR,ano_participacao INTEGER,taxa_abstencao DOUBLE)')
         self.counts = {}
         for uf in ['CE', 'MA', 'MS', 'RJ', 'RN', 'RS']:
             features = json.loads((ROOT / 'public/maps' / f'{uf}.geojson').read_text(encoding='utf-8'))['features']
             self.counts[uf] = len(features)
             records = [(str(f['properties']['codarea']), f['properties']['nome'], uf, None) for f in features]
-            self.con.executemany('INSERT INTO v4.main.Municipio VALUES (?,?,?,?)', records)
+            self.con.executemany('INSERT INTO pipeline_bdr_der_completo_v4.main.Municipio VALUES (?,?,?,?)', records)
         self.client = TestClient(app.app)
 
     def tearDown(self):

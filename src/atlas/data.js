@@ -1,5 +1,5 @@
 import {getMunicipios} from '../data/client.js';
-import {states} from '../data/snapshot.js';
+import {states} from '../data/catalog.js';
 import {hasIndicatorValue} from './geography.js';
 
 // 1,236 municipalities in the six existing meshes, below the endpoint's 1,500
@@ -11,7 +11,7 @@ export async function loadAtlasMunicipios(uf,load=getMunicipios){
   return [...new Map(eligible.map(row=>[String(row.id),row])).values()];
 }
 export function atlasCoverage(rows,indicator,uf){
-  const total=states.filter(state=>!uf||state.uf===uf).reduce((sum,state)=>sum+state.n,0);
+  const total=new Set(rows.filter(row=>!uf||row.uf===uf).map(row=>String(row.id))).size;
   const unique=new Map(rows.filter(row=>!uf||row.uf===uf).map(row=>[String(row.id),row]));
   const loaded=unique.size;
   const withValue=[...unique.values()].filter(row=>hasIndicatorValue(row[indicator])).length;

@@ -43,7 +43,8 @@ test('achados territoriais usam somente o indicador carregado e preservam a amos
  const result=territorialFindings(municipiosAmostra,'abstencao_2024');
  assert.equal(result.count,18);
  assert.equal(result.minimum.nome,'Caucaia');assert.equal(result.maximum.nome,'Canoas');
- assert.ok(Math.abs(result.range-17.08)<1e-9);
+ const values=municipiosAmostra.map(r=>r.abstencao_2024).filter(Number.isFinite);
+ assert.ok(Math.abs(result.range-(Math.max(...values)-Math.min(...values)))<1e-9);
  assert.equal(JSON.stringify(municipiosAmostra),before);
  assert.equal(territorialFindings([{id:'1',idhm:null}],'idhm'),null);
  const zero=territorialFindings([{id:'1',populacao:0},{id:'2',populacao:null},{id:'3',populacao:10}],'populacao');

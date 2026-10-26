@@ -1,0 +1,310 @@
+{
+  "ano": 2024,
+  "cargo": "VEREADOR",
+  "uf": null,
+  "leaders": [
+    {
+      "id": "54baa287d10f5c8b7c8f355b9c8a6b25",
+      "nome": "CARLOS BOLSONARO",
+      "numero": 22222,
+      "partido": "PL",
+      "uf": "RJ",
+      "ano": 2024,
+      "cargo": "VEREADOR",
+      "votos": 130480,
+      "gastos": 1507521.81,
+      "resultado": "ELEITO POR QP"
+    },
+    {
+      "id": "92726bedc539e3c072313dae3c8277e6",
+      "nome": "MARCIO RIBEIRO",
+      "numero": 55005,
+      "partido": "PSD",
+      "uf": "RJ",
+      "ano": 2024,
+      "cargo": "VEREADOR",
+      "votos": 56770,
+      "gastos": 690474.49,
+      "resultado": "ELEITO POR QP"
+    },
+    {
+      "id": "00f5198f439a30e3728011d97ede7ae1",
+      "nome": "TAINÁ DE PAULA",
+      "numero": 13777,
+      "partido": "PT",
+      "uf": "RJ",
+      "ano": 2024,
+      "cargo": "VEREADOR",
+      "votos": 49986,
+      "gastos": 1290783.0,
+      "resultado": "ELEITO POR QP"
+    },
+    {
+      "id": "65cd0de2bebe97982112809327baf327",
+      "nome": "CARLO CAIADO",
+      "numero": 55622,
+      "partido": "PSD",
+      "uf": "RJ",
+      "ano": 2024,
+      "cargo": "VEREADOR",
+      "votos": 47671,
+      "gastos": 1568012.5,
+      "resultado": "ELEITO POR QP"
+    },
+    {
+      "id": "d314056b107e719ebbcae911cee24786",
+      "nome": "RAFAEL FREITAS",
+      "numero": 55123,
+      "partido": "PSD",
+      "uf": "RJ",
+      "ano": 2024,
+      "cargo": "VEREADOR",
+      "votos": 40892,
+      "gastos": 532782.27,
+      "resultado": "ELEITO POR QP"
+    },
+    {
+      "id": "cb00e2b54e1b9f83a005e361ef0a8c5a",
+      "nome": "MARCELO DINIZ",
+      "numero": 55888,
+      "partido": "PSD",
+      "uf": "RJ",
+      "ano": 2024,
+      "cargo": "VEREADOR",
+      "votos": 39967,
+      "gastos": 200000.0,
+      "resultado": "ELEITO POR QP"
+    },
+    {
+      "id": "f3a2ee9d244c7aad11fd28b8665662fc",
+      "nome": "ROSA FERNANDES",
+      "numero": 55000,
+      "partido": "PSD",
+      "uf": "RJ",
+      "ano": 2024,
+      "cargo": "VEREADOR",
+      "votos": 39804,
+      "gastos": 885323.35,
+      "resultado": "ELEITO POR QP"
+    },
+    {
+      "id": "230cd8c4d53651ceb3bb94f06e238ee2",
+      "nome": "PRISCILA COSTA",
+      "numero": 22222,
+      "partido": "PL",
+      "uf": "CE",
+      "ano": 2024,
+      "cargo": "VEREADOR",
+      "votos": 36226,
+      "gastos": 500637.45,
+      "resultado": "ELEITO POR QP"
+    },
+    {
+      "id": "cd9a800206700dd26707ae9c337c7301",
+      "nome": "LENIEL BOREL",
+      "numero": 11100,
+      "partido": "PP",
+      "uf": "RJ",
+      "ano": 2024,
+      "cargo": "VEREADOR",
+      "votos": 34359,
+      "gastos": 73600.0,
+      "resultado": "ELEITO POR QP"
+    },
+    {
+      "id": "e70c456a0ddc04912267b2c6d14a0836",
+      "nome": "FELIPE MICHEL",
+      "numero": 11021,
+      "partido": "PP",
+      "uf": "RJ",
+      "ano": 2024,
+      "cargo": "VEREADOR",
+      "votos": 31773,
+      "gastos": 477852.1,
+      "resultado": "ELEITO POR QP"
+    },
+    {
+      "id": "0c7e91d1397e5e26de0c2e61c6bde3fd",
+      "nome": "GABRIEL BIOLOGIA",
+      "numero": 50555,
+      "partido": "PSOL",
+      "uf": "CE",
+      "ano": 2024,
+      "cargo": "VEREADOR",
+      "votos": 30682,
+      "gastos": 141573.65,
+      "resultado": "ELEITO POR QP"
+    },
+    {
+      "id": "cb3d540d00070062474b250bff408316",
+      "nome": "JOYCE TRINDADE",
+      "numero": 55557,
+      "partido": "PSD",
+      "uf": "RJ",
+      "ano": 2024,
+      "cargo": "VEREADOR",
+      "votos": 30466,
+      "gastos": 1432217.14,
+      "resultado": "ELEITO POR QP"
+    }
+  ],
+  "abstencaoAlta": [
+    {
+      "nome": "Uruguaiana",
+      "uf": "RS",
+      "eleitorado": 88769,
+      "percentual": 33.79
+    },
+    {
+      "nome": "Sant'Ana do Livramento",
+      "uf": "RS",
+      "eleitorado": 74760,
+      "percentual": 33.08
+    },
+    {
+      "nome": "Itaqui",
+      "uf": "RS",
+      "eleitorado": 27768,
+      "percentual": 32.71
+    },
+    {
+      "nome": "Canoas",
+      "uf": "RS",
+      "eleitorado": 259585,
+      "percentual": 31.83
+    },
+    {
+      "nome": "Alegrete",
+      "uf": "RS",
+      "eleitorado": 58263,
+      "percentual": 31.63
+    },
+    {
+      "nome": "Porto Alegre",
+      "uf": "RS",
+      "eleitorado": 1096620,
+      "percentual": 31.51
+    },
+    {
+      "nome": "Tramandaí",
+      "uf": "RS",
+      "eleitorado": 38826,
+      "percentual": 31.49
+    },
+    {
+      "nome": "Cachoeira do Sul",
+      "uf": "RS",
+      "eleitorado": 66803,
+      "percentual": 31.21
+    },
+    {
+      "nome": "Rio Grande",
+      "uf": "RS",
+      "eleitorado": 154931,
+      "percentual": 30.75
+    },
+    {
+      "nome": "Rio de Janeiro",
+      "uf": "RJ",
+      "eleitorado": 5009373,
+      "percentual": 30.58
+    }
+  ],
+  "abstencaoBaixa": [
+    {
+      "nome": "Morrinhos",
+      "uf": "CE",
+      "eleitorado": 18973,
+      "percentual": 6.94
+    },
+    {
+      "nome": "Serra do Mel",
+      "uf": "RN",
+      "eleitorado": 13040,
+      "percentual": 7.63
+    },
+    {
+      "nome": "Jardim de Piranhas",
+      "uf": "RN",
+      "eleitorado": 11079,
+      "percentual": 7.76
+    },
+    {
+      "nome": "Ocara",
+      "uf": "CE",
+      "eleitorado": 25336,
+      "percentual": 7.96
+    },
+    {
+      "nome": "Acarape",
+      "uf": "CE",
+      "eleitorado": 12558,
+      "percentual": 8.27
+    },
+    {
+      "nome": "Fortim",
+      "uf": "CE",
+      "eleitorado": 17305,
+      "percentual": 8.99
+    },
+    {
+      "nome": "Massapê",
+      "uf": "CE",
+      "eleitorado": 31258,
+      "percentual": 9.03
+    },
+    {
+      "nome": "Formosa da Serra Negra",
+      "uf": "MA",
+      "eleitorado": 14010,
+      "percentual": 9.21
+    },
+    {
+      "nome": "Barreira",
+      "uf": "CE",
+      "eleitorado": 19204,
+      "percentual": 9.26
+    },
+    {
+      "nome": "Ibicuitinga",
+      "uf": "CE",
+      "eleitorado": 12633,
+      "percentual": 9.35
+    }
+  ],
+  "porEstado": [
+    {
+      "uf": "RJ",
+      "municipios": 92,
+      "percentual": 26.24
+    },
+    {
+      "uf": "MS",
+      "municipios": 79,
+      "percentual": 23.89
+    },
+    {
+      "uf": "RS",
+      "municipios": 497,
+      "percentual": 23.69
+    },
+    {
+      "uf": "MA",
+      "municipios": 217,
+      "percentual": 17.05
+    },
+    {
+      "uf": "RN",
+      "municipios": 167,
+      "percentual": 16.54
+    },
+    {
+      "uf": "CE",
+      "municipios": 184,
+      "percentual": 14.21
+    }
+  ],
+  "limiar_eleitores": 10000,
+  "coverage": "CE, MA, MS, RJ, RN, RS",
+  "methodology": "Votos por candidatura e cargo, pleitos ordinários. Abstenção municipal com >= 10 mil eleitores aptos. Percentuais estaduais ponderados por eleitorado."
+}

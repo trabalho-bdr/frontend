@@ -2,8 +2,8 @@ import {geoArea} from 'd3-geo';
 
 export const COVERAGE = ['CE','MA','MS','RJ','RN','RS'];
 export const indicatorSettings = {
+  lideranca_mudou:{label:'LIDERANÇA PARTIDÁRIA',breaks:[.5],colors:['#176B50','#EDBF42'],labels:['Manteve a sigla líder','Mudou a sigla líder'],context:'Votos nominais + legenda · eleições do mesmo cargo'},
   abstencao_2024:{label:'ABSTENÇÃO (%)',breaks:[15,20,25,30],context:'2024 · Participação eleitoral municipal · Sem recorte por cargo'},
-  idhm:{label:'IDHM*',breaks:[.6,.65,.7,.75],context:'2010 · Índice municipal · Sem recorte de cargo'},
   pib_per_capita:{label:'PIB POR HABITANTE (R$)',breaks:[20000,40000,60000,80000],context:'Referência 2022 no acervo · Indicador municipal · Sem recorte de cargo'},
   populacao:{label:'POPULAÇÃO',breaks:[25000,100000,500000,1000000],context:'Referência 2022 no acervo · Indicador municipal · Sem recorte de cargo'},
 };
@@ -20,20 +20,21 @@ export function indicatorClass(value,indicator){
 }
 export function formatIndicator(value,indicator){
   if(!hasIndicatorValue(value))return 'Sem dados neste recorte';
+  if(indicator==='lideranca_mudou')return indicatorSettings[indicator].labels[Number(value)>=.5?1:0];
   const number=Number(value).toLocaleString('pt-BR',{maximumFractionDigits:indicator==='idhm'?3:indicator==='populacao'?0:2});
   return indicator==='pib_per_capita'?`R$ ${number}`:number+(indicator==='abstencao_2024'?'%':'');
 }
 export function indicatorLegend(indicator){
   const {breaks}=indicatorSettings[indicator];
-  return MAP_COLORS.map((color,index)=>{
+  return (indicatorSettings[indicator].colors||MAP_COLORS).map((color,index)=>{
     const lower=index===0?null:breaks[index-1],upper=breaks[index]??null;
     const label=lower==null?`< ${formatIndicator(upper,indicator)}`:upper==null?`≥ ${formatIndicator(lower,indicator)}`:`${formatIndicator(lower,indicator)} a < ${formatIndicator(upper,indicator)}`;
-    return {color,lower,upper,label};
+    return {color,lower,upper,label:indicatorSettings[indicator].labels?.[index]||label};
   });
 }
 export function mapColor(value,indicator){
   const index=indicatorClass(value,indicator);
-  return index<0?NO_DATA_COLOR:MAP_COLORS[index];
+  return index<0?NO_DATA_COLOR:(indicatorSettings[indicator].colors||MAP_COLORS)[index];
 }
 // RFC 7946 and d3-geo use opposite exterior ring winding conventions.
 // Normalize a copy so Brazilian polygons never render as the rest of the globe.

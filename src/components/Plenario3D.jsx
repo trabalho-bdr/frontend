@@ -168,24 +168,29 @@ function CameraEntrance({controlRef,replay}){
  });
  return null;
 }
-function Room({focus,selectedSeat,onPick,replay}){
+
+function Room({focus,selectedSeat,onPick,replay,seats}){
  const control=useRef();
  return <>
   <color attach="background" args={["#ded2bc"]}/>
-  <ambientLight intensity={1.55}/>
-  <hemisphereLight args={["#e4f2ff","#665342",1.45]}/>
-  <directionalLight position={[8,15,9]} intensity={2.45} castShadow shadow-mapSize={[1024,1024]} shadow-camera-left={-14} shadow-camera-right={14} shadow-camera-top={14} shadow-camera-bottom={-14}/>
-  <directionalLight position={[-7,7,-5]} intensity={.9} color="#bed2ed"/>
+  <ambientLight intensity={1.6}/>
+  <hemisphereLight args={["#e4f2ff","#665342",1.5]}/>
+  <directionalLight position={[8,15,9]} intensity={2.6} castShadow shadow-mapSize={[1024,1024]} shadow-camera-left={-14} shadow-camera-right={14} shadow-camera-top={14} shadow-camera-bottom={-14}/>
+  <directionalLight position={[-7,7,-5]} intensity={.95} color="#bed2ed"/>
   <Chamber/>
-  {chairUnits.map((seat,index)=><Chair key={seat.id} seat={seat} index={index} selected={selectedSeat?.number===seat.number} focus={focus} onPick={onPick} replay={replay}/>)}
-  <ContactShadows position={[0,-.16,-3]} scale={24} blur={1.8} opacity={.21} far={10}/>
+  {seats.map((seat,index)=><Chair key={seat.id} seat={seat} index={index} selected={selectedSeat?.number===seat.number} focus={focus} onPick={onPick} replay={replay}/>)}
+  <ContactShadows position={[0,-.16,-3]} scale={24} blur={1.8} opacity={.22} far={10}/>
   <OrbitControls ref={control} makeDefault enablePan={false} minDistance={8} maxDistance={27} minPolarAngle={.3} maxPolarAngle={1.48} target={[0,.9,-3.1]} maxAzimuthAngle={1.3} minAzimuthAngle={-1.3}/>
   <CameraEntrance replay={replay} controlRef={control}/>
  </>;
 }
 
-export default function Plenario3D({focus="todos",selectedSeat,onPick,replay=0}){
- return <SceneBoundary fallback={<div className="plenario-fallback-v8"><h3>PLENÁRIO EM VISTA SIMPLIFICADA</h3><div className="plenario-fallback-pulpit">MESA DIRETORA · TRIBUNA</div><div className="plenario-fallback-seats">{chairUnits.map(seat=><button key={seat.id} style={{background:focus!=="todos"&&focus!==seat.block?'#8393a2':seat.color}} onClick={()=>onPick(seat)} aria-label={`Cadeira ${seat.number}, ${seat.name}`} title={`Cadeira ${seat.number} · ${seat.name}`}/>)}</div><p>Cadeiras ilustrativas — cores por grupos de demonstração, sem representação partidária ou ideológica.</p></div>}><Canvas shadows dpr={[1,1.6]} camera={{position:[0,3,7],fov:41}} gl={{antialias:true}} fallback={<p>Visualização 3D indisponível.</p>}>
-   <Room focus={focus} selectedSeat={selectedSeat} onPick={onPick} replay={replay}/>
- </Canvas></SceneBoundary>;
+export default function Plenario3D({focus="todos",selectedSeat,onPick,replay=0,seats=chairUnits,sourceCaption="Cadeiras ilustrativas — cores por grupos de demonstração, sem representação partidária ou ideológica."}){
+  return (
+    <SceneBoundary fallback={<div className="plenario-fallback-v8"><h3>PLENÁRIO EM VISTA SIMPLIFICADA</h3><div className="plenario-fallback-pulpit">MESA DIRETORA · TRIBUNA</div><div className="plenario-fallback-seats">{seats.map(seat=><button key={seat.id} style={{background:focus!=="todos"&&focus!==seat.block?'#8393a2':seat.color}} onClick={()=>onPick(seat)} aria-label={`Cadeira ${seat.number}, ${seat.name}`} title={`Cadeira ${seat.number} · ${seat.name}`}/>)}</div><p>{sourceCaption}</p></div>}>
+      <Canvas shadows dpr={[1,1.75]} camera={{position:[0,3,7],fov:41}} gl={{antialias:true}} fallback={<p>Visualização 3D indisponível.</p>}>
+        <Room focus={focus} selectedSeat={selectedSeat} onPick={onPick} replay={replay} seats={seats}/>
+      </Canvas>
+    </SceneBoundary>
+  );
 }

@@ -16,6 +16,7 @@ import ComparisonPanel from '../ComparisonPanel.jsx';
 
 import {
   fetchQuestao1Overview,
+  fetchQuestao1Eleitos,
   fetchQuestao1Ranking,
   fetchQuestao1Dispersao
 } from '../../data/questao1Client.js';
@@ -23,7 +24,17 @@ import {
 import './questao1.css';
 
 const UFS = ['', 'CE', 'MA', 'MS', 'RJ', 'RN', 'RS'];
-const CARGOS = ['VEREADOR', 'DEPUTADO ESTADUAL', 'DEPUTADO FEDERAL', 'PRESIDENTE'];
+const CARGOS = ['VEREADOR', 'DEPUTADO ESTADUAL', 'DEPUTADO FEDERAL'];
+const stateColors={CE:'#a64235',MA:'#c07a2d',MS:'#557858',RJ:'#315e90',RN:'#8b5689',RS:'#bd9c38'};
+function distributeSeats(rows,count){
+ const valid=rows.filter(row=>Number(row.eleitos)>0),total=valid.reduce((sum,row)=>sum+Number(row.eleitos),0);
+ if(!total)return [];
+ const quotas=valid.map(row=>({row,exact:count*Number(row.eleitos)/total}));
+ const portions=quotas.map(item=>Math.floor(item.exact));
+ let remaining=count-portions.reduce((sum,value)=>sum+value,0);
+ quotas.map((item,index)=>({index,remainder:item.exact-portions[index]})).sort((a,b)=>b.remainder-a.remainder).slice(0,remaining).forEach(item=>portions[item.index]++);
+ return quotas.flatMap((item,index)=>Array.from({length:portions[index]},()=>item.row));
+}
 
 const money = (n) =>
   n == null ? '—' : Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -49,6 +60,9 @@ export default function CostPerSeatStory({
   const [focus, setFocus] = useState('todos');
   const [selectedSeat, setSelectedSeat] = useState(null);
   const [replay, setReplay] = useState(0);
+  const [view,setView]=useState('estados');
+  const [electedData,setElectedData]=useState(null);
+  const [deepOpen,setDeepOpen]=useState(false);
 
   // 3. Dados da Experiência 1 (Overview + Insights + Temporal)
   const [overviewData, setOverviewData] = useState(null);
@@ -96,6 +110,8 @@ export default function CostPerSeatStory({
 
   const handleUfChange = (novaUf) => {
     setUf(novaUf);
+    setFocus('todos');
+    setSelectedSeat(null);
     setMunicipioId('');
     setMunicipioNome('');
     setMuniSearch('');
@@ -128,6 +144,7 @@ export default function CostPerSeatStory({
   useEffect(() => {
     let active = true;
     setLoadingOverview(true);
+    setOverviewData(null);
     fetchQuestao1Overview({ ano, cargo, uf, municipioId })
       .then((res) => {
         if (active) {
@@ -145,6 +162,7 @@ export default function CostPerSeatStory({
 
   // Carregar Ranking da Questão 1
   useEffect(() => {
+    if(!deepOpen)return;
     let active = true;
     setLoadingRanking(true);
     const offset = (rankingPage - 1) * rankingLimit;
@@ -171,10 +189,11 @@ export default function CostPerSeatStory({
     return () => {
       active = false;
     };
-  }, [ano, cargo, uf, municipioId, rankingPage, rankingOrdem, rankingFiltroResultado, rankingLimit]);
+  }, [deepOpen,ano, cargo, uf, municipioId, rankingPage, rankingOrdem, rankingFiltroResultado, rankingLimit]);
 
   // Carregar Dispersão da Questão 1
   useEffect(() => {
+    if(!deepOpen)return;
     let active = true;
     setLoadingScatter(true);
     fetchQuestao1Dispersao({
@@ -196,7 +215,15 @@ export default function CostPerSeatStory({
     return () => {
       active = false;
     };
-  }, [ano, cargo, uf, municipioId]);
+  }, [deepOpen,ano, cargo, uf, municipioId]);
+
+  useEffect(()=>{
+    let active=true;
+    setElectedData(null);
+    setSelectedSeat(null);
+    if(view==='pessoas'&&cargo!=='PRESIDENTE')fetchQuestao1Eleitos({ano,cargo,uf,municipioId}).then(data=>{if(active)setElectedData(data)});
+    return()=>{active=false};
+  },[view,ano,cargo,uf,municipioId]);
 
   // Seleção sincronizada
   const handleSelectCandidate = (cand) => {
@@ -204,9 +231,22 @@ export default function CostPerSeatStory({
   };
 
   const overviewValues = overviewData?.data || {};
+  const stateRows=(overviewData?.por_uf||[]).filter(row=>!uf||row.uf===uf).filter(row=>UFS.includes(row.uf));
+  const seats=useMemo(()=>{
+    const allocations=distributeSeats(stateRows,plenarioAssentos.length);
+    const people=electedData?.rows||[];
+    return plenarioAssentos.map((seat,index)=>{
+      if(view==='pessoas'){
+        const person=people[index];
+        return {...seat,block:person?.uf||'sem-dado',name:person?.nome||'Sem candidatura carregada',color:person?'#bf7646':'#87919a',person};
+      }
+      const state=allocations[index];
+      return {...seat,block:state?.uf||'sem-dado',name:state?.uf||'Sem estado carregado',color:stateColors[state?.uf]||'#87919a',state};
+    });
+  },[view,stateRows,electedData]);
 
   return (
-    <div className="q1-story">
+    <div className="q1-story"><header className="q1-head"><span>PLENÁRIO / CUSTO AGREGADO</span><h1>Quanto custa uma <em>cadeira?</em></h1><p>Escolha o recorte, compare estados e selecione a visão do Plenário. Os nomes exibidos são de candidaturas com resultado de eleitas no acervo.</p></header><p className="expo-source">{overviewData?.source==='live'?'Consulta atual':overviewData?.source==='snapshot'?'Referência do acervo':'Recorte indisponível'} · {ano} · {cargo} · {uf||'6 UFs'}</p>
       {/* =========================================================================
           FAIXA DE FILTROS COMPARTILHADOS (Ano, Cargo, Estado, Município)
           ========================================================================= */}
@@ -228,7 +268,6 @@ export default function CostPerSeatStory({
             <option value="VEREADOR">Vereador (Eleições Municipais)</option>
             <option value="DEPUTADO ESTADUAL">Deputado Estadual (Eleições Gerais)</option>
             <option value="DEPUTADO FEDERAL">Deputado Federal (Eleições Gerais)</option>
-            <option value="PRESIDENTE">Presidente da República (Eleições Gerais)</option>
           </select>
         </div>
 
@@ -374,53 +413,30 @@ export default function CostPerSeatStory({
         <div className="q1-plenary-editorial">
           {/* Palco 3D do Plenário com a Maquete Cenográfica */}
           <div className="q1-plenary-stage">
-            <div className="q1-plenary-watermark">
-              ● MAQUETE SIMBÓLICA (72 CADEIRAS CENOGRÁFICAS)
-            </div>
+            <div className="q1-plenary-watermark">PLENÁRIO 3D · {view==='estados'?'VISÃO POR ESTADO':'CANDIDATURAS ELEITAS'}</div>
+            <div className="q1-view-switch" role="group" aria-label="Visão do plenário"><button aria-pressed={view==='estados'} onClick={()=>{setView('estados');setFocus('todos');setSelectedSeat(null)}}>Custo por estado</button><button aria-pressed={view==='pessoas'} onClick={()=>{setView('pessoas');setFocus('todos');setSelectedSeat(null)}} disabled={cargo==='PRESIDENTE'}>Quem foi eleito</button></div>
+            <p className="q1-plenary-real-data" aria-live="polite">{loadingOverview?'Consultando o acervo…':overviewData?.source==='unavailable'?'Este recorte não está disponível no acervo local.':`${fNum(overviewValues.eleitos)} candidaturas eleitas · ${money(overviewValues.total_despesas)} em despesas declaradas no recorte.`}</p>
 
             <div style={{ flex: 1, minHeight: '430px' }}>
               <Plenario3D
                 focus={focus}
                 selectedSeat={selectedSeat}
-                onPick={setSelectedSeat}
+                onPick={seat=>{setSelectedSeat(seat);setFocus(view==='estados'?seat.block:'todos')}}
                 replay={replay}
+                seats={seats}
               />
             </div>
 
-            {/* Controles da Maquete Cenográfica */}
-            <div className="plenary-controls" style={{ margin: '0.75rem', background: 'rgba(13,35,70,0.85)', borderRadius: '4px', padding: '0.5rem' }}>
-              {blockSeats.map((b) => (
-                <button
-                  key={b.id}
-                  className={focus === b.id ? 'chosen' : ''}
-                  onClick={() => setFocus(focus === b.id ? 'todos' : b.id)}
-                  style={{ fontSize: '0.72rem' }}
-                >
-                  <span style={{ background: b.color }} /> {b.name}: {b.count}
-                </button>
-              ))}
-              <button
-                onClick={() => {
-                  setReplay((n) => n + 1);
-                  setSelectedSeat(null);
-                }}
-                style={{ fontSize: '0.72rem' }}
-              >
-                <RotateCcw size={13} /> Reiniciar Maquete
-              </button>
-            </div>
+            <div className="q1-seat-detail" aria-live="polite">{selectedSeat?.person?<><strong>{selectedSeat.person.nome}</strong><span>{selectedSeat.person.partido||'Partido não informado'} · {selectedSeat.person.municipio||selectedSeat.person.uf}/{selectedSeat.person.uf} · {fNum(selectedSeat.person.votos)} votos · {money(selectedSeat.person.gastos)} declarados</span><button onClick={()=>onOpenCandidate?.(selectedSeat.person)}>Abrir candidatura ↗</button></>:selectedSeat?.state?<><strong>{selectedSeat.state.uf} · {money(selectedSeat.state.gasto_por_cadeira)} por cadeira</strong><span>{fNum(selectedSeat.state.eleitos)} candidaturas eleitas · {money(selectedSeat.state.total_despesas)} em despesas</span></>:<span>{view==='pessoas'?electedData?.rows?.length?'Selecione uma cadeira colorida para ver uma candidatura eleita do recorte.':'Não há nomes carregados para este recorte; tente outro ano, cargo ou estado.':'Selecione uma cadeira para ver o custo agregado do estado.'}</span>}</div>
+            <p className="q1-maquette-note">As 72 cadeiras formam uma maquete. {view==='estados'?'A quantidade de cadeiras coloridas é proporcional aos eleitos de cada UF, sem reproduzir uma casa legislativa real.':`Aparecem ${fNum(electedData?.rows?.length||0)} candidaturas eleitas ordenadas por votos${electedData?.source==='snapshot'?' da amostra parcial do acervo':''}; quando há vários municípios, elas não pertencem à mesma Câmara.`}</p>
           </div>
 
           {/* Painel Editorial: O Cálculo Explicado e Big Number */}
           <div className="q1-plenary-aside">
             <div>
               <span className="stamp stamp-blue">QUANTO CUSTA UMA CADEIRA?</span>
-              <h3 style={{ margin: '0.5rem 0 0.25rem', fontFamily: 'Cinzel, serif', fontSize: '1.45rem', color: '#174a8b' }}>
-                O PODER TEM CUSTO AGREGADO.
-              </h3>
-              <p style={{ fontSize: '0.84rem', color: '#4a5568', margin: '0.25rem 0 0.85rem' }}>
-                Para o mandato de <strong>{cargo}</strong> em <strong>{ano}</strong> ({municipioNome ? `${municipioNome}/${uf}` : uf || '6 estados'}), calculamos o investimento total declarado de todas as candidaturas proporcionalmente aos assentos obtidos.
-              </p>
+              <h3 className="q1-focused-title">Quanto foi declarado por cadeira conquistada?</h3>
+              <p className="q1-focused-intro">{ano} · {cargo} · {municipioNome ? `${municipioNome}/${uf}` : uf || 'seis UFs'}. Soma das despesas de todas as candidaturas dividida pelo número de eleitos.</p>
 
               {/* Big Number do Gasto Agregado por Cadeira */}
               <motion.div
@@ -443,19 +459,18 @@ export default function CostPerSeatStory({
               </motion.div>
 
               {/* Explicação Progressiva e Animada da Fórmula */}
-              <CostFormula
+              <details className="q1-formula-detail"><summary>Como foi calculado este valor</summary><CostFormula
                 totalDespesas={overviewValues.total_despesas}
                 eleitos={overviewValues.eleitos}
                 gastoPorCadeira={overviewValues.gasto_por_cadeira}
                 totalCandidaturas={overviewValues.total_candidaturas}
                 candidaturasComGasto={overviewValues.candidaturas_com_gasto}
-              />
+              /></details>
+              {view==='estados'&&stateRows.length>0&&<div className="q1-state-costs"><strong>CUSTO POR ESTADO</strong>{stateRows.slice().sort((a,b)=>(b.gasto_por_cadeira||0)-(a.gasto_por_cadeira||0)).map(row=><button key={row.uf} onClick={()=>handleUfChange(row.uf)} aria-pressed={uf===row.uf}><span style={{background:stateColors[row.uf]}}/>{row.uf}<b>{money(row.gasto_por_cadeira)}</b><small>{fNum(row.eleitos)} eleitos</small></button>)}{uf&&<button className="q1-all-states" onClick={()=>handleUfChange('')}>Ver seis UFs ↗</button>}</div>}
             </div>
 
             {/* Aviso sobre Maquete Simbólica */}
-            <div style={{ marginTop: '0.75rem', fontSize: '0.7rem', color: '#718096', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem' }}>
-              * <strong>Atenção metodológica:</strong> As 72 cadeiras do modelo 3D ao lado constituem uma maquete cenográfica e ilustrativa da casa parlamentar; a quantidade real de mandatos do recorte filtrado ({fNum(overviewValues.eleitos)} cadeiras) é informada com precisão auditada no painel.
-            </div>
+            <p className="q1-cost-limit">Gasto agregado por cadeira é uma razão descritiva, não o preço de um mandato nem o gasto individual de cada eleito. Valores nominais declarados.</p>
           </div>
         </div>
       </section>
@@ -463,7 +478,7 @@ export default function CostPerSeatStory({
       {/* =========================================================================
           DESCOBERTAS AUTOMÁTICAS ("O que os números revelam?")
           ========================================================================= */}
-      <ElectionInsights
+      <details className="q1-deep" onToggle={event=>setDeepOpen(event.currentTarget.open)}><summary>Explorar candidaturas, votos e comparações</summary>{deepOpen&&<><ElectionInsights
         insights={overviewData?.insights}
         ano={ano}
         cargo={cargo}
@@ -499,6 +514,7 @@ export default function CostPerSeatStory({
       {/* =========================================================================
           EXPERIÊNCIA 3 — GASTAR MAIS SIGNIFICA RECEBER MAIS VOTOS? (Dispersão)
           ========================================================================= */}
+      <p className="expo-source">{scatterData?.partial?'Dispersão da amostra real carregada; não representa a população completa.':'Dispersão da consulta atual; confira o número de pontos e critérios.'}</p>
       <SpendingVotesScatter
         data={scatterData}
         selectedCandidate={selectedCandidate}
@@ -520,7 +536,8 @@ export default function CostPerSeatStory({
       {/* =========================================================================
           PAINEL DE COMPARAÇÃO AUDITADO EXISTENTE
           ========================================================================= */}
-      <ComparisonPanel topic="plenario" mode={mode} />
+      <ComparisonPanel topic="plenario" mode={mode} /></>}
+      </details>
     </div>
   );
 }

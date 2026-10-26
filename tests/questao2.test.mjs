@@ -32,23 +32,15 @@ test('eleitos declaram patrimônio mediano maior do que não eleitos no snapshot
     `Eleitos (${eleitos.patrimonio_mediano}) devem ter mediana superior a não eleitos (${naoEleitos.patrimonio_mediano})`);
 });
 
-test('getQ2Opcoes e getQ2Municipios devolvem opções e municípios de fallback', async () => {
-  const opcoes = await getQ2Opcoes();
-  assert.ok(opcoes.opcoes.length > 0);
-  assert.ok(opcoes.opcoes.some(o => o.cargo === 'VEREADOR' && o.ano === 2024));
-
-  const munCE = await getQ2Municipios({ ano: 2024, cargo: 'VEREADOR', uf: 'CE' });
-  assert.ok(munCE.municipios.length === 184, 'Ceará deve conter 184 municípios');
-  const abaiara = munCE.municipios.find(m => m.id_municipio === '2300101');
-  assert.ok(abaiara);
-  assert.equal(abaiara.municipio, 'Abaiara');
-  assert.ok(abaiara.patrimonio_mediano > 0);
+test('patrimônio indisponível retorna ausência explícita sem referência local', async () => {
+ const options=await getQ2Opcoes();assert.deepEqual(options.opcoes,[]);assert.equal(options.source,'unavailable');
+ const result=await getQ2Municipios({ano:2024,cargo:'VEREADOR',uf:'CE'});assert.equal(result.source,'unavailable');assert.deepEqual(result.municipios,[]);
 });
 
 test('Investigações integra PatrimonioMapaDossie no id=2 e restaura id=3', () => {
   const appSrc = fs.readFileSync('src/App.jsx', 'utf8');
   assert.ok(appSrc.includes('PatrimonioMapaDossie'), 'App.jsx deve importar PatrimonioMapaDossie');
-  assert.ok(appSrc.includes('id===2&&!viewTable?<PatrimonioMapaDossie'), 'Dossiê 02 deve renderizar PatrimonioMapaDossie');
+  assert.ok(appSrc.includes('id===2&&!viewRecords?<PatrimonioMapaDossie'), 'Dossiê 02 deve renderizar PatrimonioMapaDossie');
   assert.ok(!appSrc.includes('TerritorioMapaDossie'), 'TerritorioMapaDossie não deve existir em App.jsx');
   assert.ok(appSrc.includes('id!==4&&id!==1&&id!==2'), 'Live query deve pular id 2 (custom dossier) e executar id 3 normalmente');
 });

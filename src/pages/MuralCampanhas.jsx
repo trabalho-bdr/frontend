@@ -1,27 +1,39 @@
+import {electionYearsForOffice,municipalOffice} from '../data/filterScope.js';
+import {useCatalog} from '../catalog/useCatalog.jsx';
+import {readContext,writeContext} from '../data/investigationContext.js';
+import {savedEvidence} from '../data/exhibition.js';
 import {useEffect,useMemo,useState} from 'react';
 import {motion,AnimatePresence} from 'motion/react';
 import {Search,ArrowRight,ArrowUpRight,RotateCcw,Pin,SlidersHorizontal,ReceiptText,Layers3} from 'lucide-react';
-import {sampleCandidates} from '../data/candidatos-amostra.js';
+const sampleCandidates=[];
 import {getCandidates} from '../data/client.js';
 import ComparisonPanel from '../components/ComparisonPanel.jsx';
-import {states} from '../data/snapshot.js';
+import {states} from '../data/catalog.js';
 
 const money=n=>n==null?'Não informado':Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
 const nfmt=n=>n==null?'—':Number(n).toLocaleString('pt-BR');
 const noAccent=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const tones=['poster-brick','poster-blue','poster-yellow','poster-green','poster-cream','poster-deep'];
 const resultsTxt=r=>r?.startsWith('ELEITO')?'ELEITA/O':r==='SUPLENTE'?'SUPLÊNCIA':r||'SITUAÇÃO INDEFINIDA';
+const leaders=[];
+const stableLeaders=leaders.filter(r=>r.origem===r.destino).length;
 const unitCost=c=>c?.gastos != null&&c?.votos>0?c.gastos/c.votos:null;
-export default function MuralCampanhas({mode,onResearch,onOpenCandidate}){
- const [year,setYear]=useState('2024'),[uf,setUf]=useState(''),[party,setParty]=useState(''),[cargo,setCargo]=useState('VEREADOR');
+export default function MuralCampanhas({mode,onResearch,onOpenCandidate,initialScope={}}){
+ initialScope={...readContext(),...Object.fromEntries(Object.entries(initialScope).filter(([,value])=>value!=null))};
+ const [year,setYear]=useState(String(initialScope.ano||2024)),[uf,setUf]=useState(initialScope.uf||''),[party,setParty]=useState(initialScope.partido||''),[cargo,setCargo]=useState(initialScope.cargo||'VEREADOR');
  const [search,setSearch]=useState(''),[ordem,setOrdem]=useState('votos'),[resultado,setResultado]=useState('');
  const [page,setPage]=useState(0),[liveRows,setLiveRows]=useState([]),[total,setTotal]=useState(0),[busy,setBusy]=useState(false),[problem,setProblem]=useState(false);
  const [selected,setSelected]=useState(null),[flipped,setFlipped]=useState(false),[versus,setVersus]=useState([]);
- useEffect(()=>setPage(0),[year,uf,party,cargo,search,ordem,resultado]);
+ const [municipioId,setMunicipioId]=useState(municipalOffice(cargo)&&uf?readContext().municipioId||'':'');
+ const filterOptions=useCatalog('opcoes',{ano:year,uf,cargo});
+ const changeCargo=value=>{setCargo(value);setParty('');setMunicipioId('');if(!electionYearsForOffice(value).includes(Number(year)))setYear(String(electionYearsForOffice(value).at(-1)))};
+ const changeYear=value=>{setYear(value);setParty('')};
+ const changeUf=value=>{setUf(value);setParty('');setMunicipioId('')};
+ useEffect(()=>{setPage(0);setSelected(null);setVersus([])},[year,uf,party,cargo,municipioId,search,ordem,resultado]);
  useEffect(()=>{if(mode!=='live')return;let active=true;const t=setTimeout(async()=>{setBusy(true);setProblem(false);try{
- const x=await getCandidates({ano:year,uf,partido:party,cargo,search,resultado,ordem,offset:page*18,limit:18});
+ const x=await getCandidates({ano:year,uf,partido:party,cargo,municipio:municipalOffice(cargo)?municipioId:'',search,resultado,ordem,offset:page*18,limit:18});
  if(active){setLiveRows(x.rows||[]);setTotal(x.total||0)}
- }catch{if(active){setProblem(true);setLiveRows([]);setTotal(0)}}finally{if(active)setBusy(false)}},290);return()=>{active=false;clearTimeout(t)}},[mode,year,uf,party,cargo,search,ordem,resultado,page]);
+ }catch{if(active){setProblem(true);setLiveRows([]);setTotal(0)}}finally{if(active)setBusy(false)}},290);return()=>{active=false;clearTimeout(t)}},[mode,year,uf,party,cargo,municipioId,search,ordem,resultado,page]);
  const candidates=useMemo(()=>{
  if(mode==='live')return liveRows;
  if(year!=='2024'||cargo!=='VEREADOR')return [];
@@ -38,10 +50,11 @@ export default function MuralCampanhas({mode,onResearch,onOpenCandidate}){
  const eligible=versus.length===2&&versus[0].ano===versus[1].ano&&versus[0].cargo===versus[1].cargo;
  return <div className="mural-v5"><div className="section-header"><div><div className="eyebrow"><span className="eyebrow-dot"/>MURAL DE CANDIDATURAS / CAMPANHAS & RESULTADOS</div><h2>CADA CARTAZ <em>É UM DADO.</em></h2><p>Cartazes analíticos presos ao muro: selecione, vire e compare candidaturas reais. Os cartazes são criações editoriais, não peças originais de propaganda.</p></div></div>
  <div className="mural-filter-bar"><label className="mural-search"><Search size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Procurar candidatura ou município" aria-label="Pesquisar candidaturas"/></label>
- <select aria-label="Ano eleitoral" value={year} onChange={e=>setYear(e.target.value)}>{[2024,2022,2020,2018].map(y=><option key={y}>{y}</option>)}</select>
- <select aria-label="Estado" value={uf} onChange={e=>setUf(e.target.value)}><option value="">6 estados</option>{states.map(s=><option value={s.uf} key={s.uf}>{s.uf}</option>)}</select>
- <select aria-label="Cargo" value={cargo} onChange={e=>setCargo(e.target.value)}><option value="VEREADOR">Vereador</option><option value="PREFEITO">Prefeito</option><option value="DEPUTADO ESTADUAL">Deputado estadual</option><option value="DEPUTADO FEDERAL">Deputado federal</option><option value="SENADOR">Senador</option><option value="GOVERNADOR">Governador</option></select>
- <select aria-label="Partido" value={party} onChange={e=>setParty(e.target.value)}><option value="">Todos os partidos</option>{['PL','PT','PSOL','PSD','UNIÃO','PP','REPUBLICANOS','PSDB','PDT','PSB','NOVO'].map(p=><option key={p}>{p}</option>)}</select>
+ <select aria-label="Ano eleitoral" value={year} onChange={e=>changeYear(e.target.value)}>{electionYearsForOffice(cargo).reverse().map(y=><option key={y}>{y}</option>)}</select>
+ <select aria-label="Estado" value={uf} onChange={e=>changeUf(e.target.value)}><option value="">6 estados</option>{states.map(s=><option value={s.uf} key={s.uf}>{s.uf}</option>)}</select>
+ <select aria-label="Cargo" value={cargo} onChange={e=>changeCargo(e.target.value)}><option value="VEREADOR">Vereador</option><option value="PREFEITO">Prefeito</option><option value="DEPUTADO ESTADUAL">Deputado estadual</option><option value="DEPUTADO FEDERAL">Deputado federal</option><option value="SENADOR">Senador</option><option value="GOVERNADOR">Governador</option></select>
+ {municipalOffice(cargo)&&<select aria-label="Município do mural" value={municipioId} disabled={!uf||filterOptions.loading} onChange={e=>setMunicipioId(e.target.value)}><option value="">{uf?'Todos os municípios do estado':'Selecione um estado primeiro'}</option>{(filterOptions.data?.municipios||[]).map(town=><option key={town.id} value={town.id}>{town.nome}</option>)}</select>}
+ <select aria-label="Partido" value={party} disabled={filterOptions.loading} onChange={e=>setParty(e.target.value)}><option value="">Todos os partidos</option>{(filterOptions.data?.facets.partido||[]).map(value=><option key={value}>{value}</option>)}</select>
  <select aria-label="Resultado" value={resultado} onChange={e=>setResultado(e.target.value)}><option value="">Todos os resultados</option><option value="ELEITO">Eleitos</option><option value="NÃO ELEITO">Não eleitos</option><option value="SUPLENTE">Suplentes</option></select>
  <select aria-label="Ordenar cartazes" value={ordem} onChange={e=>setOrdem(e.target.value)}><option value="votos">Mais votos</option><option value="gastos">Mais gastos</option><option value="custo_voto">Gasto por voto mais alto</option></select>
  </div>
@@ -67,7 +80,7 @@ export default function MuralCampanhas({mode,onResearch,onOpenCandidate}){
  <div className="poster-flip-face back"><span className="paper-stripe">VERSO / INDICADORES</span><h3>{picked.nome}</h3><dl><div><dt>VOTOS</dt><dd>{nfmt(picked.votos)}</dd></div><div><dt>DESPESAS TOTAIS</dt><dd>{money(picked.gastos)}</dd></div><div><dt>GASTO / VOTO OBTIDO</dt><dd>{unitCost(picked)==null?'—':money(unitCost(picked))}</dd></div><div><dt>PATRIMÔNIO</dt><dd>{money(picked.patrimonio)}</dd></div><div><dt>RESULTADO</dt><dd>{picked.resultado??'—'}</dd></div></dl><small>Gasto/voto é uma divisão descritiva; não mede compra de voto ou eficácia causal.</small></div></button>
  <div className="poster-ops"><button onClick={()=>compare(picked)}><Layers3 size={15}/> COMPARAR</button><button onClick={()=>onOpenCandidate(picked)}><ReceiptText size={15}/> ABRIR RECIBOS <ArrowRight size={14}/></button></div></motion.div>:<div className="poster-review-empty">Puxe um cartaz do muro para ler o que os dados revelam sobre aquela candidatura.</div>}</AnimatePresence>
  <div className="poster-crosscheck"><div className="micro">COMPARAÇÃO RÁPIDA / ATÉ DUAS CANDIDATURAS</div>{versus.map(v=><div key={v.id}><b>{v.nome}</b><span>{nfmt(v.votos)} votos · {money(v.gastos)}</span><button onClick={()=>setVersus(a=>a.filter(x=>x.id!==v.id))}>×</button></div>)}{versus.length===2&&<p>{eligible?'Duas campanhas do mesmo ano e cargo. Compare votos, gastos e contexto territorial.':'Atenção: anos/cargos diferentes; não compare diretamente como se fossem disputas equivalentes.'}</p>}</div>
- <div className="insight-under-poster"><span>ANÁLISE QUE CRUZA O MURO</span><p><b>452 de 1.236 municípios</b> mantiveram a mesma sigla líder em votos de vereador entre 2020 e 2024. Isso não mede permanência ideológica.</p><button onClick={()=>onResearch(7)}>EXPLORAR A MUDANÇA DOS PARTIDOS <ArrowUpRight size={16}/></button><button onClick={()=>onResearch(9)}>COMPARAR PROPAGANDA E GASTOS <ArrowUpRight size={16}/></button></div>
+ <div className="insight-under-poster"><span>ANÁLISE QUE CRUZA O MURO</span><p>Quais municípios mantiveram a mesma sigla líder? Abra a comparação para consultar a base atual. Liderança agregada não mede permanência ideológica.</p><button onClick={()=>onResearch(7)}>EXPLORAR A MUDANÇA DOS PARTIDOS <ArrowUpRight size={16}/></button><button onClick={()=>onResearch(9)}>COMPARAR PROPAGANDA E GASTOS <ArrowUpRight size={16}/></button></div>
  </aside></div>
  <ComparisonPanel topic="partidos" mode={mode}/>
  </div>;

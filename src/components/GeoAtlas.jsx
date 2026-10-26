@@ -1,10 +1,12 @@
+import {researchScale} from '../atlas/researchScale.js';
 import {useEffect,useMemo,useState} from 'react';
 import {geoMercator,geoPath,geoGraticule} from 'd3-geo';
 import {ArrowLeft,MapPin,RotateCcw} from 'lucide-react';
 import {COVERAGE,NO_DATA_COLOR,indicatorSettings,indicatorLegend,formatIndicator,mapColor,prepareGeography,municipalityId} from '../atlas/geography.js';
 
 const cache=new Map();
-export default function GeoAtlas({uf,onUf,onSelect,municipios,indicator,selected,loading=false}){
+export default function GeoAtlas({uf,onUf,onSelect,municipios,indicator,selected,loading=false,metricDefinition=null}){
+  const definition=metricDefinition||indicatorSettings[indicator],customScale=metricDefinition?researchScale(metricDefinition):null;
   const [loaded,setLoaded]=useState(null),[error,setError]=useState(false),[retry,setRetry]=useState(0),[hover,setHover]=useState(null);
   const source=uf||'estados';
   useEffect(()=>{
@@ -25,22 +27,24 @@ export default function GeoAtlas({uf,onUf,onSelect,municipios,indicator,selected
   const highlightedFeature=uf&&geo?.features.find(f=>municipalityId(f)===(hover?.id||String(selected?.id)));
   const activePoint=activeFeature&&path?.centroid(activeFeature);
   const stateName=cache.get('estados')?.features.find(f=>f.properties.uf===uf)?.properties.nome||uf;
-  const formatValue=value=>formatIndicator(value,indicator);
+  const formatValue=value=>customScale?customScale.format(value):formatIndicator(value,indicator);
+  const fillValue=value=>customScale?customScale.color(value):mapColor(value,indicator);
+  const legend=customScale?customScale.legend:indicatorLegend(indicator);
   return <div className="atlas-cartography">
     <div className="atlas-map-heading"><div><span>MAPA / {uf||'BRASIL'} · COBERTURA PARCIAL</span><h3>{uf?stateName:'O TERRITÓRIO DO ACERVO.'}</h3></div>{uf&&<button onClick={()=>onUf('')}><ArrowLeft size={15}/> VER BRASIL</button>}</div>
     <p className="atlas-map-instruction">{uf?'Cada contorno, um município. Selecione no mapa ou encontre a ficha ao lado.':'Mapa de cobertura. Abra um dos seis estados para consultar seus municípios.'}</p>
     <div className="atlas-map-sheet" aria-busy={!geo&&!error}>
       <div className="atlas-map-viewport">
-      {!geo?<div className="atlas-map-message" role="status"><MapPin size={32}/><p>{error?'Não foi possível abrir o mapa.':'Desdobrando o mapa…'}</p>{error&&<button onClick={()=>setRetry(n=>n+1)}><RotateCcw size={15}/> TENTAR NOVAMENTE</button>}</div>:<svg viewBox="0 0 740 510" preserveAspectRatio="xMidYMid meet" className="atlas-geographic-map" role="group" aria-label={uf?`Mapa dos municípios de ${stateName} · ${indicatorSettings[indicator].context}`:'Mapa do Brasil com os seis estados do acervo'}>
+      {!geo?<div className="atlas-map-message" role="status"><MapPin size={32}/><p>{error?'Não foi possível abrir o mapa.':'Desdobrando o mapa…'}</p>{error&&<button onClick={()=>setRetry(n=>n+1)}><RotateCcw size={15}/> TENTAR NOVAMENTE</button>}</div>:<svg viewBox="0 0 740 510" preserveAspectRatio="xMidYMid meet" className="atlas-geographic-map" role="group" aria-label={uf?`Mapa dos municípios de ${stateName} · ${definition.context}`:'Mapa do Brasil com os seis estados do acervo'}>
         <defs><pattern id="atlas-outside" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="#e8e4d5"/><path d="M0 6L6 0" stroke="#c5c8b7" strokeWidth=".65"/></pattern></defs>
         {!uf&&<path d={path(grid)||''} className="atlas-graticule" fill="none"/>}
         {geo.features.map(f=>{
           const p=f.properties,id=municipalityId(f),record=lookup.get(id),covered=uf||COVERAGE.includes(p.uf);
           const active=uf&&String(selected?.id)===id;
-          const label=uf?`${p.nome} · ${uf} · ${formatValue(record?.[indicator])} · ${indicatorSettings[indicator].context}`:`${p.nome}${covered?' · Explorar municípios':' · Fora do acervo'}`;
+          const label=uf?`${p.nome} · ${uf} · ${formatValue(record?.[indicator])} · ${definition.context}`:`${p.nome}${covered?' · Explorar municípios':' · Fora do acervo'}`;
           const pick=()=>{if(uf)onSelect(record||{id,nome:p.nome,uf});else if(covered)onUf(p.uf)};
           return <path key={id} d={path(f)||''} className={`atlas-region ${covered?'is-interactive':''} ${active?'is-selected':''}`}
-            fill={uf?mapColor(record?.[indicator],indicator):covered?'#619778':'url(#atlas-outside)'}
+            fill={uf?fillValue(record?.[indicator]):covered?'#619778':'url(#atlas-outside)'}
             stroke={active?'#b13b2e':uf?'#506968':'#829781'} strokeWidth={active?2.3:uf?.6:1}
             vectorEffect="non-scaling-stroke" role={covered?'button':undefined} tabIndex={covered?0:undefined}
             aria-label={label} aria-pressed={covered?!!active:undefined} onClick={covered?pick:undefined}
@@ -54,9 +58,9 @@ export default function GeoAtlas({uf,onUf,onSelect,municipios,indicator,selected
         {!uf&&<text className="atlas-ocean" x="590" y="310" transform="rotate(-65 590 310)" aria-hidden="true">OCEANO ATLÂNTICO</text>}
       </svg>}
       </div>
-      <div className="atlas-map-readout" aria-live="polite"><MapPin size={16}/>{loading?'Carregando as fichas de todos os municípios deste recorte…':hover?.label|| (selected&&uf?`${selected.nome} · ${uf} · ${formatValue(selected[indicator])}`:uf?'Os contornos permitem abrir as fichas, mesmo quando não há valor carregado.':'6 estados · 1.236 municípios · Cobertura parcial do Brasil')}</div>
+      <div className="atlas-map-readout" aria-live="polite"><MapPin size={16}/>{loading?'Carregando as fichas de todos os municípios deste recorte…':hover?.label|| (selected&&uf?`${selected.nome} · ${uf} · ${formatValue(selected[indicator])}`:uf?'Os contornos permitem abrir as fichas, mesmo quando não há valor carregado.':`${municipios.length} municípios carregados · Cobertura parcial do Brasil`)}</div>
     </div>
-    {uf?<div className="atlas-numeric-legend" aria-label={`Legenda numérica: ${indicatorSettings[indicator].label}`}><div className="atlas-legend-heading"><strong>{indicatorSettings[indicator].label}</strong><span>CLASSES FIXAS · DO MENOR AO MAIOR</span></div><ul>{indicatorLegend(indicator).map(bin=><li key={bin.color}><i style={{background:bin.color}} aria-hidden="true"/><span>{bin.label}</span></li>)}</ul><p><i style={{background:NO_DATA_COLOR}} aria-hidden="true"/>Sem valor carregado · não equivale a zero.</p><small>Limite inferior incluído; limite superior excluído. As mesmas classes são usadas em todas as UFs.</small></div>:<div className="atlas-map-key"><span><i style={{background:'#619778'}}/>Estados do acervo</span><span><i className="outside"/>Fora do acervo</span><p>A cor dos estados indica cobertura, não o valor dos indicadores.</p></div>}
+    {uf?<div className="atlas-numeric-legend" aria-label={`Legenda numérica: ${definition.label}`}><div className="atlas-legend-heading"><strong>{definition.label}</strong><span>CLASSES FIXAS · DO MENOR AO MAIOR</span></div><ul>{legend.map(bin=><li key={bin.color}><i style={{background:bin.color}} aria-hidden="true"/><span>{bin.label}</span></li>)}</ul><p><i style={{background:NO_DATA_COLOR}} aria-hidden="true"/>Sem valor carregado · não equivale a zero.</p><small>Limite inferior incluído; limite superior excluído. As mesmas classes são usadas em todas as UFs.</small></div>:<div className="atlas-map-key"><span><i style={{background:'#619778'}}/>Estados do acervo</span><span><i className="outside"/>Fora do acervo</span><p>A cor dos estados indica cobertura, não o valor dos indicadores.</p></div>}
     <div className="atlas-map-source">Malha simplificada: <a href="https://servicodados.ibge.gov.br/api/docs/malhas?versao=3" target="_blank" rel="noreferrer">IBGE</a> · Limites geográficos não indicam disponibilidade de dados.</div>
   </div>;
 }

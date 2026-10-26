@@ -1,141 +1,276 @@
+import Portrait from '../catalog/Portrait.jsx';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import * as THREE from 'three';
 import {Canvas,useFrame,useThree} from '@react-three/fiber';
 import {OrbitControls} from '@react-three/drei';
 import SceneBoundary from './SceneBoundary.jsx';
 
-// Arquivador físico com divisórias: a mesma caixa aceita milhares de registros,
-// carregados em páginas pelo componente de busca. Tudo no Canvas é geometria real.
+// Constantes editoriais do Arquivo da Democracia
 const CREAM='#f5e8c9', INK='#173b71', RED='#bf4738', GOLD='#ecc454';
 const fmt=n=>n==null?'Não informado':Number(n).toLocaleString('pt-BR');
 const money=n=>n==null?'Não informado':Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const safe=s=>String(s??'—');
-function canvasTexture(draw,width=960,height=1280){
+
+// Funções de apoio e legado para Three.js
+function canvasTexture(draw,width=1200,height=1600){
  const c=document.createElement('canvas');c.width=width;c.height=height;
  const x=c.getContext('2d');draw(x,width,height);
- const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return t;
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;return t;
 }
+
 function labelTexture(title,color=INK){return canvasTexture((c,w,h)=>{
- c.fillStyle='#f2e7cf';c.fillRect(0,0,w,h);c.strokeStyle=color;c.lineWidth=26;c.strokeRect(13,13,w-26,h-26);
+ c.fillStyle='#f2e7cf';c.fillRect(0,0,w,h);c.strokeStyle=color;c.lineWidth=28;c.strokeRect(14,14,w-28,h-28);
  c.fillStyle=color;c.font='900 190px Arial';c.textAlign='center';c.textBaseline='middle';
  const t=safe(title).slice(0,11).toUpperCase();
- c.font=`900 ${t.length>9?125:t.length>6?156:205}px Arial`;c.fillText(t,w/2,h/2,w-85);
- },700,330)}
-function textLines(ctx,text,x,y,maxWidth,size=90,color=INK,lineHeight=1.02,maxLines=3){
+ c.font=`900 ${t.length>9?135:t.length>6?165:215}px Arial`;c.fillText(t,w/2,h/2,w-80);
+ },800,360)}
+
+function textLines(ctx,text,x,y,maxWidth,size=105,color=INK,lineHeight=1.05,maxLines=3){
  ctx.font=`900 ${size}px 'Arial Narrow',Arial,sans-serif`;ctx.textAlign='center';ctx.fillStyle=color;
  const words=safe(text).toUpperCase().split(/\s+/),lines=[];let current='';
  for(const word of words){const candidate=(current+' '+word).trim();if(ctx.measureText(candidate).width>maxWidth&&current){lines.push(current);current=word}else current=candidate}
  if(current)lines.push(current);lines.slice(0,maxLines).forEach((line,i)=>ctx.fillText(line,x,y+i*size*lineHeight,maxWidth));
  return y+Math.min(lines.length,maxLines)*size*lineHeight;
 }
-function createCandidateTexture(candidate,back=false){return canvasTexture((c,w,h)=>{
+
+export function createCandidateTexture(candidate,back=false){return canvasTexture((c,w,h)=>{
  c.fillStyle='#fff0d3';c.fillRect(0,0,w,h);
- for(let y=10;y<h;y+=24){for(let x=12;x<w;x+=25){c.fillStyle='rgba(100,73,42,.055)';c.fillRect(x,y,2,2)}}
- c.strokeStyle='#a89472';c.lineWidth=9;c.strokeRect(20,20,w-40,h-40);
- c.fillStyle=INK;c.fillRect(35,36,w-70,170);
- c.textAlign='center';c.fillStyle='#fff4da';c.font='900 42px Arial';c.fillText(back?'DOSSIÊ ELEITORAL / VERSO':'ARQUIVO DA DEMOCRACIA',w/2,102);
- c.fillStyle=GOLD;c.font='700 34px monospace';c.fillText(`${safe(candidate.ano)}  ·  ${safe(candidate.uf)}  ·  ${safe(candidate.cargo)}`.slice(0,45),w/2,160,w-110);
+ c.strokeStyle='#a89472';c.lineWidth=12;c.strokeRect(22,22,w-44,h-44);
+ c.fillStyle=INK;c.fillRect(40,40,w-80,210);
+ c.textAlign='center';c.fillStyle='#fff4da';c.font='900 52px Arial';c.fillText(back?'DOSSIÊ ELEITORAL / VERSO':'ARQUIVO DA DEMOCRACIA',w/2,125);
+ c.fillStyle=GOLD;c.font='700 42px monospace';c.fillText(`${safe(candidate?.ano)}  ·  ${safe(candidate?.uf)}  ·  ${safe(candidate?.cargo)}`.slice(0,45),w/2,198,w-120);
  if(!back){
-   c.fillStyle='#c54835';c.fillRect(35,210,w-70,74);
-   c.fillStyle='#fff5df';c.font='bold 37px Arial';c.fillText('SANTINHO DO ACERVO · NÃO É PROPAGANDA OFICIAL',w/2,259,w-100);
-   // Ilustração editorial neutra; não inventar retratos.
-   c.fillStyle='#dfc499';c.fillRect(115,312,730,375);
-   for(let y=325;y<683;y+=8){c.strokeStyle='#bc9c6959';c.lineWidth=2;c.beginPath();c.moveTo(120,y);c.lineTo(838,y);c.stroke()}
-   c.fillStyle='#184476';c.beginPath();c.arc(480,434,102,0,Math.PI*2);c.fill();
-   c.fillStyle='#184476';c.beginPath();c.ellipse(480,676,235,181,0,Math.PI,Math.PI*2);c.fill();
-   c.fillStyle='#fff2d4';c.fillRect(120,642,720,39);c.font='bold 22px monospace';c.fillStyle='#8b6341';c.fillText('RETRATO NÃO DISPONÍVEL · SILHUETA EDITORIAL',w/2,667,690);
-   c.fillStyle=RED;c.font='900 178px Arial';c.fillText(safe(candidate.numero),w/2,876,835);
-   const final=textLines(c,candidate.nome,w/2,979,840,88,INK,1,2);
-   c.fillStyle=INK;c.fillRect(100,Math.min(final+8,1137),760,58);
-   c.fillStyle='#fff5df';c.font='bold 32px Arial';c.fillText(`${safe(candidate.partido)}  ·  ${safe(candidate.resultado)}`.slice(0,35),w/2,Math.min(final+47,1177),715);
+   c.fillStyle=RED;c.font='900 220px Arial';c.fillText(safe(candidate?.numero),w/2,1100,1050);
+   textLines(c,candidate?.nome,w/2,1225,1050,105,INK,1.05,2);
+   c.fillText(`${safe(candidate?.partido)}  ·  ${safe(candidate?.resultado)}`,w/2,1475);
  }else{
-  const fields=[['CANDIDATURA',safe(candidate.nome)],['NÚMERO / PARTIDO',`${safe(candidate.numero)} · ${safe(candidate.partido)}`],['TERRITÓRIO',`${safe(candidate.municipio||candidate.uf)} / ${safe(candidate.uf)}`],['VOTOS',fmt(candidate.votos)],['DESPESAS DECLARADAS',money(candidate.gastos)],['PATRIMÔNIO DECLARADO',money(candidate.patrimonio)],['ESCOLARIDADE',safe(candidate.escolaridade||'Não informada')],['RESULTADO',safe(candidate.resultado)]];
-  let y=290;fields.forEach(([a,b],i)=>{c.fillStyle=i%2?'#eadac0':'#f8ecd5';c.fillRect(61,y-33,840,101);c.fillStyle=RED;c.textAlign='left';c.font='bold 22px monospace';c.fillText(a,84,y,780);c.fillStyle=INK;c.font='bold 36px Arial';c.fillText(b.slice(0,49),83,y+43,760);y+=112});
-  c.textAlign='center';c.fillStyle='#7c684e';c.font='bold 22px Arial';c.fillText('FONTE: DADOS ELEITORAIS · AUSÊNCIA DE DADO ≠ ZERO',w/2,1235,870);
+   c.fillText(safe(candidate?.nome),105,360);
+   c.fillText(`${safe(candidate?.numero)} · ${safe(candidate?.partido)}`,105,500);
+   c.fillText(fmt(candidate?.votos),105,640);
+   c.fillText(money(candidate?.gastos),105,780);
+   c.fillText(money(candidate?.patrimonio),105,920);
  }
  })}
-function Block({position,args,color,metalness=0,roughness=.77,onClick}){
+
+export function Block({position,args,color,metalness=0,roughness=.77,onClick}){
  return <mesh position={position} onClick={onClick} castShadow receiveShadow><boxGeometry args={args}/><meshStandardMaterial color={color} roughness={roughness} metalness={metalness}/></mesh>;
 }
-function IndexDivider({entry,i,count,selected,onChoose}){
- const z=1.32-i*(3.15/Math.max(count-1,1));const [active,setActive]=useState(false);
- const tex=useMemo(()=>labelTexture(entry.short||entry.label,entry.color||INK),[entry.short,entry.label,entry.color]);
- useEffect(()=>()=>tex.dispose(),[tex]);
 
- return <group position={[-1.75,0,z]} onClick={e=>{e.stopPropagation();onChoose(entry.id)}} onPointerOver={e=>{e.stopPropagation();setActive(true);document.body.style.cursor='pointer'}} onPointerOut={()=>{setActive(false);document.body.style.cursor=''}}>
-  <Block position={[0,1.4,0]} args={[4.5,2.22,.055]} color={selected?'#fce7b8':'#e7d8b9'}/>
-  <Block position={[-1.33,2.59,.006]} args={[1.7,.38,.08]} color={selected?'#d75a46':entry.color||'#b78954'}/>
-  <mesh position={[-1.33,2.59,.056]}><planeGeometry args={[1.55,.28]}/><meshBasicMaterial map={tex} side={THREE.DoubleSide}/></mesh>
-  {active&&<Block position={[0,.23,.08]} args={[4.55,.08,.04]} color="#d5af66"/>}
- </group>;
+export function IndexDivider({entry,i,count,selected,onChoose}){
+ const z=1.32-i*(3.15/Math.max(count-1,1));
+ const tex=useMemo(()=>labelTexture(entry?.short||entry?.label,entry?.color||INK),[entry?.short,entry?.label,entry?.color]);
+ useEffect(()=>()=>tex.dispose(),[tex]);
+ return <group position={[-1.75,0,z]} onClick={e=>{e.stopPropagation();onChoose(entry?.id)}}><Block position={[0,1.4,0]} args={[4.5,2.22,.055]} color={selected?'#fce7b8':'#e7d8b9'}/></group>;
 }
-function RowCard({i,count,selected,onPull,color}){
- const ref=useRef();const [hover,setHover]=useState(false);
- const z=1.64-i*.24;
- useFrame((_,dt)=>{if(ref.current){const target=hover?.2:selected?.5:0;ref.current.position.y=THREE.MathUtils.damp(ref.current.position.y,target,9,dt)}});
- return <group ref={ref} position={[-1.75,0,z]} onClick={e=>{e.stopPropagation();onPull('',i)}} onPointerOver={e=>{e.stopPropagation();setHover(true);document.body.style.cursor='pointer'}} onPointerOut={()=>{setHover(false);document.body.style.cursor=''}}>
-   <Block args={[4.06,2.18,.075]} position={[0,1.35,0]} color={selected?'#fff3d5':hover?'#f8eed4':'#f0e1c0'}/>
-   <Block args={[1.15,.24,.09]} position={[1.15,2.49,.01]} color={selected?'#d14f3d':color}/>
- </group>;
+
+export function RowCard({i,count,selected,onPull,color}){
+ return <group position={[-1.75,0,1.64-i*.24]} onClick={e=>{e.stopPropagation();onPull('',i)}}><Block args={[4.06,2.18,.075]} position={[0,1.35,0]} color={selected?'#fff3d5':'#f0e1c0'}/></group>;
 }
-function Extracted({candidate,flipped,onFlip}){
- const root=useRef();const front=useMemo(()=>createCandidateTexture(candidate,false),[candidate]);
- const back=useMemo(()=>createCandidateTexture(candidate,true),[candidate]);
- useEffect(()=>()=>{front.dispose();back.dispose()},[front,back]);
- const born=useRef(0);useEffect(()=>{born.current=0},[candidate.id]);
+
+export function Extracted({candidate,flipped,onFlip}){
+ const root=useRef();
  useFrame((_,dt)=>{
-  if(!root.current)return;
-  born.current=Math.min(1,born.current+dt*.84);
-  const t=1-Math.pow(1-born.current,3);
-  root.current.position.set(-1.75+4.15*t,1.25+1.34*t,1.0+3.38*t);
-  root.current.rotation.y=THREE.MathUtils.damp(root.current.rotation.y,flipped?Math.PI:0,8,dt);
-  root.current.rotation.z=THREE.MathUtils.damp(root.current.rotation.z,t*.034,6,dt);
-  root.current.scale.setScalar(.45+.55*t);
+  if(root.current){root.current.rotation.y=flipped?Math.PI:0;}
  });
- return <group ref={root} position={[-1.75,1.25,1]} onClick={e=>{e.stopPropagation();onFlip()}} onPointerOver={e=>{e.stopPropagation();document.body.style.cursor='pointer'}} onPointerOut={()=>{document.body.style.cursor=''}}>
-  <Block position={[0,0,0]} args={[2.87,3.91,.07]} color="#d0b792"/>
-  <mesh position={[0,0,.039]}><planeGeometry args={[2.78,3.82]}/><meshBasicMaterial map={front} side={THREE.FrontSide}/></mesh>
-  <mesh position={[0,0,-.039]} rotation-y={Math.PI}><planeGeometry args={[2.78,3.82]}/><meshBasicMaterial map={back} side={THREE.FrontSide}/></mesh>
- </group>;
+ return <group ref={root} position={[-1.75,1.25,1]} onClick={e=>{e.stopPropagation();onFlip()}}><Block position={[0,0,0]} args={[2.87,3.91,.07]} color="#d0b792"/></group>;
 }
-function CameraRig({onChoose,drawers,activeDrawer,fileCount,selectedFile,onPull,candidate,flipped,onFlip,phase}){
- const orbit=useRef();const {camera}=useThree();
- useEffect(()=>{camera.position.set(6.9,6.1,12.8);camera.lookAt(.05,1.75,.6);camera.updateProjectionMatrix()},[camera]);
- useFrame((_,dt)=>{if(!orbit.current)return;const goal=candidate?new THREE.Vector3(1.15,2.05,1.55):new THREE.Vector3(.3,1.7,0);
-  if(orbit.current.target.distanceTo(goal)>.018){const was=orbit.current.target.clone();orbit.current.target.lerp(goal,1-Math.exp(-dt*2.3));camera.position.add(orbit.current.target.clone().sub(was));orbit.current.update()}
- });
+
+export function CameraRig({drawers,activeDrawer,selectedFile,onChoose,onPull,fileCount,candidate,flipped,onFlip,phase}){
+ const orbit=useRef();
  return <>
-  <color attach="background" args={['#d6c4a7']}/><ambientLight intensity={1.6}/><hemisphereLight args={['#fff1d4','#776048',1.15]}/>
-  <directionalLight position={[5,8,10]} intensity={2.3}/><directionalLight position={[-6,3,4]} intensity={.8} color="#d5e1f2"/>
-  <mesh rotation-x={-Math.PI/2} position={[0,-.12,0]} receiveShadow><planeGeometry args={[45,35]}/><meshStandardMaterial color="#cab69b" roughness={1}/></mesh>
-  {/* Caixa física horizontal, inspirada no fichário de cartões indexados. */}
-  <group position={[-1.75,0,0]}>
-   <Block args={[5.25,.17,4.5]} position={[0,.08,-.02]} color="#343f46" metalness={.25}/>
-   <Block args={[.24,1.76,4.45]} position={[-2.61,.92,0]} color="#4a5459" metalness={.28}/>
-   <Block args={[.24,1.76,4.45]} position={[2.61,.92,0]} color="#4a5459" metalness={.28}/>
-   <Block args={[5.27,1.76,.22]} position={[0,.92,-2.25]} color="#333f47" metalness={.32}/>
-   <Block args={[5.3,1.20,.24]} position={[0,.66,2.22]} color="#4d585d" metalness={.2}/>
-   <Block args={[5.5,.14,4.7]} position={[0,.10,0]} color="#62727a" metalness={.31}/>
-   <Block args={[5.28,.16,.22]} position={[0,1.36,2.24]} color="#7d898c" metalness={.4}/>
-   <Block args={[1.8,.30,.05]} position={[0,.55,2.37]} color="#e0c995"/>
-   <Block args={[1.6,.18,.065]} position={[0,.55,2.41]} color="#183e78"/>
-  </group>
-  {drawers.map((entry,i)=><IndexDivider key={entry.id} entry={entry} i={i} count={drawers.length} selected={activeDrawer===entry.id} onChoose={onChoose}/>)}
-  {Array.from({length:Math.max(9,Math.min(fileCount,12))},(_,i)=><RowCard key={i} i={i} count={fileCount} selected={i===selectedFile} onPull={onPull} color={['#f1c951','#b9503b','#296aa0','#568a71'][i%4]}/>)}
-  {candidate&&<Extracted key={candidate.id} candidate={candidate} flipped={flipped} onFlip={onFlip}/>}
-  <OrbitControls ref={orbit} enablePan={false} minDistance={9.4} maxDistance={25} minPolarAngle={.52} maxPolarAngle={1.32} minAzimuthAngle={-.8} maxAzimuthAngle={.8} target={[.3,1.7,0]}/>
+  <Canvas dpr={[1,1.5]}><OrbitControls ref={orbit} makeDefault/></Canvas>
  </>;
 }
-function FallbackIndex({candidate,flipped,onFlip,drawers,onChoose,onExpenses}){
- return <div className="index-graphic-fallback"><div className="index-box-face"><div className="index-tab-line">{drawers.map(d=><button key={d.id} style={{'--folder-tone':d.color}} onClick={()=>onChoose(d.id)}>{d.short||d.label}</button>)}</div><div className="index-stack-visual">{Array.from({length:9},(_,i)=><i key={i}/>)}</div><div className="index-box-front">ARQUIVO · CANDIDATURAS</div></div>{candidate&&<button className="index-fallback-poster" onClick={onFlip}><small>{candidate.ano} · {candidate.partido}</small><b>{flipped?fmt(candidate.votos):candidate.numero}</b><strong>{candidate.nome}</strong><span>{flipped?`${money(candidate.gastos)} EM DESPESAS`:'TOQUE PARA VIRAR ↻'}</span></button>}</div>;
-}
-export default function Arquivo3D({drawers=[],activeDrawer='',selectedFile=-1,onChoose=()=>{},onPull=()=>{},fileCount=0,phase='pronta',candidate=null,flipped=false,onFlip=()=>{},onClose=()=>{},onCompare=()=>{},onExpenses=()=>{}}){
- return <div className="index-3d-stage">
-  <SceneBoundary fallback={<FallbackIndex candidate={candidate} flipped={flipped} onFlip={onFlip} drawers={drawers} onChoose={onChoose} onExpenses={onExpenses}/> }>
-   <Canvas dpr={[1,1.4]} camera={{position:[6.9,6.1,12.8],fov:40}} gl={{antialias:true,alpha:false}}>
-    <CameraRig drawers={drawers} activeDrawer={activeDrawer} selectedFile={selectedFile} onChoose={onChoose} onPull={onPull} fileCount={fileCount} candidate={candidate} flipped={flipped} onFlip={onFlip} phase={phase}/>
-   </Canvas>
-  </SceneBoundary>
-  {candidate&&<div className="index-scene-actions"><span>FICHA RETIRADA · {candidate.nome}</span><button onClick={onFlip}>↻ VIRAR</button><button onClick={onCompare}>+ COMPARAR</button><button onClick={onExpenses}>VER DESPESAS ↗</button><button onClick={onClose} aria-label="Guardar ficha">✕</button></div>}
- </div>;
+
+// Fichário Tátil Nativo — Dossiê em Papel e Santinho Eleitoral com Flip em 3D Real (CSS)
+export default function Arquivo3D({
+  drawers = [],
+  activeDrawer = '',
+  selectedFile = -1,
+  onChoose = () => {},
+  onPull = () => {},
+  fileCount = 0,
+  phase = 'pronta',
+  candidate = null,
+  flipped = false,
+  onFlip = () => {},
+  onClose = () => {},
+  onCompare = () => {},
+  showCompare = true,
+  onExpenses = () => {}
+}) {
+  return (
+    <div className="index-3d-stage">
+      <div className="tactile-fichario-stage">
+        {/* Divisórias do fichário no topo da mesa */}
+        <div className="tactile-tabs-shelf" role="tablist" aria-label="Divisórias do fichário">
+          {drawers.slice(0, 8).map((entry) => {
+            const isActive = activeDrawer === entry.id;
+            return (
+              <button
+                key={entry.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                className={`tactile-tab-btn ${isActive ? 'active' : ''}`}
+                style={{ '--folder-tone': entry.color || '#c85542' }}
+                onClick={() => onChoose(entry.id)}
+                title={`Divisória: ${entry.label}`}
+              >
+                {entry.short || entry.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Palco central com a Ficha / Dossiê */}
+        <div className="tactile-card-stage">
+          {candidate ? (
+            <div
+              className={`tactile-card-shell ${flipped ? 'is-flipped' : ''}`}
+              onClick={onFlip}
+              title="Clique para virar a ficha (frente / verso)"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onFlip(); } }}
+              aria-label={`Dossiê de ${candidate.nome}. Pressione espaço ou clique para virar a folha.`}
+            >
+              {/* FRENTE: Santinho do Acervo */}
+              <article className="tactile-face tactile-face-front">
+                <header style={{ borderBottom: '3px double #173e78', paddingBottom: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 900, fontFamily: 'monospace', color: '#173e78', letterSpacing: '0.08em' }}>
+                      ARQUIVO DA DEMOCRACIA
+                    </span>
+                    <span style={{ fontSize: '9px', fontWeight: 800, fontFamily: 'monospace', color: '#bf4738', background: '#ffe4dd', padding: '2px 6px', borderRadius: '2px' }}>
+                      ACERVO ELEITORAL
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#88622c', fontFamily: 'monospace', fontWeight: 700, marginTop: '4px' }}>
+                    {safe(candidate.ano)} · {safe(candidate.uf)} · {safe(candidate.cargo)}
+                  </div>
+                </header>
+
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', margin: 'auto 0', gap: '8px' }}>
+                  <span style={{ fontSize: '9px', fontWeight: 800, color: '#9c382b', background: '#ffdcd6', border: '1px dashed #bf4738', padding: '3px 8px', letterSpacing: '0.05em' }}>
+                    SANTINHO DO ACERVO · NÃO É PROPAGANDA OFICIAL
+                  </span>
+
+                  <div className="filing-official-photo"><Portrait name={candidate.nome} url={candidate.foto_url} photoYear={candidate.foto_ano}/></div>
+                  <small className="filing-number-label">NÚMERO NA ELEIÇÃO</small>
+                  <div style={{ fontSize: 'clamp(24px, 3vw, 32px)', fontWeight: 900, color: '#bf4738', lineHeight: 0.9, letterSpacing: '-0.04em', textShadow: '1px 2px 0 #fff' }}>
+                    {safe(candidate.numero)}
+                  </div>
+
+                  {/* Nome da Urna */}
+                  <h3 style={{ fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 900, color: '#173e78', margin: '2px 0 4px', lineHeight: 1.1, textTransform: 'uppercase' }}>
+                    {safe(candidate.nome)}
+                  </h3>
+
+                  {/* Tarja do partido e resultado */}
+                  <div style={{ background: '#173e78', color: '#fff5df', fontSize: '12px', fontWeight: 800, padding: '5px 14px', borderRadius: '3px', letterSpacing: '0.03em' }}>
+                    {safe(candidate.partido)} · {safe(candidate.resultado)}
+                  </div>
+                </div>
+
+                <footer style={{ borderTop: '1px dashed #ba9f7f', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px', fontFamily: 'monospace', color: '#6e5a42' }}>
+                  <span>{candidate.municipio ? `${candidate.municipio} / ${candidate.uf}` : candidate.uf}</span>
+                  <span style={{ color: '#bf4738', fontWeight: 800 }}>TOQUE PARA VIRAR ↻</span>
+                </footer>
+              </article>
+
+              {/* VERSO: Dossiê Detalhado com Dados Reais do Acervo */}
+              <article className="tactile-face tactile-face-back">
+                <header style={{ borderBottom: '3px double #173e78', paddingBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <span style={{ fontSize: '11px', fontWeight: 900, fontFamily: 'monospace', color: '#173e78', letterSpacing: '0.08em', display: 'block' }}>
+                      DOSSIÊ ELEITORAL / VERSO
+                    </span>
+                    <small style={{ fontSize: '9px', color: '#88622c', fontFamily: 'monospace' }}>REGISTRO OFICIAL NO ACERVO</small>
+                  </div>
+                  <span style={{ fontSize: '10px', fontWeight: 800, fontFamily: 'monospace', color: '#173e78', background: '#ece1ce', padding: '3px 7px', border: '1px solid #c2b197' }}>
+                    {safe(candidate.ano)}
+                  </span>
+                </header>
+
+                <div style={{ display: 'grid', gap: '5px', margin: 'auto 0', fontSize: '11px' }}>
+                  <div style={{ background: '#f5ecd8', padding: '5px 8px', borderRadius: '2px' }}>
+                    <small style={{ color: '#bf4738', fontSize: '9px', fontWeight: 800, display: 'block', fontFamily: 'monospace' }}>CANDIDATURA</small>
+                    <strong style={{ color: '#173e78', fontSize: '13px' }}>{safe(candidate.nome)}</strong>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px' }}>
+                    <div style={{ background: '#fff', border: '1px solid #e0d3bc', padding: '5px 8px', borderRadius: '2px' }}>
+                      <small style={{ color: '#bf4738', fontSize: '9px', fontWeight: 800, display: 'block', fontFamily: 'monospace' }}>NÚMERO / PARTIDO</small>
+                      <strong style={{ color: '#173e78' }}>{safe(candidate.numero)} · {safe(candidate.partido)}</strong>
+                    </div>
+                    <div style={{ background: '#fff', border: '1px solid #e0d3bc', padding: '5px 8px', borderRadius: '2px' }}>
+                      <small style={{ color: '#bf4738', fontSize: '9px', fontWeight: 800, display: 'block', fontFamily: 'monospace' }}>TERRITÓRIO</small>
+                      <strong style={{ color: '#173e78' }}>{safe(candidate.municipio || candidate.uf)} / {safe(candidate.uf)}</strong>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px' }}>
+                    <div style={{ background: '#f5ecd8', padding: '5px 8px', borderRadius: '2px' }}>
+                      <small style={{ color: '#bf4738', fontSize: '9px', fontWeight: 800, display: 'block', fontFamily: 'monospace' }}>VOTOS NOMINAIS</small>
+                      <strong style={{ color: '#173e78', fontSize: '13px' }}>{fmt(candidate.votos)}</strong>
+                    </div>
+                    <div style={{ background: '#f5ecd8', padding: '5px 8px', borderRadius: '2px' }}>
+                      <small style={{ color: '#bf4738', fontSize: '9px', fontWeight: 800, display: 'block', fontFamily: 'monospace' }}>RESULTADO</small>
+                      <strong style={{ color: '#173e78' }}>{safe(candidate.resultado)}</strong>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px' }}>
+                    <div style={{ background: '#fff', border: '1px solid #e0d3bc', padding: '5px 8px', borderRadius: '2px' }}>
+                      <small style={{ color: '#bf4738', fontSize: '9px', fontWeight: 800, display: 'block', fontFamily: 'monospace' }}>DESPESAS DECLARADAS</small>
+                      <strong style={{ color: '#173e78' }}>{money(candidate.gastos)}</strong>
+                    </div>
+                    <div style={{ background: '#fff', border: '1px solid #e0d3bc', padding: '5px 8px', borderRadius: '2px' }}>
+                      <small style={{ color: '#bf4738', fontSize: '9px', fontWeight: 800, display: 'block', fontFamily: 'monospace' }}>PATRIMÔNIO DECLARADO</small>
+                      <strong style={{ color: '#173e78' }}>{money(candidate.patrimonio)}</strong>
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#f5ecd8', padding: '5px 8px', borderRadius: '2px' }}>
+                    <small style={{ color: '#bf4738', fontSize: '9px', fontWeight: 800, display: 'block', fontFamily: 'monospace' }}>ESCOLARIDADE</small>
+                    <strong style={{ color: '#173e78' }}>{safe(candidate.escolaridade || 'Não informada')}</strong>
+                  </div>
+                </div>
+
+                <footer style={{ borderTop: '1px dashed #ba9f7f', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '9px', fontFamily: 'monospace', color: '#6e5a42' }}>
+                  <span>FONTE: BASE OFICIAL DE DADOS ELEITORAIS</span>
+                  <span style={{ color: '#bf4738', fontWeight: 800 }}>VOLTAR À FRENTE ↻</span>
+                </footer>
+              </article>
+            </div>
+          ) : (
+            <div className="tactile-empty-desk">
+              <div style={{ fontSize: '38px', marginBottom: '8px' }}>🗂️</div>
+              <strong style={{ fontSize: '18px', color: '#173e78', display: 'block', marginBottom: '6px' }}>
+                Fichário do Acervo Aberto
+              </strong>
+              <p style={{ fontSize: '12px', color: '#5b4731', lineHeight: 1.5, margin: '0 0 14px' }}>
+                Selecione qualquer candidatura no índice ao lado ou clique nas divisórias acima para puxar o santinho eleitoral.
+              </p>
+              <span style={{ display: 'inline-block', fontSize: '10px', fontFamily: 'monospace', color: '#9c382b', background: '#ffe9e4', padding: '4px 8px', borderRadius: '3px' }}>
+                CONSULTA DIRETA AO ACERVO
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Ações da ficha no rodapé */}
+      {candidate && (
+        <div className="index-scene-actions">
+          <span>FICHA RETIRADA · {candidate.nome}</span>
+          <button type="button" onClick={onFlip}>↻ VIRAR</button>
+          {showCompare&&<button type="button" onClick={onCompare}>+ COMPARAR</button>}
+          <button type="button" onClick={onExpenses}>VER DESPESAS ↗</button>
+          <button type="button" onClick={onClose} aria-label="Guardar ficha">✕</button>
+        </div>
+      )}
+    </div>
+  );
 }

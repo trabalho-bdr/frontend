@@ -23,7 +23,7 @@ test('série temporal preserva anos compatíveis sem misturar cargos', () => {
   assert.deepEqual(depFed.serie_temporal.map(s => s.ano), [2018, 2022]);
 });
 
-test('ranking ordena por custo_voto com votos estritamente positivos', async () => {
+test('ranking indisponível não apresenta candidaturas arquivadas por custo_voto', async () => {
   const res = await fetchQuestao1Ranking({
     ano: 2024,
     cargo: 'VEREADOR',
@@ -32,7 +32,7 @@ test('ranking ordena por custo_voto com votos estritamente positivos', async () 
     limit: 5
   });
 
-  assert.ok(res.rows.length > 0);
+  assert.equal(res.source,'unavailable');assert.deepEqual(res.rows,[]);
   // Todos os itens ordenados por custo_voto devem ter votos > 0
   for (const row of res.rows) {
     if (row.custo_voto != null) {
@@ -49,7 +49,7 @@ test('ranking ordena por custo_voto com votos estritamente positivos', async () 
   }
 });
 
-test('ranking ordena por maior despesa total', async () => {
+test('ranking indisponível não apresenta despesas arquivadas', async () => {
   const res = await fetchQuestao1Ranking({
     ano: 2024,
     cargo: 'VEREADOR',
@@ -58,7 +58,7 @@ test('ranking ordena por maior despesa total', async () => {
     limit: 5
   });
 
-  assert.ok(res.rows.length > 0);
+  assert.equal(res.source,'unavailable');assert.deepEqual(res.rows,[]);
   for (let i = 0; i < res.rows.length - 1; i++) {
     const cur = res.rows[i].gastos || 0;
     const prox = res.rows[i + 1].gastos || 0;
@@ -79,35 +79,28 @@ test('filtro de eleitos não inclui não eleitos nem suplentes', async () => {
   }
 });
 
-test('dispersão retorna pontos com medianas e estatística de correlação', async () => {
+test('dispersão indisponível não inventa pontos ou estatística', async () => {
   const res = await fetchQuestao1Dispersao({
     ano: 2024,
     cargo: 'VEREADOR'
   });
 
-  assert.ok(res.pontos.length > 0);
-  assert.ok(res.medianas.gastos > 0);
-  assert.ok(res.medianas.votos > 0);
-  assert.ok(res.correlacao.r_log != null);
-  assert.ok(res.correlacao.aviso_causalidade.includes('NÃO'));
+  assert.equal(res.source,'unavailable');assert.deepEqual(res.pontos,[]);assert.deepEqual(res.correlacao,{});
 });
 
 import { readFileSync } from 'node:fs';
 import { fetchQuestao1Dossie } from '../src/data/questao1Client.js';
 
-test('dossiê 01 fornece dados para os 7 gráficos analíticos (categorias, distribuição e custo-benefício)', async () => {
+test('dossiê sem conexão não inventa distribuições nem transforma amostras em outros cargos', async () => {
   const res = await fetchQuestao1Dossie({ ano: 2024, cargo: 'VEREADOR' });
-  assert.ok(res.por_partido.length >= 10, 'Deve retornar partidos para ranking, treemap, boxplot e custo-benefício');
-  assert.ok(res.por_uf.length === 6, 'Deve retornar as 6 UFs para ranking e boxplot estadual');
-  assert.ok(res.comparacao_cargos.length > 0, 'Deve retornar comparação lado a lado entre Deputado Estadual e Federal');
-  assert.ok(res.histograma_eleitos.length === 7, 'Deve retornar as 7 faixas de frequência do histograma de eleitos');
-  assert.ok(res.pontos_dispersao.length > 0, 'Deve retornar pontos com votos e gastos para o scatter plot');
-
-  for (const p of res.por_partido) {
-    assert.ok(p.eleitos > 0);
-    assert.ok(p.custo_por_cadeira > 0);
-    assert.ok(p.q1_gasto <= p.mediana_gasto && p.mediana_gasto <= p.q3_gasto, 'Quartis do boxplot consistentes');
-  }
+  assert.equal(res.source,'unavailable');
+  assert.deepEqual(res.por_partido,[]);
+  assert.deepEqual(res.histograma_eleitos,[]);
+  assert.deepEqual(res.pontos_dispersao,[]);
+  const federal=await fetchQuestao1Dispersao({ano:2022,cargo:'DEPUTADO FEDERAL'});
+  assert.deepEqual(federal.pontos,[]);
+  const municipal=await fetchQuestao1Overview({ano:2024,cargo:'VEREADOR',municipioId:'2304400'});
+  assert.equal(municipal.source,'unavailable');
 });
 
 test('interface Investigações integra CustoCadeiraDossie no Dossiê 01', () => {

@@ -8,12 +8,12 @@ import { getQ2Opcoes, getQ2Municipios, getQ2Patrimonio } from '../data/client.js
 import './patrimonio-mapa-dossie.css';
 
 const COVERED_UFS = [
-  { uf: 'CE', nome: 'Ceará', cands: '12.223' },
-  { uf: 'MA', nome: 'Maranhão', cands: '15.412' },
-  { uf: 'MS', nome: 'Mato Grosso do Sul', cands: '6.180' },
-  { uf: 'RJ', nome: 'Rio de Janeiro', cands: '19.840' },
-  { uf: 'RN', nome: 'Rio Grande do Norte', cands: '8.950' },
-  { uf: 'RS', nome: 'Rio Grande do Sul', cands: '22.350' }
+  { uf: 'CE', nome: 'Ceará' },
+  { uf: 'MA', nome: 'Maranhão' },
+  { uf: 'MS', nome: 'Mato Grosso do Sul' },
+  { uf: 'RJ', nome: 'Rio de Janeiro' },
+  { uf: 'RN', nome: 'Rio Grande do Norte' },
+  { uf: 'RS', nome: 'Rio Grande do Sul' }
 ];
 
 const UF_SET = new Set(COVERED_UFS.map(x => x.uf));
@@ -117,6 +117,7 @@ export default function PatrimonioMapaDossie({ mode = 'snapshot' }) {
   useEffect(() => {
     let active = true;
     setLoading(true);
+    setMapaData(null);
     getQ2Municipios({ ano, cargo, uf })
       .then(d => {
         if (active) setMapaData(d);
@@ -135,6 +136,7 @@ export default function PatrimonioMapaDossie({ mode = 'snapshot' }) {
       return;
     }
     let active = true;
+    setResumoData(null);
     getQ2Patrimonio({ ano, cargo, uf, municipio: mun || '' })
       .then(d => {
         if (active) setResumoData(d);
@@ -292,6 +294,7 @@ export default function PatrimonioMapaDossie({ mode = 'snapshot' }) {
 
   return (
     <div className="pmd-dossier" role="region" aria-label="Dossiê de Patrimônio e Sucesso Eleitoral">
+      <p className="expo-source" role="status">{loading?'Consultando…':mapaData?.source==='live'?'Consulta atual':mapaData?.source==='snapshot'?'Referência do acervo':'Recorte indisponível'} · {ano} · {cargo} · {uf||'6 UFs'}</p>
       {/* Cabeçalho */}
       <div className="pmd-header">
         <div className="pmd-header-main">
@@ -647,7 +650,7 @@ export default function PatrimonioMapaDossie({ mode = 'snapshot' }) {
               >
                 <strong>{s.uf}</strong>
                 <span>{s.nome}</span>
-                <small>{s.cands} cands</small>
+                
               </button>
             ))}
           </div>

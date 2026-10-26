@@ -1,0 +1,210 @@
+{
+  "extracted_at": "2026-10-25T19:20:49.628426+00:00",
+  "years": {
+    "2018": {
+      "url": "https://cdn.tse.jus.br/estatistica/sead/odsele/prestacao_contas/prestacao_de_contas_eleitorais_candidatos_2018.zip",
+      "files": [
+        {
+          "uf": "CE",
+          "name": "receitas_candidatos_2018_CE.csv",
+          "sha256": "516bb2da24b0a670223155ed6317053d29cbc4e28e6de5a197f26942db001d96",
+          "rows": 7353,
+          "excluded_before_snapshot": 90
+        },
+        {
+          "uf": "MA",
+          "name": "receitas_candidatos_2018_MA.csv",
+          "sha256": "9c341398cf6c5abc510893ca449dd6392753468c1eae51dacfe9bd077de5e3c5",
+          "rows": 4978,
+          "excluded_before_snapshot": 45
+        },
+        {
+          "uf": "MS",
+          "name": "receitas_candidatos_2018_MS.csv",
+          "sha256": "d4cd95a7239b831cf07c2b9239f3e86ff1acae385b1df280b30028a82fd862da",
+          "rows": 6151,
+          "excluded_before_snapshot": 27
+        },
+        {
+          "uf": "RJ",
+          "name": "receitas_candidatos_2018_RJ.csv",
+          "sha256": "4eab9bacb3e8a05d90d842c9778dadb047bb6d92007118bcac951e4afbc42f29",
+          "rows": 34216,
+          "excluded_before_snapshot": 659
+        },
+        {
+          "uf": "RN",
+          "name": "receitas_candidatos_2018_RN.csv",
+          "sha256": "d3963aa8f5825fcb7e078f84fb3dabc6a2d20932dab3238be4e4ceb3a2252a0c",
+          "rows": 5250,
+          "excluded_before_snapshot": 39
+        },
+        {
+          "uf": "RS",
+          "name": "receitas_candidatos_2018_RS.csv",
+          "sha256": "b208ce8824240e35cfacb02a7e08934e02880a2e1ab69cea3944473c5a19c447",
+          "rows": 20320,
+          "excluded_before_snapshot": 82
+        }
+      ],
+      "status": "loaded",
+      "candidaturas": 6135,
+      "conflicts_excluded": 2101,
+      "duplicates_removed": 2348
+    },
+    "2020": {
+      "url": "https://cdn.tse.jus.br/estatistica/sead/odsele/prestacao_contas/prestacao_de_contas_eleitorais_candidatos_2020.zip",
+      "files": [
+        {
+          "uf": "CE",
+          "name": "receitas_candidatos_2020_CE.csv",
+          "sha256": "b16982674c77eaa3e7f2507fe6a36a49b5e0a66f09c56d6a4cb8e88fc128cb8e",
+          "rows": 55703,
+          "excluded_before_snapshot": 742
+        },
+        {
+          "uf": "MA",
+          "name": "receitas_candidatos_2020_MA.csv",
+          "sha256": "7880ecabdf84ccac2c86474be62e9897691c573096bdd6a44b1bc251ffef4db0",
+          "rows": 52235,
+          "excluded_before_snapshot": 644
+        },
+        {
+          "uf": "MS",
+          "name": "receitas_candidatos_2020_MS.csv",
+          "sha256": "c8e47b2f085008d30eef1f18125973247ab441b61f9f5b818b28c5c53e2b2185",
+          "rows": 33255,
+          "excluded_before_snapshot": 310
+        },
+        {
+          "uf": "RJ",
+          "name": "receitas_candidatos_2020_RJ.csv",
+          "sha256": "ccccd9b4b5ae992b889d8323eba91ed124af3fa69ffbbe0021542919e89c714b",
+          "rows": 118076,
+          "excluded_before_snapshot": 1205
+        },
+        {
+          "uf": "RN",
+          "name": "receitas_candidatos_2020_RN.csv",
+          "sha256": "d9d730d8951cc6e02cbbc79b5ad2e409f7713d9e784491807a1e43506010852a",
+          "rows": 38622,
+          "excluded_before_snapshot": 733
+        },
+        {
+          "uf": "RS",
+          "name": "receitas_candidatos_2020_RS.csv",
+          "sha256": "0a4f70276f85b44de52400abe28ebbad6886f5fc12db5dcd5e697469d2f3b4fa",
+          "rows": 160523,
+          "excluded_before_snapshot": 3298
+        }
+      ],
+      "status": "loaded",
+      "candidaturas": 102024,
+      "conflicts_excluded": 14892,
+      "duplicates_removed": 16045
+    },
+    "2022": {
+      "url": "https://cdn.tse.jus.br/estatistica/sead/odsele/prestacao_contas/prestacao_de_contas_eleitorais_candidatos_2022.zip",
+      "files": [
+        {
+          "uf": "CE",
+          "name": "receitas_candidatos_2022_CE.csv",
+          "sha256": "c5518792e6080275cbd840bdfe6c973290906c5f68666907fac2a2e2352924d2",
+          "rows": 5645,
+          "excluded_before_snapshot": 43
+        },
+        {
+          "uf": "MA",
+          "name": "receitas_candidatos_2022_MA.csv",
+          "sha256": "0fa6c141634f24e6079d48a70ac3db4d1442620d86d1a4f065f95b16520f1ef2",
+          "rows": 5600,
+          "excluded_before_snapshot": 31
+        },
+        {
+          "uf": "MS",
+          "name": "receitas_candidatos_2022_MS.csv",
+          "sha256": "b70caf0d8e61053be92ac505e74b078a5510d29f284b8a2d079bd84b0747fd37",
+          "rows": 4749,
+          "excluded_before_snapshot": 17
+        },
+        {
+          "uf": "RJ",
+          "name": "receitas_candidatos_2022_RJ.csv",
+          "sha256": "6a30200a31bf6cff44eb23dc8972fd18673b844431f3239aebc0a74994b5d97b",
+          "rows": 20719,
+          "excluded_before_snapshot": 74
+        },
+        {
+          "uf": "RN",
+          "name": "receitas_candidatos_2022_RN.csv",
+          "sha256": "e4de663a7ed17da8716b95396af439c0af7fd3907fbb2e6ab83b8e9e0b876d04",
+          "rows": 4248,
+          "excluded_before_snapshot": 1
+        },
+        {
+          "uf": "RS",
+          "name": "receitas_candidatos_2022_RS.csv",
+          "sha256": "509564621d62138680cf6fb14edd9f84aa51743baa9de882f6581ade4bd90613",
+          "rows": 22252,
+          "excluded_before_snapshot": 66
+        }
+      ],
+      "status": "loaded",
+      "candidaturas": 6295,
+      "conflicts_excluded": 1942,
+      "duplicates_removed": 2142
+    },
+    "2024": {
+      "url": "https://cdn.tse.jus.br/estatistica/sead/odsele/prestacao_contas/prestacao_de_contas_eleitorais_candidatos_2024.zip",
+      "files": [
+        {
+          "uf": "CE",
+          "name": "receitas_candidatos_2024_CE.csv",
+          "sha256": "cfe3c51cb05c79ffb4432a71e239863dd6dbfd6eed176236e0ac9d363ac2257a",
+          "rows": 42024,
+          "excluded_before_snapshot": 103
+        },
+        {
+          "uf": "MA",
+          "name": "receitas_candidatos_2024_MA.csv",
+          "sha256": "8b1875ae5272374f17d08b2380df1ac32c77f5bca5bb08b1b29d448a4faded12",
+          "rows": 51493,
+          "excluded_before_snapshot": 381
+        },
+        {
+          "uf": "MS",
+          "name": "receitas_candidatos_2024_MS.csv",
+          "sha256": "55b698c33bb7bfa36157a7d3116ccc2e7830438840ce2ff812ec7c42db509697",
+          "rows": 30448,
+          "excluded_before_snapshot": 68
+        },
+        {
+          "uf": "RJ",
+          "name": "receitas_candidatos_2024_RJ.csv",
+          "sha256": "e8cc9dcd0fa7ca472b64412088fc0f48671d3a0373b642fb4b816b4ed46fd935",
+          "rows": 93885,
+          "excluded_before_snapshot": 327
+        },
+        {
+          "uf": "RN",
+          "name": "receitas_candidatos_2024_RN.csv",
+          "sha256": "b866e4ae1197a0a3b3706dadc9db9f871ebc8cb1f297215b5eb7e4a8a385f4a4",
+          "rows": 32998,
+          "excluded_before_snapshot": 117
+        },
+        {
+          "uf": "RS",
+          "name": "receitas_candidatos_2024_RS.csv",
+          "sha256": "5c671b23af1a7a7cdc0f2596c92fb2373dff38ac2300c3133783ba5ea282c089",
+          "rows": 128736,
+          "excluded_before_snapshot": 360
+        }
+      ],
+      "status": "loaded",
+      "candidaturas": 77674,
+      "conflicts_excluded": 22056,
+      "duplicates_removed": 23098
+    }
+  },
+  "method": "Receitas FINANCEIRAS de prestações FINAL/REGULARIZAÇÃO, última data por candidatura. Fundo Especial/Partidário = público. Outros recursos = classificação declarada não pública; origem não informada permanece separada. Receitas estimáveis não entram no indicador financeiro. Transferências podem reaparecer em contas distintas; soma não mede recursos únicos do sistema."
+}
