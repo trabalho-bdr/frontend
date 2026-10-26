@@ -1,0 +1,68 @@
+[
+  {
+    "uf": "CE",
+    "file": "ce.svg",
+    "source": "https://commons.wikimedia.org/wiki/File:Bandeira_do_Cear%C3%A1.svg",
+    "download": "https://upload.wikimedia.org/wikipedia/commons/2/2e/Bandeira_do_Cear%C3%A1.svg",
+    "retrieved": "2026-10-26",
+    "author": "Srfortes",
+    "license": "CC BY 2.5",
+    "license_url": "https://creativecommons.org/licenses/by/2.5/",
+    "modified": false
+  },
+  {
+    "uf": "MA",
+    "file": "ma.svg",
+    "source": "https://commons.wikimedia.org/wiki/File:Bandeira_do_Maranh%C3%A3o.svg",
+    "download": "https://upload.wikimedia.org/wikipedia/commons/4/45/Bandeira_do_Maranh%C3%A3o.svg",
+    "retrieved": "2026-10-26",
+    "author": "E2m",
+    "license": "Domínio público (liberação pelo autor)",
+    "license_url": "https://commons.wikimedia.org/wiki/File:Bandeira_do_Maranh%C3%A3o.svg",
+    "modified": false
+  },
+  {
+    "uf": "MS",
+    "file": "ms.svg",
+    "source": "https://commons.wikimedia.org/wiki/File:Bandeira_de_Mato_Grosso_do_Sul.svg",
+    "download": "https://upload.wikimedia.org/wikipedia/commons/6/64/Bandeira_de_Mato_Grosso_do_Sul.svg",
+    "retrieved": "2026-10-26",
+    "author": "E2m",
+    "license": "Domínio público (liberação pelo autor)",
+    "license_url": "https://commons.wikimedia.org/wiki/File:Bandeira_de_Mato_Grosso_do_Sul.svg",
+    "modified": false
+  },
+  {
+    "uf": "RJ",
+    "file": "rj.svg",
+    "source": "https://commons.wikimedia.org/wiki/File:Bandeira_do_estado_do_Rio_de_Janeiro.svg",
+    "download": "https://upload.wikimedia.org/wikipedia/commons/7/73/Bandeira_do_estado_do_Rio_de_Janeiro.svg",
+    "retrieved": "2026-10-26",
+    "author": "FORTES",
+    "license": "CC BY 2.5",
+    "license_url": "https://creativecommons.org/licenses/by/2.5/",
+    "modified": false
+  },
+  {
+    "uf": "RN",
+    "file": "rn.svg",
+    "source": "https://commons.wikimedia.org/wiki/File:Bandeira_do_Rio_Grande_do_Norte.svg",
+    "download": "https://upload.wikimedia.org/wikipedia/commons/3/30/Bandeira_do_Rio_Grande_do_Norte.svg",
+    "retrieved": "2026-10-26",
+    "author": "Giro720",
+    "license": "CC BY 2.5",
+    "license_url": "https://creativecommons.org/licenses/by/2.5/",
+    "modified": false
+  },
+  {
+    "uf": "RS",
+    "file": "rs.svg",
+    "source": "https://commons.wikimedia.org/wiki/File:Bandeira_do_Rio_Grande_do_Sul.svg",
+    "download": "https://upload.wikimedia.org/wikipedia/commons/6/63/Bandeira_do_Rio_Grande_do_Sul.svg",
+    "retrieved": "2026-10-26",
+    "author": "Srfortes",
+    "license": "CC BY 2.5",
+    "license_url": "https://creativecommons.org/licenses/by/2.5/",
+    "modified": false
+  }
+]
