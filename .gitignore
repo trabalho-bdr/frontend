@@ -9,3 +9,12 @@ __pycache__/
 
 .tools/
 .ruff_cache/
+
+# Arquivos locais de execucao e verificacao; preservar no disco.
+/artifacts/*.log
+/artifacts/catalog-live-validation.json
+/artifacts/catalog-schema-audit.json
+/artifacts/exhibition_smoke.jsx
+/artifacts/exhibition_smoke.mjs
+/artifacts/live-validation.json
+/artifacts/scope-bdr-styles.mjs
