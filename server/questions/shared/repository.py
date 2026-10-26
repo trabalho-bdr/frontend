@@ -7,11 +7,25 @@ from questions.shared.statistics import percent, wilson, correlation
 import json, math, statistics
 
 
+SUPPORTED_MUNICIPAL_CARGOS = (
+    "VEREADOR",
+    "PREFEITO",
+    "VICE-PREFEITO",
+    "DEPUTADO FEDERAL",
+    "DEPUTADO ESTADUAL",
+    "SENADOR",
+    "GOVERNADOR",
+    "VICE-GOVERNADOR",
+    "PRESIDENTE",
+)
+
+
 def municipal_data(f, read):
-    if f["cargo"] not in ("VEREADOR", "PREFEITO"):
+    cargo = (f.get("cargo") or "").upper().strip()
+    if cargo and cargo not in SUPPORTED_MUNICIPAL_CARGOS:
         raise HTTPException(
             422,
-            "Esta comparação municipal usa vereador ou prefeito; deputados pertencem à disputa estadual.",
+            f"Esta comparação municipal não suporta o cargo '{f['cargo']}'.",
         )
     uf = f["uf"]
     town = f["municipio"]

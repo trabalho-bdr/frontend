@@ -3,6 +3,18 @@ import { useEffect, useState } from 'react';
 import { useScope } from '../../data/investigationContext.js';
 import { request } from '../../data/client.js';
 import { Explore } from './Story.jsx';
+import CandidateSearch from './CandidateSearch.jsx';
+import PublicityCloud from './PublicityCloud.jsx';
+import PublicityComparison from './PublicityComparison.jsx';
+import { formatPercent as percent } from './publicityComparison.js';
+import {
+  ALL_OFFICES,
+  buildDespesasQuery,
+  candidateLabel,
+  candidateMatchesScope,
+  getCompatibleYear,
+  OFFICES_BY_YEAR,
+} from './publicityScope.js';
 import './publicity-polish.css';
 
 const money = (value) =>
@@ -14,68 +26,87 @@ const money = (value) =>
         maximumFractionDigits: 0,
       });
 const number = (value) => (value == null ? '—' : Number(value).toLocaleString('pt-BR'));
-const percent = (value) =>
-  value == null ? '—' : `${Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
 const ufs = ['CE', 'MA', 'MS', 'RJ', 'RN', 'RS'];
-const offices = {
-  2018: ['DEPUTADO ESTADUAL', 'DEPUTADO FEDERAL', 'SENADOR', 'GOVERNADOR'],
-  2020: ['VEREADOR', 'PREFEITO'],
-  2022: ['DEPUTADO ESTADUAL', 'DEPUTADO FEDERAL', 'SENADOR', 'GOVERNADOR'],
-  2024: ['VEREADOR', 'PREFEITO'],
-};
 
 export default function PublicityInvestigation() {
   const [scope, setScope] = useScope({
     ano: 2024,
     cargo: 'VEREADOR',
     uf: '',
+    municipioId: '',
+    municipioNome: '',
     criterio: 'sugeridas',
   });
   const [scopeNotice, setScopeNotice] = useState('');
+  const [towns, setTowns] = useState([]);
+  const [townsLoading, setTownsLoading] = useState(false);
+
+  // Carrega municípios quando um estado é selecionado
   useEffect(() => {
-    if (!offices[scope.ano]?.includes(scope.cargo)) {
-      const year = ['VEREADOR', 'PREFEITO'].includes(scope.cargo) ? 2024 : 2022;
-      const cargo = offices[year].includes(scope.cargo) ? scope.cargo : offices[year][0];
+    if (!scope.uf) {
+      setTowns([]);
+      return;
+    }
+    const ac = new AbortController();
+    setTownsLoading(true);
+    request('/municipios?uf=' + encodeURIComponent(scope.uf), {
+      signal: ac.signal,
+      timeout: 25000,
+    })
+      .then((result) => {
+        if (!ac.signal.aborted) {
+          const list = Array.isArray(result) ? result : result?.municipios || [];
+          const sorted = [...list].sort((a, b) =>
+            (a.nome || '').localeCompare(b.nome || '', 'pt-BR'),
+          );
+          setTowns(sorted);
+        }
+      })
+      .catch(() => {
+        if (!ac.signal.aborted) setTowns([]);
+      })
+      .finally(() => {
+        if (!ac.signal.aborted) setTownsLoading(false);
+      });
+    return () => ac.abort();
+  }, [scope.uf]);
+
+  // Garante que o ano e o cargo sejam sempre compatíveis
+  useEffect(() => {
+    const validOffices = OFFICES_BY_YEAR[scope.ano] || [];
+    if (!validOffices.includes(scope.cargo)) {
+      const year = getCompatibleYear(scope.cargo, scope.ano);
+      const yearOffices = OFFICES_BY_YEAR[year] || [];
+      const cargo = yearOffices.includes(scope.cargo) ? scope.cargo : yearOffices[0];
       setScopeNotice(
-        'A publicidade tem cobertura de 2018 a 2024. O recorte incompatível foi ajustado para ' +
-          year +
-          ' · ' +
-          cargo +
-          '.',
+        `A publicidade tem cobertura de 2018 a 2024. O recorte foi ajustado para ${year} · ${cargo}.`,
       );
-      setScope({ ano: year, cargo });
+      setScope((current) => ({ ...current, ano: year, cargo }));
     }
   }, [scope.ano, scope.cargo]);
+
   const [data, setData] = useState(null),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(''),
     [retry, setRetry] = useState(0);
-  const [focus, setFocus] = useState(null),
-    [parties, setParties] = useState([]),
-    [party, setParty] = useState(''),
-    [history, setHistory] = useState(null),
-    [historyLoading, setHistoryLoading] = useState(false);
-  const [historyMode, setHistoryMode] = useState('partido'),
-    [personQuery, setPersonQuery] = useState(''),
-    [people, setPeople] = useState([]),
-    [person, setPerson] = useState(null);
+  const [focus, setFocus] = useState(null);
+  const [candidate, setCandidate] = useState(null);
 
-  const [partiesLoading, setPartiesLoading] = useState(true),
-    [partiesError, setPartiesError] = useState(false),
-    [historyError, setHistoryError] = useState(false);
+  // Uma candidatura de outro ano, cargo, UF ou município é descartada
+  const person = candidateMatchesScope(candidate, scope) ? candidate : null;
   useEffect(() => {
-    if (!offices[scope.ano]?.includes(scope.cargo)) return;
+    if (candidate && !person) setCandidate(null);
+  }, [candidate, person]);
+
+  useEffect(() => {
+    const validOffices = OFFICES_BY_YEAR[scope.ano] || [];
+    if (!validOffices.includes(scope.cargo)) return;
     const ac = new AbortController();
     setLoading(true);
     setError('');
     setData(null);
     setFocus(null);
-    const query = new URLSearchParams({
-      ano: String(scope.ano),
-      cargo: scope.cargo,
-      criterio: scope.criterio,
-    });
-    if (scope.uf) query.set('uf', scope.uf);
+    const query = buildDespesasQuery(scope, person);
     request('/bdr/q9/despesas?' + query, { signal: ac.signal, timeout: 45000 })
       .then((result) => {
         if (!ac.signal.aborted) setData(result);
@@ -90,91 +121,15 @@ export default function PublicityInvestigation() {
         if (!ac.signal.aborted) setLoading(false);
       });
     return () => ac.abort();
-  }, [scope, retry]);
-  useEffect(() => {
-    const ac = new AbortController();
-    setPartiesLoading(true);
-    setPartiesError(false);
-    setParties([]);
-    setHistory(null);
-    const query = new URLSearchParams({ cargo: scope.cargo });
-    if (scope.uf) query.set('uf', scope.uf);
-    request('/bdr/q9/partidos?' + query, { signal: ac.signal, timeout: 45000 })
-      .then((result) => {
-        if (!ac.signal.aborted) {
-          setParties(result.partidos || []);
-          setParty((current) =>
-            (result.partidos || []).some((row) => String(row.id_partido) === String(current))
-              ? current
-              : '',
-          );
-        }
-      })
-      .catch(() => {
-        if (!ac.signal.aborted) setPartiesError(true);
-      })
-      .finally(() => {
-        if (!ac.signal.aborted) setPartiesLoading(false);
-      });
-    return () => ac.abort();
-  }, [scope.cargo, scope.uf, retry]);
-  useEffect(() => {
-    setPerson(null);
-    setPeople([]);
-    setPersonQuery('');
-  }, [scope.ano, scope.cargo, scope.uf]);
-  useEffect(() => {
-    if (personQuery.trim().length < 2 || person) return;
-    const ac = new AbortController();
-    const timer = setTimeout(() => {
-      const query = new URLSearchParams({
-        ano: String(scope.ano),
-        cargo: scope.cargo,
-        busca: personQuery.trim(),
-      });
-      if (scope.uf) query.set('uf', scope.uf);
-      request('/bdr/q9/candidatos?' + query, { signal: ac.signal, timeout: 45000 })
-        .then((result) => {
-          if (!ac.signal.aborted) setPeople(result.candidatos || []);
-        })
-        .catch(() => {
-          if (!ac.signal.aborted) setPeople([]);
-        });
-    }, 300);
-    return () => {
-      clearTimeout(timer);
-      ac.abort();
-    };
-  }, [personQuery, person, scope.ano, scope.cargo, scope.uf]);
-  useEffect(() => {
-    if ((historyMode === 'partido' && !party) || (historyMode === 'candidato' && !person)) {
-      setHistory(null);
-      setHistoryLoading(false);
-      setHistoryError(false);
-      return;
-    }
-    const ac = new AbortController();
-    setHistoryLoading(true);
-    setHistoryError(false);
-    setHistory(null);
-    const query = new URLSearchParams({ cargo: scope.cargo, criterio: scope.criterio });
-    if (scope.uf) query.set('uf', scope.uf);
-    query.set(
-      historyMode === 'partido' ? 'id_partido' : 'id_candidato',
-      historyMode === 'partido' ? party : person.id_candidato,
-    );
-    request('/bdr/q9/evolucao?' + query, { signal: ac.signal, timeout: 45000 })
-      .then((result) => {
-        if (!ac.signal.aborted) setHistory(result);
-      })
-      .catch(() => {
-        if (!ac.signal.aborted) setHistoryError(true);
-      })
-      .finally(() => {
-        if (!ac.signal.aborted) setHistoryLoading(false);
-      });
-    return () => ac.abort();
-  }, [historyMode, party, person, scope.cargo, scope.uf, scope.criterio, retry]);
+  }, [
+    scope.ano,
+    scope.cargo,
+    scope.uf,
+    scope.municipioId,
+    scope.criterio,
+    retry,
+    person?.id_candidatura,
+  ]);
   const groups = data?.grupos || [],
     categories = data?.categorias || [],
     summary = data?.resumo;
@@ -182,12 +137,11 @@ export default function PublicityInvestigation() {
     ? categories.find((row) => row.grupo === focus.grupo && row.categoria === focus.categoria)
     : groups.find((row) => row.grupo === focus?.grupo);
   const spotlight = chosen || groups[0];
-  const words = categories
-    .filter((row) => Number.isFinite(row.valor) && row.valor > 0)
-    .slice(0, 24);
-  const maximum = Math.max(1, ...words.map((row) => row.valor));
   const share =
     summary?.total_campanha > 0 ? (100 * summary.publicidade) / summary.total_campanha : null;
+  const munLabel = scope.municipioNome ? ` (${scope.municipioNome})` : '';
+  const placeText = `${scope.cargo.toLowerCase()} em ${scope.ano}${scope.uf ? ' no ' + scope.uf + munLabel : ' nas seis UFs'}`;
+  const subject = person ? `na candidatura de ${person.nome}` : `em ${placeText}`;
   const lead = loading
     ? 'Calculando os investimentos deste recorte…'
     : error
@@ -196,7 +150,7 @@ export default function PublicityInvestigation() {
         ? 'Ainda não há dados suficientes para descrever este recorte.'
         : !groups.length
           ? 'Não há publicidade identificada neste recorte.'
-          : `${groups[0].grupo} concentra ${percent(groups[0].participacao)} da publicidade identificada em ${scope.cargo.toLowerCase()} em ${scope.ano}${scope.uf ? ' no ' + scope.uf : ' nas seis UFs'}.`;
+          : `${groups[0].grupo} concentra ${percent(groups[0].participacao)} da publicidade identificada ${subject}${person ? ` (${placeText})` : ''}.`;
   const change = (field, value) => setScope((current) => ({ ...current, [field]: value }));
   if (error)
     return (
@@ -209,11 +163,14 @@ export default function PublicityInvestigation() {
           <h2>O que move a campanha?</h2>
         </header>
         <p className="expo-reading-scope">
-          {scope.ano} · {scope.cargo} · {scope.uf || 'Seis UFs'}
+          {scope.ano} · {scope.cargo} · {scope.uf ? `${scope.uf}${munLabel}` : 'Seis UFs'}
         </p>
         <div className="expo-unavailable" role="alert">
           <p>Não foi possível consultar os dados de publicidade deste recorte.</p>
           <button onClick={() => setRetry((value) => value + 1)}>Tentar novamente</button>
+          {person && (
+            <button onClick={() => setCandidate(null)}>Voltar a Todos os candidatos</button>
+          )}
         </div>
       </section>
     );
@@ -232,7 +189,9 @@ export default function PublicityInvestigation() {
         </div>
       </header>
       <p className="expo-reading-scope">
-        Recorte: {scope.ano} · {scope.cargo} · {scope.uf || 'CE, MA, MS, RJ, RN e RS'} · valores
+        Recorte: {scope.ano} · {scope.cargo} ·{' '}
+        {scope.uf ? `${scope.uf}${munLabel}` : 'CE, MA, MS, RJ, RN e RS'} ·{' '}
+        {person ? `candidatura: ${candidateLabel(person)}` : 'todos os candidatos'} · valores
         contratados
       </p>
       {scopeNotice && (
@@ -247,37 +206,109 @@ export default function PublicityInvestigation() {
             value={scope.ano}
             onChange={(event) => {
               const year = Number(event.target.value);
+              const validOffices = OFFICES_BY_YEAR[year] || [];
+              const cargo = validOffices.includes(scope.cargo) ? scope.cargo : validOffices[0];
               setScope((current) => ({
                 ...current,
                 ano: year,
-                cargo: offices[year].includes(current.cargo) ? current.cargo : offices[year][0],
+                cargo,
               }));
             }}
           >
             {[2024, 2022, 2020, 2018].map((year) => (
-              <option key={year}>{year}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Cargo
-          <select value={scope.cargo} onChange={(event) => change('cargo', event.target.value)}>
-            {(offices[scope.ano] || []).map((cargo) => (
-              <option key={cargo} value={cargo}>
-                {cargo}
+              <option key={year} value={year}>
+                {year}
               </option>
             ))}
           </select>
         </label>
         <label>
+          Cargo
+          <select
+            value={scope.cargo}
+            onChange={(event) => {
+              const newCargo = event.target.value;
+              const newYear = getCompatibleYear(newCargo, scope.ano);
+              setScope((current) => ({
+                ...current,
+                cargo: newCargo,
+                ano: newYear,
+              }));
+            }}
+          >
+            <optgroup label="Eleições Municipais (2024, 2020)">
+              {ALL_OFFICES.filter((o) => o.grupo === 'Eleições Municipais').map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Eleições Gerais (2022, 2018)">
+              {ALL_OFFICES.filter((o) => o.grupo === 'Eleições Gerais').map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </optgroup>
+          </select>
+        </label>
+        <label>
           Estado
-          <select value={scope.uf} onChange={(event) => change('uf', event.target.value)}>
+          <select
+            value={scope.uf}
+            onChange={(event) => {
+              const uf = event.target.value;
+              setScope((current) => ({
+                ...current,
+                uf,
+                municipioId: '',
+                municipioNome: '',
+              }));
+            }}
+          >
             <option value="">Seis UFs</option>
             {ufs.map((uf) => (
-              <option key={uf}>{uf}</option>
+              <option key={uf} value={uf}>
+                {uf}
+              </option>
             ))}
           </select>
         </label>
+        <label>
+          Município
+          <select
+            value={scope.municipioId || ''}
+            onChange={(event) => {
+              const id = event.target.value;
+              const found = towns.find((t) => String(t.id) === String(id));
+              setScope((current) => ({
+                ...current,
+                municipioId: id,
+                municipioNome: found?.nome || '',
+              }));
+            }}
+            disabled={!scope.uf || townsLoading}
+          >
+            <option value="">
+              {!scope.uf
+                ? 'Selecione um estado'
+                : townsLoading
+                  ? 'Carregando municípios…'
+                  : 'Todos os municípios'}
+            </option>
+            {towns.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.nome}
+              </option>
+            ))}
+          </select>
+        </label>
+        <CandidateSearch
+          scope={scope}
+          value={person}
+          onSelect={setCandidate}
+          onClear={() => setCandidate(null)}
+        />
       </div>
       {error && (
         <p className="expo-unavailable" role="alert">
@@ -294,8 +325,9 @@ export default function PublicityInvestigation() {
           <span>PARCELA DAS DESPESAS ◔</span>
           <strong>{loading ? '…' : percent(share)}</strong>
           <p>
-            Publicidade em relação às despesas do recorte
-            {summary ? ` · ${money(summary.total_campanha)} no total` : ''}
+            Publicidade identificada em relação às despesas totais declaradas
+            {person ? ' desta candidatura' : ' do recorte'}
+            {summary ? ` · ${money(summary.total_campanha)} em despesas totais` : ''}
           </p>
         </article>
         <article>
@@ -305,13 +337,41 @@ export default function PublicityInvestigation() {
         </article>
       </div>
       <div className="expo-publicity-sections">
-        <section>
-          <span className="expo-kicker">O PESO DE CADA CATEGORIA</span>
-          <h3>Categorias em destaque</h3>
-          <p>
-            Palavras maiores representam valores maiores dentro da seleção mostrada. Escolha uma
-            para conferir o valor contratado e sua participação.
-          </p>
+        <section className="expo-publicity-cloud-container">
+          <div className="expo-publicity-cloud-top">
+            <div className="expo-publicity-cloud-heading">
+              <span className="expo-kicker">O PESO DE CADA CATEGORIA</span>
+              <h3>Categorias em destaque</h3>
+              <p>
+                Valor contratado por categoria de publicidade identificada
+                {person ? ` em ${person.nome}` : ' neste recorte'}. Escolha uma palavra para conferir o
+                valor e a participação.
+              </p>
+            </div>
+            <aside className="expo-publicity-focus">
+              <span className="expo-kicker">
+                {focus ? 'SEU RECORTE EM DESTAQUE' : 'MAIOR CONCENTRAÇÃO'}
+              </span>
+              <h3>
+                {loading
+                  ? 'Lendo os investimentos…'
+                  : spotlight?.categoria || spotlight?.grupo || 'Nenhum tipo identificado'}
+              </h3>
+              <div className="expo-publicity-focus-stats">
+                <strong>{loading ? '—' : money(spotlight?.valor)}</strong>
+                <b>{loading ? '—' : percent(spotlight?.participacao)}</b>
+              </div>
+              <p>
+                contratados {focus?.categoria ? 'nesta categoria' : 'neste tipo de publicidade'} ·{' '}
+                <small>Candidaturas: {loading ? '—' : number(spotlight?.candidaturas)}</small>
+              </p>
+              {focus && (
+                <button type="button" onClick={() => setFocus(null)}>
+                  Ver todos os tipos ↗
+                </button>
+              )}
+            </aside>
+          </div>
           {loading ? (
             <p role="status">
               Organizando as categorias… Calculando os valores de {scope.cargo.toLowerCase()} em{' '}
@@ -319,52 +379,17 @@ export default function PublicityInvestigation() {
             </p>
           ) : error ? (
             <p role="status">A nuvem aguarda a consulta ao acervo.</p>
-          ) : words.length ? (
-            <div
-              className="expo-cloud-words"
-              aria-label="Categorias de publicidade por valor contratado"
-            >
-              {words.map((row) => (
-                <button
-                  type="button"
-                  key={row.grupo + '::' + row.categoria}
-                  className={`expo-cloud-word ${/santinh/i.test(row.grupo + ' ' + row.categoria) ? 'red' : /bandeir|faixa|banner/i.test(row.grupo) ? 'yellow' : 'blue'}`}
-                  aria-pressed={focus?.categoria === row.categoria && focus.grupo === row.grupo}
-                  onClick={() =>
-                    setFocus((current) =>
-                      current?.categoria === row.categoria && current?.grupo === row.grupo
-                        ? null
-                        : { grupo: row.grupo, categoria: row.categoria },
-                    )
-                  }
-                  title={`${row.categoria} · ${money(row.valor)}`}
-                  style={{ fontSize: `${16 + Math.round(20 * Math.sqrt(row.valor / maximum))}px` }}
-                >
-                  <span>{row.categoria}</span>
-                  <small>{row.grupo}</small>
-                </button>
-              ))}
-            </div>
+          ) : categories.length ? (
+            <PublicityCloud
+              rows={categories}
+              selectedKey={focus?.categoria ? focus.grupo + '::' + focus.categoria : null}
+              onSelect={(row) =>
+                setFocus(row ? { grupo: row.grupo, categoria: row.categoria } : null)
+              }
+            />
           ) : (
-            <p>Não há categorias com saldo positivo para esta nuvem.</p>
+            <p>Não há categorias de publicidade identificada neste recorte.</p>
           )}
-        </section>
-        <section className="expo-publicity-focus">
-          <span className="expo-kicker">
-            {focus ? 'SEU RECORTE EM DESTAQUE' : 'MAIOR CONCENTRAÇÃO'}
-          </span>
-          <h3>
-            {loading
-              ? 'Lendo os investimentos…'
-              : spotlight?.categoria || spotlight?.grupo || 'Nenhum tipo identificado'}
-          </h3>
-          <strong>{loading ? '—' : money(spotlight?.valor)}</strong>
-          <p>contratados {focus?.categoria ? 'nesta categoria' : 'neste tipo de publicidade'}</p>
-          <b>{loading ? '—' : percent(spotlight?.participacao)}</b>
-          <p>do investimento em publicidade identificada</p>
-          <small>Candidaturas: {loading ? '—' : number(spotlight?.candidaturas)}</small>
-          <p>Clique em uma palavra ou em um tipo abaixo para explorar o valor investido.</p>
-          {focus && <button onClick={() => setFocus(null)}>Ver todos os tipos ↗</button>}
         </section>
       </div>
       <section className="expo-publicity-distribution">
@@ -396,126 +421,12 @@ export default function PublicityInvestigation() {
           )}
         </ol>
       </section>
-      <section className="expo-publicity-history">
-        <span className="expo-kicker">ESTRATÉGIA ENTRE ELEIÇÕES</span>
-        <h3>Estratégia publicitária e sucesso eleitoral</h3>
-        <p>
-          Compare os anos disponíveis no mesmo cargo e estado. O filtro de ano acima vale para a
-          nuvem e a distribuição.
-        </p>
-        <div className="expo-publicity-mode">
-          <button
-            aria-pressed={historyMode === 'partido'}
-            onClick={() => setHistoryMode('partido')}
-          >
-            Por partido
-          </button>
-          <button
-            aria-pressed={historyMode === 'candidato'}
-            onClick={() => setHistoryMode('candidato')}
-          >
-            Por candidato
-          </button>
-        </div>
-        {historyMode === 'partido' ? (
-          <label>
-            Partido
-            <select
-              disabled={partiesLoading || partiesError}
-              value={party}
-              onChange={(event) => {
-                setParty(event.target.value);
-                setHistory(null);
-                setHistoryError(false);
-              }}
-            >
-              <option value="">
-                {partiesLoading
-                  ? 'Carregando partidos…'
-                  : partiesError
-                    ? 'Partidos indisponíveis'
-                    : parties.length
-                      ? 'Selecione um partido'
-                      : 'Nenhum partido neste recorte'}
-              </option>
-              {parties.map((row) => (
-                <option key={row.id_partido} value={row.id_partido}>
-                  {row.sigla} · {row.nome}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : person ? (
-          <p>
-            <strong>{person.nome}</strong> · {person.uf}{' '}
-            <button onClick={() => setPerson(null)}>Trocar candidatura</button>
-          </p>
-        ) : (
-          <div className="expo-publicity-person">
-            <label>
-              Pesquisar candidatura
-              <input
-                type="search"
-                value={personQuery}
-                onChange={(event) => setPersonQuery(event.target.value)}
-                placeholder="Nome de urna ou nome civil"
-              />
-            </label>
-            {people.length > 0 && (
-              <div>
-                {people.slice(0, 12).map((row) => (
-                  <button
-                    key={row.id_candidatura}
-                    onClick={() => {
-                      setPerson(row);
-                      setPeople([]);
-                    }}
-                  >
-                    {row.nome} · {row.partido} · {row.uf}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-        {partiesError && (
-          <p role="alert">
-            Não foi possível carregar os partidos.{' '}
-            <button onClick={() => setRetry((n) => n + 1)}>Tentar novamente</button>
-          </p>
-        )}
-        {historyError ? (
-          <p role="alert">
-            A série não pôde ser consultada.{' '}
-            <button onClick={() => setRetry((n) => n + 1)}>Tentar novamente</button>
-          </p>
-        ) : historyLoading ? (
-          <p role="status">Comparando investimentos e resultados eleitorais…</p>
-        ) : history?.serie?.length ? (
-          <div className="expo-publicity-years">
-            {history.serie.map((row) => (
-              <article key={row.ano}>
-                <span>{row.ano}</span>
-                <strong>{row.candidaturas ? money(row.publicidade) : 'Sem candidatura'}</strong>
-                <p>Taxa de eleição: {percent(row.resultado?.taxa)}</p>
-                <small>
-                  {number(row.resultado?.eleitas)} eleitas de {number(row.resultado?.analisadas)}{' '}
-                  com resultado definido
-                </small>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p>
-            {historyMode === 'partido' ? 'Selecione um partido' : 'Selecione uma candidatura'} para
-            acompanhar a série disponível.
-          </p>
-        )}
-        <p>
-          A composição das candidaturas pode mudar entre eleições; diferenças de investimento não
-          demonstram efeito causal na eleição.
-        </p>
-      </section>
+      <PublicityComparison
+        scope={scope}
+        person={person}
+        onSelect={setCandidate}
+        onClear={() => setCandidate(null)}
+      />
       <Explore title="Classificação, cobertura e registros">
         <label>
           <input

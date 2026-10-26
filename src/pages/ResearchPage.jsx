@@ -80,18 +80,49 @@ export default function ResearchPage({ question, onGo, embedded = false }) {
   return <Question key={q} q={q} definition={definition} onGo={onGo} embedded={embedded} />;
 }
 
+const MUNICIPAL_CARGOS = ['VEREADOR', 'PREFEITO', 'VICE-PREFEITO'];
+const isMunicipalCargo = (c) => MUNICIPAL_CARGOS.includes(String(c || '').toUpperCase());
+
+const Q_ALL_OFFICES_CARGOS = [
+  { value: 'VEREADOR', label: 'Vereador', description: 'Eleições Municipais (2024, 2020)' },
+  { value: 'PREFEITO', label: 'Prefeito', description: 'Eleições Municipais (2024, 2020)' },
+  { value: 'DEPUTADO FEDERAL', label: 'Deputado Federal', description: 'Eleições Gerais (2022, 2018)' },
+  { value: 'DEPUTADO ESTADUAL', label: 'Deputado Estadual', description: 'Eleições Gerais (2022, 2018)' },
+  { value: 'SENADOR', label: 'Senador', description: 'Eleições Gerais (2022, 2018)' },
+  { value: 'GOVERNADOR', label: 'Governador', description: 'Eleições Gerais (2022, 2018)' },
+  { value: 'VICE-PREFEITO', label: 'Vice-Prefeito', description: 'Eleições Municipais (2024, 2020)' },
+  { value: 'VICE-GOVERNADOR', label: 'Vice-Governador', description: 'Eleições Gerais (2022, 2018)' },
+];
+
+const Q_ALL_OFFICES_YEARS = [
+  { value: '2024', label: '2024 · Eleições Municipais' },
+  { value: '2022', label: '2022 · Eleições Gerais · em validação' },
+  { value: '2020', label: '2020 · Eleições Municipais · em validação' },
+  { value: '2018', label: '2018 · Eleições Gerais · em validação' },
+];
+
 function Question({ q, definition, onGo, embedded }) {
-  const [initial] = useState(readContext),
-    [year, setYear] = useState(getQuestion(q).validatedYear ? '2024' : initial.ano || '2024');
+  const [initial] = useState(readContext);
   const allowed = getQuestion(q).allowedCargos;
-  const [cargo, setCargo] = useState(
-      allowed && !allowed.includes(initial.cargo) ? 'VEREADOR' : initial.cargo || 'VEREADOR',
-    ),
-    [uf, setUf] = useState(initial.uf || ''),
-    [party, setParty] = useState(q === 7 ? '' : initial.partido || ''),
-    [town, setTown] = useState(
-      ['VEREADOR', 'PREFEITO'].includes(initial.cargo) ? initial.municipioId || '' : '',
-    );
+  const initialCargo =
+    allowed && !allowed.includes(initial.cargo) ? 'VEREADOR' : initial.cargo || 'VEREADOR';
+  const initialYear = (() => {
+    if (getQuestion(q).validatedYear) return '2024';
+    if ([3, 6].includes(q)) {
+      const isMun = isMunicipalCargo(initialCargo);
+      if (isMun)
+        return ['2024', '2020'].includes(String(initial.ano)) ? String(initial.ano) : '2024';
+      return ['2022', '2018'].includes(String(initial.ano)) ? String(initial.ano) : '2022';
+    }
+    return initial.ano || '2024';
+  })();
+  const [cargo, setCargo] = useState(initialCargo);
+  const [year, setYear] = useState(initialYear);
+  const [uf, setUf] = useState(initial.uf || '');
+  const [party, setParty] = useState(q === 7 ? '' : initial.partido || '');
+  const [town, setTown] = useState(
+    isMunicipalCargo(initialCargo) ? initial.municipioId || '' : '',
+  );
   const [metric, setMetric] = useState('populacao'),
     [target, setTarget] = useState(initial.partido ? 'participacao_partido' : 'abstencao'),
     [youth, setYouth] = useState('16_24'),
@@ -102,16 +133,21 @@ function Question({ q, definition, onGo, embedded }) {
     [historico, setHistorico] = useState(false);
   const metaState = useCatalog('opcoes', { ano: year, uf, cargo }),
     meta = metaState.data;
-  const years = [
-    ...new Set(
-      (meta?.eleicoes || [])
-        .filter((e) => e.cargo === cargo && (!uf || e.uf === uf))
-        .map((e) => String(e.ano)),
-    ),
-  ];
+  const years =
+    [3, 6].includes(q)
+      ? isMunicipalCargo(cargo)
+        ? ['2024', '2020']
+        : ['2022', '2018']
+      : [
+          ...new Set(
+            (meta?.eleicoes || [])
+              .filter((e) => e.cargo === cargo && (!uf || e.uf === uf))
+              .map((e) => String(e.ano)),
+          ),
+        ];
   useEffect(() => {
-    if (years.length && !years.includes(year)) setYear(years[0]);
-  }, [years.join('|'), year]);
+    if (![3, 6].includes(q) && years.length && !years.includes(year)) setYear(years[0]);
+  }, [years.join('|'), year, q]);
   useEffect(() => {
     if (q !== 9)
       writeContext({
@@ -220,20 +256,50 @@ function Question({ q, definition, onGo, embedded }) {
         <SearchSelect
           label={q === 10 ? 'Referência do recorte · série 2002–2024' : 'Ano da eleição'}
           value={year}
-          options={(years.length ? years : [year]).map((value) => ({
-            value,
-            label:
-              value + (getQuestion(q).validatedYear && value !== '2024' ? ' · em validação' : ''),
-          }))}
-          onChange={setYear}
+          options={
+            [3, 6].includes(q)
+              ? Q_ALL_OFFICES_YEARS
+              : (years.length ? years : [year]).map((value) => ({
+                  value,
+                  label:
+                    value +
+                    (getQuestion(q).validatedYear && value !== '2024' ? ' · em validação' : ''),
+                }))
+          }
+          onChange={(newYear) => {
+            setYear(newYear);
+            if ([3, 6].includes(q)) {
+              const isMunYear = ['2024', '2020'].includes(newYear);
+              const isMun = isMunicipalCargo(cargo);
+              if (isMunYear && !isMun) {
+                setCargo('VEREADOR');
+                setTown('');
+              } else if (!isMunYear && isMun) {
+                setCargo('DEPUTADO FEDERAL');
+                setTown('');
+              }
+            }
+          }}
         />
         <SearchSelect
           label="Cargo"
           value={cargo}
-          options={allowed || [...new Set((meta?.eleicoes || []).map((e) => e.cargo))]}
-          onChange={(v) => {
-            setCargo(v);
+          options={
+            [3, 6].includes(q)
+              ? Q_ALL_OFFICES_CARGOS
+              : allowed || [...new Set((meta?.eleicoes || []).map((e) => e.cargo))]
+          }
+          onChange={(newCargo) => {
+            setCargo(newCargo);
             setTown('');
+            if ([3, 6].includes(q)) {
+              const isMun = isMunicipalCargo(newCargo);
+              if (isMun && !['2024', '2020'].includes(year)) {
+                setYear('2024');
+              } else if (!isMun && !['2022', '2018'].includes(year)) {
+                setYear('2022');
+              }
+            }
           }}
         />
         <SearchSelect
@@ -253,7 +319,7 @@ function Question({ q, definition, onGo, embedded }) {
             ...(meta?.municipios || []).map((m) => ({ value: m.id, label: m.nome })),
           ]}
           onChange={setTown}
-          disabled={!uf || !['VEREADOR', 'PREFEITO'].includes(cargo)}
+          disabled={!uf || !isMunicipalCargo(cargo)}
         />
         {q !== 7 && (
           <PartySelect value={party} options={meta?.facets?.partido || []} onChange={setParty} />

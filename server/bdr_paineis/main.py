@@ -281,13 +281,34 @@ def opcoes_q9():
 
 
 @app.get("/q9/partidos")
-def partidos_q9(cargo: str, uf: str | None = None):
-    return q9_evolucao.partidos(_consultar, cargo, uf)
+def partidos_q9(cargo: str, uf: str | None = None, id_municipio: str | None = None):
+    return q9_evolucao.partidos(_consultar, cargo, uf, id_municipio)
 
 
 @lru_cache(maxsize=32)
-def _evolucao_q9_cache(banco, cargo, uf, id_partido, id_candidato, criterio, janela):
-    return q9_evolucao.resumo(_consultar, cargo, uf, id_partido, id_candidato, criterio)
+def _evolucao_q9_cache(
+    banco,
+    cargo,
+    uf,
+    id_partido,
+    id_candidato,
+    criterio,
+    janela,
+    ano_antes=None,
+    ano_depois=None,
+    id_municipio=None,
+):
+    return q9_evolucao.resumo(
+        _consultar,
+        cargo,
+        uf,
+        id_partido,
+        id_candidato,
+        criterio,
+        ano_antes,
+        ano_depois,
+        id_municipio,
+    )
 
 
 @app.get("/q9/evolucao")
@@ -298,22 +319,42 @@ def evolucao_q9(
     id_candidato: str | None = None,
     criterio: str = "sugeridas",
     atualizar: bool = False,
+    ano_antes: int | None = None,
+    ano_depois: int | None = None,
+    id_municipio: str | None = None,
 ):
     if atualizar:
         _evolucao_q9_cache.cache_clear()
     return _evolucao_q9_cache(
-        BANCO, cargo, uf, id_partido, id_candidato, criterio, int(time.monotonic() // 180)
+        BANCO,
+        cargo,
+        uf,
+        id_partido,
+        id_candidato,
+        criterio,
+        int(time.monotonic() // 180),
+        ano_antes,
+        ano_depois,
+        id_municipio,
     )
 
 
 @lru_cache(maxsize=24)
-def _resumo_q9_cache(banco, ano, cargo, uf, criterio, janela, id_candidatura=None):
-    return q9.resumo(_consultar, ano, cargo, uf, criterio, id_candidatura)
+def _resumo_q9_cache(
+    banco, ano, cargo, uf, criterio, janela, id_candidatura=None, id_municipio=None
+):
+    return q9.resumo(_consultar, ano, cargo, uf, criterio, id_candidatura, id_municipio)
 
 
 @app.get("/q9/candidatos")
-def candidatos_q9(ano: int, cargo: str, busca: str, uf: str | None = None):
-    return q9.candidatos(_consultar, ano, cargo, busca, uf)
+def candidatos_q9(
+    ano: int,
+    cargo: str,
+    busca: str = "",
+    uf: str | None = None,
+    id_municipio: str | None = None,
+):
+    return q9.candidatos(_consultar, ano, cargo, busca, uf, id_municipio)
 
 
 @app.get("/q9/despesas")
@@ -324,9 +365,17 @@ def despesas_q9(
     criterio: str = "sugeridas",
     atualizar: bool = False,
     id_candidatura: str | None = None,
+    id_municipio: str | None = None,
 ):
     if atualizar:
         _resumo_q9_cache.cache_clear()
     return _resumo_q9_cache(
-        BANCO, ano, cargo, uf, criterio, int(time.monotonic() // 180), id_candidatura
+        BANCO,
+        ano,
+        cargo,
+        uf,
+        criterio,
+        int(time.monotonic() // 180),
+        id_candidatura,
+        id_municipio,
     )
