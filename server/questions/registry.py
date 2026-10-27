@@ -22,9 +22,13 @@ def module(number):
 
 def calculate(number, f, context, **settings):
     service = module(number)
-    arguments = {3: ("metric", "target"), 4: ("universe",), 5: ("historico",), 6: ("youth",)}.get(
-        number, ()
-    )
+    arguments = {
+        2: ("excluir_zero",),
+        3: ("metric", "target"),
+        4: ("universe",),
+        5: ("historico",),
+        6: ("youth",),
+    }.get(number, ())
     return service.calculate(f, context, **{key: settings[key] for key in arguments})
 
 

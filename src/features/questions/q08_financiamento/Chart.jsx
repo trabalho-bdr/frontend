@@ -25,6 +25,9 @@ export default function Chart({ data, costMetric, reduced, onInspect }) {
     { name: 'Origem não classificada', value: data.summary?.nao_classificado },
   ].filter((row) => row.value > 0);
   if (!rows.length) return null;
+  const total = rows.reduce((acc, row) => acc + row.value, 0);
+  const naoClassificada = data.summary?.nao_classificado || 0;
+  const parcelaNaoClassificada = total > 0 ? (100 * naoClassificada) / total : 0;
   return (
     <figure className="research-chart">
       <figcaption>De onde vem o dinheiro declarado?</figcaption>
@@ -43,14 +46,14 @@ export default function Chart({ data, costMetric, reduced, onInspect }) {
               <Cell key={row.name} fill={colors[i]} />
             ))}
           </Pie>
-          <Tooltip formatter={(v) => money(v)} />
+          <Tooltip formatter={(v) => money(v) + ` (${num((100 * v) / total)}%)`} />
         </PieChart>
       </ResponsiveContainer>
       <ul className="money-chart-legend">
         {rows.map((row, i) => (
           <li key={row.name}>
             <i style={{ background: colors[i] }} />
-            {row.name}: {money(row.value)}
+            {row.name}: {money(row.value)} ({num((100 * row.value) / total)}%)
           </li>
         ))}
       </ul>
@@ -58,6 +61,13 @@ export default function Chart({ data, costMetric, reduced, onInspect }) {
         Composição das receitas financeiras vinculadas. O gráfico seguinte compara as taxas de
         eleição por participação de fundos públicos; não estima um efeito causal.
       </p>
+      {parcelaNaoClassificada >= 15 && (
+        <p className="money-chart-note">
+          {num(parcelaNaoClassificada)}% das receitas deste recorte têm origem não classificada —
+          isso é alto o bastante para impedir um cálculo confiável da parcela pública/privada em
+          parte das candidaturas abaixo.
+        </p>
+      )}
     </figure>
   );
 }

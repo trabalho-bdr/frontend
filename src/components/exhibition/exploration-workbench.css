@@ -342,3 +342,100 @@
     flex-shrink: 0;
   }
 }
+
+/* Ficha do município no mapa: cabeçalho, indicador em destaque, barra de
+   taxa de eleição e os demais dados organizados em grade legível. */
+.map-record-card {
+  margin-top: 20px;
+  padding: 20px;
+  border-left: 4px solid #a63c30;
+  background: #fffaf0;
+}
+.map-record-card header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.map-record-card h4 {
+  font-size: 26px;
+  margin: 0;
+}
+.map-record-uf {
+  padding: 2px 8px;
+  border: 1px solid #c9b99b;
+  background: #f0e6d0;
+  color: #173e78;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.map-record-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  border: 1px solid #d1c4a9;
+  background: #fffcf4;
+}
+.map-record-hero span {
+  font-size: 12px;
+  color: #53635e;
+}
+.map-record-hero strong {
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+}
+.map-record-rate {
+  margin-bottom: 16px;
+}
+.map-record-rate-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #53635e;
+  margin-bottom: 4px;
+}
+.map-record-rate-label strong {
+  color: #173e78;
+  font-size: 13px;
+}
+.map-record-rate-track {
+  height: 8px;
+  background: #ede3cc;
+  border: 1px solid #d1c4a9;
+}
+.map-record-rate-fill {
+  height: 100%;
+  background: #173e78;
+}
+.map-record-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.map-record-grid dt {
+  font-size: 11px;
+  color: #53665d;
+  line-height: 1.5;
+}
+.map-record-grid dd {
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 800px) {
+  .map-record-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 550px) {
+  .map-record-card {
+    padding: 15px;
+  }
+  .map-record-grid {
+    grid-template-columns: 1fr;
+  }
+}

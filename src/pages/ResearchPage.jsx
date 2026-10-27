@@ -8,12 +8,22 @@ import {
   Bar,
   XAxis,
   YAxis,
+  ZAxis,
   CartesianGrid,
   Tooltip,
   Legend,
   ScatterChart,
   Scatter,
+  ReferenceLine,
+  Cell,
 } from 'recharts';
+import {
+  describeCorrelation,
+  linearTrend,
+  detectOutliers,
+  rateExtremes,
+  shrinkRate,
+} from '../data/exploration.js';
 import { researchQuestions } from '../data/questions.js';
 import { readContext, writeContext } from '../data/investigationContext.js';
 import useResearchData from '../features/questions/shared/useResearchData.js';
@@ -86,12 +96,28 @@ const isMunicipalCargo = (c) => MUNICIPAL_CARGOS.includes(String(c || '').toUppe
 const Q_ALL_OFFICES_CARGOS = [
   { value: 'VEREADOR', label: 'Vereador', description: 'Eleições Municipais (2024, 2020)' },
   { value: 'PREFEITO', label: 'Prefeito', description: 'Eleições Municipais (2024, 2020)' },
-  { value: 'DEPUTADO FEDERAL', label: 'Deputado Federal', description: 'Eleições Gerais (2022, 2018)' },
-  { value: 'DEPUTADO ESTADUAL', label: 'Deputado Estadual', description: 'Eleições Gerais (2022, 2018)' },
+  {
+    value: 'DEPUTADO FEDERAL',
+    label: 'Deputado Federal',
+    description: 'Eleições Gerais (2022, 2018)',
+  },
+  {
+    value: 'DEPUTADO ESTADUAL',
+    label: 'Deputado Estadual',
+    description: 'Eleições Gerais (2022, 2018)',
+  },
   { value: 'SENADOR', label: 'Senador', description: 'Eleições Gerais (2022, 2018)' },
   { value: 'GOVERNADOR', label: 'Governador', description: 'Eleições Gerais (2022, 2018)' },
-  { value: 'VICE-PREFEITO', label: 'Vice-Prefeito', description: 'Eleições Municipais (2024, 2020)' },
-  { value: 'VICE-GOVERNADOR', label: 'Vice-Governador', description: 'Eleições Gerais (2022, 2018)' },
+  {
+    value: 'VICE-PREFEITO',
+    label: 'Vice-Prefeito',
+    description: 'Eleições Municipais (2024, 2020)',
+  },
+  {
+    value: 'VICE-GOVERNADOR',
+    label: 'Vice-Governador',
+    description: 'Eleições Gerais (2022, 2018)',
+  },
 ];
 
 const Q_ALL_OFFICES_YEARS = [
@@ -120,9 +146,7 @@ function Question({ q, definition, onGo, embedded }) {
   const [year, setYear] = useState(initialYear);
   const [uf, setUf] = useState(initial.uf || '');
   const [party, setParty] = useState(q === 7 ? '' : initial.partido || '');
-  const [town, setTown] = useState(
-    isMunicipalCargo(initialCargo) ? initial.municipioId || '' : '',
-  );
+  const [town, setTown] = useState(isMunicipalCargo(initialCargo) ? initial.municipioId || '' : '');
   const [metric, setMetric] = useState('populacao'),
     [target, setTarget] = useState(initial.partido ? 'participacao_partido' : 'abstencao'),
     [youth, setYouth] = useState('16_24'),
@@ -130,21 +154,22 @@ function Question({ q, definition, onGo, embedded }) {
     [focusedRecord, setFocusedRecord] = useState(null),
     [explorationMode, setExplorationMode] = useState(''),
     [costMetric, setCostMetric] = useState('valor'),
-    [historico, setHistorico] = useState(false);
+    [historico, setHistorico] = useState(false),
+    [excluirZero, setExcluirZero] = useState(false),
+    [taxaAjustada, setTaxaAjustada] = useState(false);
   const metaState = useCatalog('opcoes', { ano: year, uf, cargo }),
     meta = metaState.data;
-  const years =
-    [3, 6].includes(q)
-      ? isMunicipalCargo(cargo)
-        ? ['2024', '2020']
-        : ['2022', '2018']
-      : [
-          ...new Set(
-            (meta?.eleicoes || [])
-              .filter((e) => e.cargo === cargo && (!uf || e.uf === uf))
-              .map((e) => String(e.ano)),
-          ),
-        ];
+  const years = [3, 6].includes(q)
+    ? isMunicipalCargo(cargo)
+      ? ['2024', '2020']
+      : ['2022', '2018']
+    : [
+        ...new Set(
+          (meta?.eleicoes || [])
+            .filter((e) => e.cargo === cargo && (!uf || e.uf === uf))
+            .map((e) => String(e.ano)),
+        ),
+      ];
   useEffect(() => {
     if (![3, 6].includes(q) && years.length && !years.includes(year)) setYear(years[0]);
   }, [years.join('|'), year, q]);
@@ -171,6 +196,7 @@ function Question({ q, definition, onGo, embedded }) {
     youth,
     universe,
     historico: historico ? '1' : '0',
+    excluir_zero: excluirZero ? '1' : '0',
   }).toString();
   const [retry, setRetry] = useState(0),
     reduced = useMotionPreference();
@@ -179,6 +205,16 @@ function Question({ q, definition, onGo, embedded }) {
     rows = data?.rows || [],
     points = (data?.points || rows).filter((r) => r.x != null && r.y != null),
     summary = data?.summary;
+  const plottablePoints = points.map((p) => ({
+      ...p,
+      z: Number.isFinite(p.eleitores) ? p.eleitores : 0,
+    })),
+    scatterTrend = linearTrend(points),
+    scatterOutlierIds = new Set(
+      [...detectOutliers(points, 'x'), ...detectOutliers(points, 'y')].map((p) => p.id ?? p.nome),
+    ),
+    scatterOutliers = plottablePoints.filter((p) => scatterOutlierIds.has(p.id ?? p.nome)),
+    scatterNormal = plottablePoints.filter((p) => !scatterOutlierIds.has(p.id ?? p.nome));
   const explore = () => onGo(...definition.place);
   const openPeople = () => {
     const filters = {
@@ -396,6 +432,16 @@ function Question({ q, definition, onGo, embedded }) {
           Acompanhar a mesma organização após mudança de nome · sem juntar fusões
         </label>
       )}
+      {q === 2 && (
+        <label className="research-history-option">
+          <input
+            type="checkbox"
+            checked={excluirZero}
+            onChange={(e) => setExcluirZero(e.target.checked)}
+          />{' '}
+          Desconsiderar candidaturas com patrimônio declarado igual a zero
+        </label>
+      )}
       <p className="research-scope">
         {q === 10 ? 'Série observada 2002–2024' : year} · {cargo} · {uf || 'Seis UFs'}
         {party ? ' · ' + party : ''}
@@ -433,7 +479,14 @@ function Question({ q, definition, onGo, embedded }) {
                   ([key, value]) =>
                     value != null &&
                     typeof value !== 'object' &&
-                    !['grupo', 'valor', 'corrigido', 'apenas_eleitos'].includes(key),
+                    ![
+                      'grupo',
+                      'valor',
+                      'corrigido',
+                      'apenas_eleitos',
+                      'pearson',
+                      'spearman',
+                    ].includes(key),
                 )
                 .map(([key, value]) => (
                   <div key={key}>
@@ -483,6 +536,13 @@ function Question({ q, definition, onGo, embedded }) {
               <figcaption>
                 {data.x_label} × {data.y_label}
               </figcaption>
+              {describeCorrelation(summary?.pearson) && (
+                <p className="money-chart-note">
+                  {describeCorrelation(summary?.pearson)}
+                  {summary?.n != null &&
+                    ` Comparação com ${num(summary.n)} municípios que têm os dois valores conhecidos.`}
+                </p>
+              )}
               <ResponsiveContainer width="100%" height={350}>
                 <ScatterChart margin={{ left: 6, right: 15, bottom: 30, top: 12 }}>
                   <CartesianGrid stroke="#ded3bc" />
@@ -494,6 +554,7 @@ function Question({ q, definition, onGo, embedded }) {
                     tick={{ fontSize: 11 }}
                   />
                   <YAxis type="number" dataKey="y" name={data.y_label} tick={{ fontSize: 11 }} />
+                  <ZAxis dataKey="z" range={[50, 400]} name="Eleitorado do município" />
                   <Tooltip
                     content={({ active, payload }) =>
                       active && payload?.length ? (
@@ -507,64 +568,249 @@ function Question({ q, definition, onGo, embedded }) {
                           <p>
                             {data.y_label}: {num(payload[0].payload.y)}
                           </p>
+                          {payload[0].payload.eleitores != null && (
+                            <p>Eleitorado: {num(payload[0].payload.eleitores)}</p>
+                          )}
                         </div>
                       ) : null
                     }
                   />
+                  {data.comparable_axes &&
+                    (() => {
+                      const combined = points.flatMap((p) => [p.x, p.y]);
+                      const minV = Math.min(...combined),
+                        maxV = Math.max(...combined);
+                      if (!Number.isFinite(minV) || !Number.isFinite(maxV) || minV === maxV)
+                        return null;
+                      return (
+                        <ReferenceLine
+                          segment={[
+                            { x: minV, y: minV },
+                            { x: maxV, y: maxV },
+                          ]}
+                          stroke="#a63c30"
+                          strokeDasharray="4 4"
+                          label={{
+                            value: 'Mesmo valor nos dois grupos',
+                            position: 'insideTopRight',
+                            fontSize: 11,
+                            fill: '#a63c30',
+                          }}
+                        />
+                      );
+                    })()}
+                  {scatterTrend && (
+                    <ReferenceLine
+                      segment={[scatterTrend.from, scatterTrend.to]}
+                      stroke="#173e78"
+                      strokeWidth={2}
+                      ifOverflow="extendDomain"
+                      label={{
+                        value: 'Tendência geral',
+                        position: 'insideBottomRight',
+                        fontSize: 11,
+                        fill: '#173e78',
+                      }}
+                    />
+                  )}
                   <Scatter
                     onClick={(point) => setFocusedRecord(point?.payload || point)}
-                    data={points}
+                    data={scatterNormal}
                     fill="#245b4d"
                     fillOpacity={0.65}
                     isAnimationActive={!reduced}
                   />
+                  {scatterOutliers.length > 0 && (
+                    <Scatter
+                      onClick={(point) => setFocusedRecord(point?.payload || point)}
+                      data={scatterOutliers}
+                      fill="#a63c30"
+                      fillOpacity={0.85}
+                      isAnimationActive={!reduced}
+                    />
+                  )}
                 </ScatterChart>
               </ResponsiveContainer>
               <p>
-                Cada ponto é um município. Eixo horizontal: {data.x_label}. Vertical: {data.y_label}
-                .
+                Cada ponto é um município, com tamanho proporcional ao eleitorado. Eixo horizontal:{' '}
+                {data.x_label}. Vertical: {data.y_label}.
               </p>
+              {scatterOutliers.length > 0 && (
+                <p className="money-chart-note">
+                  Os pontos em vermelho têm valores bem acima ou abaixo dos demais municípios e
+                  podem esticar a leitura do gráfico; passe o mouse sobre um deles para ver qual
+                  município é.
+                </p>
+              )}
             </figure>
           )}
           {![1, 2, 5].includes(q) &&
             !['scatter', 'distribution'].includes(data.unit) &&
-            series.length > 0 && (
-              <figure className="research-chart">
-                <figcaption>
-                  {q === 1
-                    ? 'Comparação financeira entre eleições equivalentes'
-                    : q === 7
-                      ? 'Mudança média na distribuição dos votos por par de eleições'
-                      : q === 10
-                        ? 'Padrões observados · categorias exclusivas'
-                        : 'Comparação dos grupos · ' +
-                          (q === 5 ? 'votos de legenda (%)' : 'taxa de eleição (%)')}
-                </figcaption>
-                <ResponsiveContainer
-                  width="100%"
-                  height={Math.min(700, Math.max(250, series.length * 42))}
-                >
-                  <BarChart data={series} layout="vertical" margin={{ left: 0, right: 25 }}>
-                    <CartesianGrid horizontal={false} stroke="#ded3bc" />
-                    <XAxis
-                      type="number"
-                      tickFormatter={(v) =>
-                        chartUnit === 'money' ? num(v / 1000) + ' mil' : num(v) + '%'
-                      }
-                      tick={{ fontSize: 11 }}
-                    />
-                    <YAxis type="category" dataKey="grupo" width={150} tick={{ fontSize: 11 }} />
-                    <Tooltip formatter={(v) => fmt(v, chartUnit)} />
-                    <Bar
-                      dataKey="valor"
-                      name={q === 1 ? 'Valor' : 'Percentual'}
-                      fill={q === 8 ? '#a63c30' : '#245b4d'}
-                      isAnimationActive={!reduced}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </figure>
-            )}
+            series.length > 0 &&
+            (() => {
+              // Só para a pergunta 8: média geral (para a linha de
+              // referência), destaque de amostra pequena e separação da
+              // faixa "Origem incompleta", que não é um ponto da escala de
+              // % público — é uma categoria de qualidade de dado à parte.
+              const isFunding = q === 8;
+              const totalCandidaturas = isFunding
+                ? series.reduce((acc, r) => acc + (r.definidos || 0), 0)
+                : 0;
+              const totalEleitos = isFunding
+                ? series.reduce((acc, r) => acc + (r.eleitos || 0), 0)
+                : 0;
+              const mediaGeral =
+                isFunding && totalCandidaturas ? (100 * totalEleitos) / totalCandidaturas : null;
+              const plotSeries = isFunding
+                ? series.map((row) => {
+                    const valorAjustado =
+                      mediaGeral != null
+                        ? shrinkRate(row.eleitos, row.definidos, mediaGeral)
+                        : null;
+                    return {
+                      ...row,
+                      valorBruto: row.valor,
+                      valorAjustado,
+                      valor: taxaAjustada && valorAjustado != null ? valorAjustado : row.valor,
+                    };
+                  })
+                : series;
+              const extremos = isFunding ? rateExtremes(plotSeries, ['Origem incompleta']) : null;
+              const temIncompleta =
+                isFunding && series.some((r) => r.grupo === 'Origem incompleta');
+              return (
+                <figure className="research-chart">
+                  <figcaption>
+                    {q === 1
+                      ? 'Comparação financeira entre eleições equivalentes'
+                      : q === 7
+                        ? 'Mudança média na distribuição dos votos por par de eleições'
+                        : q === 10
+                          ? 'Padrões observados · categorias exclusivas'
+                          : 'Comparação dos grupos · ' +
+                            (q === 5 ? 'votos de legenda (%)' : 'taxa de eleição (%)')}
+                  </figcaption>
+                  {isFunding && (
+                    <label className="research-history-option">
+                      <input
+                        type="checkbox"
+                        checked={taxaAjustada}
+                        onChange={(e) => setTaxaAjustada(e.target.checked)}
+                      />{' '}
+                      Ajustar pelo tamanho da amostra (puxa grupos pequenos para a média geral,
+                      deixa grupos grandes quase inalterados)
+                    </label>
+                  )}
+                  <ResponsiveContainer
+                    width="100%"
+                    height={Math.min(700, Math.max(250, series.length * 42))}
+                  >
+                    <BarChart data={plotSeries} layout="vertical" margin={{ left: 0, right: 25 }}>
+                      <CartesianGrid horizontal={false} stroke="#ded3bc" />
+                      <XAxis
+                        type="number"
+                        tickFormatter={(v) =>
+                          chartUnit === 'money' ? num(v / 1000) + ' mil' : num(v) + '%'
+                        }
+                        tick={{ fontSize: 11 }}
+                      />
+                      <YAxis type="category" dataKey="grupo" width={150} tick={{ fontSize: 11 }} />
+                      <Tooltip
+                        content={({ active, payload, label }) => {
+                          if (!active || !payload?.length) return null;
+                          const row = payload[0].payload;
+                          return (
+                            <div className="research-tooltip">
+                              <strong>{label}</strong>
+                              {row.valorBruto != null ? (
+                                <p>
+                                  Taxa bruta: {num(row.valorBruto)}%
+                                  {row.valorAjustado != null &&
+                                    ` · Ajustada pela amostra: ${num(row.valorAjustado)}%`}
+                                </p>
+                              ) : (
+                                <p>{fmt(payload[0].value, chartUnit)}</p>
+                              )}
+                              {row.candidaturas != null && (
+                                <p>
+                                  {num(row.eleitos ?? 0)} eleitos de{' '}
+                                  {num(row.definidos ?? row.candidaturas)}{' '}
+                                  {row.definidos != null
+                                    ? 'com resultado definido'
+                                    : 'candidaturas'}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        }}
+                      />
+                      {mediaGeral != null && (
+                        <ReferenceLine
+                          x={mediaGeral}
+                          stroke="#173e78"
+                          strokeDasharray="5 4"
+                          label={{
+                            value: `Média geral: ${num(mediaGeral)}%`,
+                            position: 'top',
+                            fontSize: 11,
+                            fill: '#173e78',
+                          }}
+                        />
+                      )}
+                      <Bar
+                        dataKey="valor"
+                        name={q === 1 ? 'Valor' : 'Percentual'}
+                        fill={q === 8 ? '#a63c30' : '#245b4d'}
+                        isAnimationActive={!reduced}
+                      >
+                        {isFunding &&
+                          plotSeries.map((row) => (
+                            <Cell
+                              key={row.grupo}
+                              fill={
+                                row.grupo === 'Origem incompleta'
+                                  ? '#929b9c'
+                                  : row.definidos != null && row.definidos < 30
+                                    ? '#d9b98f'
+                                    : '#a63c30'
+                              }
+                            />
+                          ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                  {isFunding && (
+                    <p className="money-chart-note">
+                      {taxaAjustada
+                        ? 'Taxa ajustada: cada grupo é tratado como se já tivesse 30 candidaturas extras na média geral do recorte, antes de calcular a taxa. Isso evita que grupos com poucas candidaturas pareçam artificialmente ótimos ou péssimos.'
+                        : 'Taxa bruta: eleitos dividido por candidaturas com resultado definido, sem nenhum ajuste. Grupos pequenos podem parecer mais extremos do que realmente são — marque a opção acima para comparar de forma mais justa.'}
+                    </p>
+                  )}
+                  {temIncompleta && (
+                    <p className="money-chart-note">
+                      A faixa em cinza ("Origem incompleta") não é um ponto da escala de
+                      participação pública — é um grupo à parte, de candidaturas cuja origem da
+                      receita não pôde ser classificada.
+                    </p>
+                  )}
+                  {extremos && !extremos.semBase && extremos.percentual !== 0 && (
+                    <p className="money-chart-note">
+                      Candidaturas em "
+                      {extremos.percentual > 0 ? extremos.hi.grupo : extremos.lo.grupo}" têm uma
+                      taxa de eleição {num(Math.abs(extremos.percentual))}% maior que em "
+                      {extremos.percentual > 0 ? extremos.lo.grupo : extremos.hi.grupo}".
+                    </p>
+                  )}
+                  {extremos?.semBase && (
+                    <p className="money-chart-note">
+                      Não é possível comparar os extremos: "
+                      {extremos.lo.valor === 0 ? extremos.lo.grupo : extremos.hi.grupo}" não teve
+                      nenhuma candidatura eleita neste recorte.
+                    </p>
+                  )}
+                </figure>
+              );
+            })()}
           <ExplorationWorkbench
             mode={explorationMode}
             onModeChange={setExplorationMode}

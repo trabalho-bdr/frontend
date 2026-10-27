@@ -14,7 +14,16 @@ import Portrait from '../../catalog/Portrait.jsx';
 import { partyColors } from '../../catalog/partyColors.js';
 import GeoAtlas from '../GeoAtlas.jsx';
 import { plenarioAssentos } from '../Plenario3D.jsx';
-import { comparisonMetrics, findEvidence, seatInk } from '../../data/exploration.js';
+import {
+  comparisonMetrics,
+  findEvidence,
+  mostElectedGroup,
+  seatInk,
+  SCHOOL_LEVELS,
+  SCHOOL_UNKNOWN_COLOR,
+  PUBLIC_FUNDING_LEVELS,
+  PUBLIC_FUNDING_UNKNOWN_COLOR,
+} from '../../data/exploration.js';
 import './exploration-workbench.css';
 const Chamber = lazy(() => import('../Plenario3D.jsx'));
 const number = (value, unit) =>
@@ -143,7 +152,9 @@ export default function ExplorationWorkbench({
     [persons, setPersons] = useState({}),
     [chamber, setChamber] = useState({}),
     [seat, setSeat] = useState(null),
-    [colorBy, setColorBy] = useState(q === 2 ? 'patrimonio' : q === 4 ? 'escolaridade' : 'partido');
+    [colorBy, setColorBy] = useState(
+      q === 2 ? 'patrimonio' : q === 4 ? 'escolaridade' : 'fundos_publicos',
+    );
   const otherMeta = useCatalog(
     'opcoes',
     { ano: other.ano, uf: other.uf, cargo: scope.cargo },
@@ -434,7 +445,76 @@ export default function ExplorationWorkbench({
                   </button>
                 </div>
               )}
-              {selected && (
+              {selected && mode === 'mapa' && (
+                <article className="map-record-card">
+                  <header>
+                    <h4>{selected.nome || 'Município selecionado'}</h4>
+                    {selected.uf && <span className="map-record-uf">{selected.uf}</span>}
+                  </header>
+                  <div className="map-record-hero">
+                    <span>{field.label}</span>
+                    <strong>{recordValue(field.value, selected[field.value], q, true)}</strong>
+                  </div>
+                  {selected.taxa_eleicao != null && field.value !== 'taxa_eleicao' && (
+                    <div className="map-record-rate">
+                      <div className="map-record-rate-label">
+                        <span>Taxa de eleição</span>
+                        <strong>{num(selected.taxa_eleicao)}%</strong>
+                      </div>
+                      <div className="map-record-rate-track">
+                        <div
+                          className="map-record-rate-fill"
+                          style={{
+                            width: Math.max(0, Math.min(100, selected.taxa_eleicao)) + '%',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <dl className="map-record-grid">
+                    {Object.entries(selected)
+                      .filter(
+                        ([k, v]) =>
+                          (v == null || typeof v !== 'object') &&
+                          ![
+                            'nome',
+                            'uf',
+                            'valor',
+                            'researchValue',
+                            'taxa_eleicao',
+                            'idhm',
+                            field.value,
+                          ].includes(k) &&
+                          // Evita repetir um dado já mostrado em destaque (ex.: valor === patrimonio_mediano).
+                          !(selected[field.value] != null && v === selected[field.value]),
+                      )
+                      .map(([key, value]) => (
+                        <div key={key}>
+                          <dt>{label(key)}</dt>
+                          <dd>{recordValue(key, value, q, true)}</dd>
+                        </div>
+                      ))}
+                  </dl>
+                  {selected.uf && selected.nome && (
+                    <div className="evidence-actions">
+                      <button
+                        onClick={() =>
+                          onScopeChange({
+                            uf: selected.uf,
+                            municipio: String(selected.municipio_id || selected.id).split(':')[0],
+                          })
+                        }
+                      >
+                        Usar este município como recorte
+                      </button>
+                      <button onClick={() => openMunicipality(selected)}>
+                        Abrir perfil eleitoral →
+                      </button>
+                    </div>
+                  )}
+                </article>
+              )}
+              {selected && mode !== 'mapa' && (
                 <article className="evidence-detail">
                   <h4>{selected.nome || selected.grupo || 'Registro selecionado'}</h4>
                   <dl>
@@ -458,7 +538,7 @@ export default function ExplorationWorkbench({
                                 ? data?.y_label || label(key)
                                 : label(key)}
                           </dt>
-                          <dd>{recordValue(key, value, q, mode === 'mapa')}</dd>
+                          <dd>{recordValue(key, value, q, false)}</dd>
                         </div>
                       ))}
                   </dl>
@@ -590,6 +670,20 @@ export default function ExplorationWorkbench({
                       })}
                     </div>
                   )}
+                  {q === 2 &&
+                    comparison.data.status !== 'em_validacao' &&
+                    comparison.data.status !== 'fonte_pendente' &&
+                    (() => {
+                      const topA = mostElectedGroup(data?.rows);
+                      const topB = mostElectedGroup(comparison.data?.rows);
+                      return topA && topB ? (
+                        <p className="exploration-small">
+                          Grupo mais eleito no recorte A: <strong>{topA.grupo}</strong> (
+                          {num(topA.valor)}%). No recorte B: <strong>{topB.grupo}</strong> (
+                          {num(topB.valor)}%).
+                        </p>
+                      ) : null;
+                    })()}
                   <p className="exploration-small">
                     A comparação é descritiva. Mudanças de composição, cobertura e tamanho dos
                     grupos podem explicar diferenças; não se estima um efeito causal. Cargo mantido:{' '}
@@ -705,7 +799,7 @@ export default function ExplorationWorkbench({
                     onChange={setColorBy}
                     options={[
                       { value: 'partido', label: 'Partido na eleição' },
-                      { value: 'gasto', label: 'Despesa declarada' },
+                      { value: 'fundos_publicos', label: 'Parcela de fundos públicos' },
                       { value: 'patrimonio', label: 'Patrimônio declarado' },
                       { value: 'escolaridade', label: 'Escolaridade conhecida' },
                     ]}
@@ -747,17 +841,24 @@ export default function ExplorationWorkbench({
                             ))
                           : (colorBy === 'escolaridade'
                               ? [
-                                  ['#173e78', 'Superior completo'],
-                                  ['#245b4d', 'Demais conhecidas'],
-                                  ['#929b9c', 'Sem informação'],
+                                  ...SCHOOL_LEVELS.map(([, label, color]) => [color, label]),
+                                  [SCHOOL_UNKNOWN_COLOR, 'Sem informação'],
                                 ]
-                              : [
-                                  ['#245b4d', 'Zero declarado'],
-                                  ['#ddb643', 'Acima de zero até R$ 10 mil'],
-                                  ['#173e78', 'Acima de R$ 10 mil até R$ 100 mil'],
-                                  ['#a63c30', 'Acima de R$ 100 mil'],
-                                  ['#929b9c', 'Sem informação'],
-                                ]
+                              : colorBy === 'fundos_publicos'
+                                ? [
+                                    ...PUBLIC_FUNDING_LEVELS.map(([label, color]) => [
+                                      color,
+                                      label,
+                                    ]),
+                                    [PUBLIC_FUNDING_UNKNOWN_COLOR, 'Sem informação'],
+                                  ]
+                                : [
+                                    ['#245b4d', 'Zero declarado'],
+                                    ['#ddb643', 'Acima de zero até R$ 10 mil'],
+                                    ['#173e78', 'Acima de R$ 10 mil até R$ 100 mil'],
+                                    ['#a63c30', 'Acima de R$ 100 mil'],
+                                    ['#929b9c', 'Sem informação'],
+                                  ]
                             ).map(([color, text]) => (
                               <span key={text}>
                                 <i style={{ background: color }} />
@@ -787,6 +888,7 @@ export default function ExplorationWorkbench({
                             {money(seat.person.patrimonio)} · Escolaridade:{' '}
                             {seat.person.escolaridade || 'Sem informação'}
                           </p>
+                          <p>Fundos públicos: {seat.person.faixa_publico || 'Sem informação'}</p>
                           <button onClick={() => openPerson(seat.person)}>
                             Conferir perfil e histórico →
                           </button>

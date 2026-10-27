@@ -286,6 +286,12 @@ export default function GeoAtlas({
             Limite inferior incluído; limite superior excluído. As mesmas classes são usadas em
             todas as UFs.
           </small>
+          {definition.unit === 'pp' && (
+            <small>
+              p.p. = pontos percentuais: a diferença direta entre duas porcentagens (ex.: 30% − 25%
+              = 5 p.p.), não quantos por cento uma é maior que a outra.
+            </small>
+          )}
         </div>
       ) : (
         <div className="atlas-map-key">

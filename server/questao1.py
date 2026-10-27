@@ -13,6 +13,8 @@ Metodologia rigorosa:
 
 from __future__ import annotations
 from core.sql import query_sql
+from core.config import DATA_DIR
+from questions.q08_financiamento.service import load_receipts, funding_group
 import math
 import re
 from fastapi import APIRouter, HTTPException, Query
@@ -142,6 +144,18 @@ def get_eleitos(
         fragment_5=" AND ".join(filtros),
     )
     rows = _rows(sql, [*params, limit])
+    try:
+        receipts, _ = load_receipts(ano, DATA_DIR)
+    except Exception:
+        receipts = None
+    for row in rows:
+        receipt = (
+            receipts.get((str(row.get("sequencial") or "").lstrip("0"), row["uf"], row["cargo"]))
+            if receipts
+            else None
+        )
+        row["faixa_publico"] = funding_group(receipt)
+        row.pop("sequencial", None)
     return {
         "rows": rows,
         "limit": limit,

@@ -4,12 +4,62 @@ from questions.shared.statistics import percent, wilson
 import json
 
 
+def load_receipts(ano, data_path):
+    """Lê a prestação de contas do ano e devolve um dicionário indexado por
+    (sequencial sem zeros à esquerda, uf, cargo em maiúsculas) -> registro.
+    Devolve (None, provenance_ou_motivo) quando a fonte ainda não está
+    disponível para o ano pedido, para quem chama decidir como avisar.
+    """
+    path = data_path / "receitas-candidatos.parquet"
+    manifest = data_path / "receitas-manifest.json"
+    if not path.exists() or not manifest.exists():
+        return None, None
+    provenance = json.loads(manifest.read_text(encoding="utf8"))
+    year = provenance["years"].get(str(ano), {})
+    if year.get("status") != "loaded":
+        return None, provenance
+    import duckdb
+
+    with duckdb.connect(":memory:") as con:
+        result = con.execute(
+            query_sql("questions/q08_financiamento/sql/service_calculate_01.sql"),
+            [str(path), ano],
+        )
+        keys = [c[0] for c in result.description]
+        receipts = {
+            (str(r[1]).lstrip("0"), r[2], r[3].upper()): dict(zip(keys, r))
+            for r in result.fetchall()
+        }
+    return receipts, provenance
+
+
+def funding_group(receipt):
+    """Classifica um registro de receita (ou None) na mesma faixa de
+    participação pública usada no gráfico principal desta pergunta."""
+    if not receipt:
+        return None
+    total = float(receipt["total"])
+    if total <= 0:
+        return None
+    if receipt["nao_classificado"]:
+        return "Origem incompleta"
+    share = float(receipt["publico"]) / total
+    if share == 0:
+        return "Sem fundos públicos"
+    if share <= 0.25:
+        return "Até 25% público"
+    if share <= 0.5:
+        return "25% a 50% público"
+    if share <= 0.75:
+        return "50% a 75% público"
+    return "Mais de 75% público"
+
+
 def calculate(f, context):
     read = context.query
     DATA = context.data_path
-    path = DATA / "receitas-candidatos.parquet"
-    manifest = DATA / "receitas-manifest.json"
-    if not path.exists() or not manifest.exists():
+    receipts, provenance = load_receipts(f["ano"], DATA)
+    if receipts is None and provenance is None:
         return dict(
             rows=[],
             summary=None,
@@ -18,11 +68,8 @@ def calculate(f, context):
             method="Receitas do TSE ainda não importadas.",
             limitations=["Não se infere origem a partir de despesa."],
         )
-    import duckdb
-
-    provenance = json.loads(manifest.read_text(encoding="utf8"))
-    year = provenance["years"].get(str(f["ano"]), {})
-    if year.get("status") != "loaded":
+    if receipts is None:
+        year = provenance["years"].get(str(f["ano"]), {})
         return dict(
             rows=[],
             summary=None,
@@ -32,16 +79,6 @@ def calculate(f, context):
             limitations=[year.get("error", "Escolha um ano importado.")],
             provenance=provenance,
         )
-    with duckdb.connect(":memory:") as con:
-        result = con.execute(
-            query_sql("questions/q08_financiamento/sql/service_calculate_01.sql"),
-            [str(path), f["ano"]],
-        )
-        keys = [c[0] for c in result.description]
-        receipts = {
-            (str(r[1]).lstrip("0"), r[2], r[3].upper()): dict(zip(keys, r))
-            for r in result.fetchall()
-        }
     (base, params) = candidate_scope(f)
     candidates = read(
         base + query_sql("questions/q08_financiamento/sql/service_calculate_02.sql"), params
@@ -88,20 +125,7 @@ def calculate(f, context):
         if total <= 0:
             continue
         positive += 1
-        share = float(r["publico"]) / total
-        group = (
-            "Origem incompleta"
-            if r["nao_classificado"]
-            else "Sem fundos públicos"
-            if share == 0
-            else "Até 25% público"
-            if share <= 0.25
-            else "25% a 50% público"
-            if share <= 0.5
-            else "50% a 75% público"
-            if share <= 0.75
-            else "Mais de 75% público"
-        )
+        group = funding_group(r)
         a = groups.setdefault(
             group,
             {"grupo": group, "candidaturas": 0, "definidos": 0, "eleitos": 0, "recebido": 0.0},
@@ -143,7 +167,7 @@ def calculate(f, context):
         unit="percent",
         status="parcial",
         method=provenance["method"],
-        provenance=year,
+        provenance=provenance["years"].get(str(f["ano"]), {}),
         limitations=[
             "Outros recursos é a origem não pública declarada no TSE; transferências não são rastreadas por uma cadeia de doadores nesta análise. Não afirmar origem última de repasses.",
             "A análise usa apenas receitas financeiras finais. Não há conciliação independente com extratos bancários e eventuais devoluções; é uma resposta descritiva parcial, não auditoria contábil.",

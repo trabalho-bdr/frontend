@@ -97,6 +97,11 @@ def calculate(f, context, universe):
         unit="distribution",
         x_label="Eleitores 18+ com superior completo (%)",
         y_label="Candidatos com superior completo (%)",
+        # Os dois eixos medem a mesma coisa (% com superior completo) em
+        # populações diferentes, então uma diagonal y=x é uma referência
+        # válida — não é o caso de outras perguntas que usam este mesmo
+        # gráfico de dispersão (ex.: população × abstenção).
+        comparable_axes=True,
         method="Escolaridade harmonizada: percentuais entre categorias conhecidas. Distribuição do eleitorado "
         + ("18 anos ou mais" if universe == "18mais" else "de todas as idades")
         + ". Dispersão sempre compara eleitores 18+ e candidaturas municipais.",

@@ -23,8 +23,8 @@ def cost(f):
     return registry.calculate(1, f, context())
 
 
-def wealth(f):
-    return registry.calculate(2, f, context())
+def wealth(f, excluir_zero=False):
+    return registry.calculate(2, f, context(), excluir_zero=excluir_zero)
 
 
 def municipal_data(f):
@@ -64,16 +64,19 @@ def research(
     youth: str = "16_24",
     universe: str = "18mais",
     historico: str = "0",
+    excluir_zero: str = "0",
 ):
     if historico not in ("0", "1"):
         raise HTTPException(422, "Opção de histórico inválida.")
+    if excluir_zero not in ("0", "1"):
+        raise HTTPException(422, "Opção de patrimônio zero inválida.")
     if question not in (1, 2, 3, 4, 5, 6, 7, 8, 10):
         raise HTTPException(422, "Pergunta não atendida por este endpoint.")
     f = scope_filter(ano, cargo, uf, partido, municipio)
     if question == 1:
         data = cost(f)
     elif question == 2:
-        data = wealth(f)
+        data = wealth(f, excluir_zero == "1")
     elif question == 3:
         data = territory(f, metric, target)
     elif question in (4, 6):
@@ -95,6 +98,7 @@ def research(
             "youth": youth,
             "universe": universe,
             "historico": historico,
+            "excluir_zero": excluir_zero,
         },
         "source": "live",
         "database": DB,
