@@ -22,6 +22,16 @@ test('all ten questions expose stable definitions and appropriate exploration ca
   'VICE-PREFEITO',
   'VICE-GOVERNADOR',
  ]);
+ assert.deepEqual(questionModules[4].allowedCargos,[
+  'VEREADOR',
+  'PREFEITO',
+  'DEPUTADO FEDERAL',
+  'DEPUTADO ESTADUAL',
+  'SENADOR',
+  'GOVERNADOR',
+  'VICE-PREFEITO',
+  'VICE-GOVERNADOR',
+ ]);
  assert.deepEqual(questionModules[6].allowedCargos,[
   'VEREADOR',
   'PREFEITO',

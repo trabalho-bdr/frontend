@@ -13,20 +13,9 @@ def calculate(f, context, universe):
         raise HTTPException(
             422, "Perfil do eleitorado disponível de 2018 a 2024 em anos eleitorais."
         )
-    if f["ano"] != 2024:
-        return dict(
-            rows=[],
-            summary=None,
-            unit="percent",
-            status="em_validacao",
-            method="Perfil disponível, mas a reconciliação histórica ainda não foi liberada.",
-            limitations=[
-                "2022 diverge da participação em 1.215 municípios; 2018 e 2020 não possuem reconciliação correspondente nesta tabela. Use 2024 para a comparação validada."
-            ],
-        )
-    rows = municipal_data(f, read)
     if universe not in ("todos", "18mais"):
         raise HTTPException(422, "Universo etário inválido.")
+    rows = municipal_data(f, read)
     (base, params) = candidate_scope(f)
     school = facet_sql("escolaridade")
     cand = read(
@@ -84,7 +73,7 @@ def calculate(f, context, universe):
         }
         for (k, label) in SCHOOLS
     ]
-    return dict(
+    result = dict(
         rows=distribution,
         points=rows,
         summary={
@@ -111,3 +100,6 @@ def calculate(f, context, universe):
             "Partido restringe os candidatos, não o eleitorado de referência; idade mínima e composição dos dois universos diferem.",
         ],
     )
+    if f["ano"] != 2024:
+        result["status"] = "em_validacao"
+    return result

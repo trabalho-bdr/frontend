@@ -133,13 +133,13 @@ function Question({ q, definition, onGo, embedded }) {
   const initialCargo =
     allowed && !allowed.includes(initial.cargo) ? 'VEREADOR' : initial.cargo || 'VEREADOR';
   const initialYear = (() => {
-    if (getQuestion(q).validatedYear) return '2024';
-    if ([3, 6].includes(q)) {
+    if ([3, 4, 6].includes(q)) {
       const isMun = isMunicipalCargo(initialCargo);
       if (isMun)
         return ['2024', '2020'].includes(String(initial.ano)) ? String(initial.ano) : '2024';
       return ['2022', '2018'].includes(String(initial.ano)) ? String(initial.ano) : '2022';
     }
+    if (getQuestion(q).validatedYear) return '2024';
     return initial.ano || '2024';
   })();
   const [cargo, setCargo] = useState(initialCargo);
@@ -159,7 +159,7 @@ function Question({ q, definition, onGo, embedded }) {
     [taxaAjustada, setTaxaAjustada] = useState(false);
   const metaState = useCatalog('opcoes', { ano: year, uf, cargo }),
     meta = metaState.data;
-  const years = [3, 6].includes(q)
+  const years = [3, 4, 6].includes(q)
     ? isMunicipalCargo(cargo)
       ? ['2024', '2020']
       : ['2022', '2018']
@@ -171,7 +171,7 @@ function Question({ q, definition, onGo, embedded }) {
         ),
       ];
   useEffect(() => {
-    if (![3, 6].includes(q) && years.length && !years.includes(year)) setYear(years[0]);
+    if (![3, 4, 6].includes(q) && years.length && !years.includes(year)) setYear(years[0]);
   }, [years.join('|'), year, q]);
   useEffect(() => {
     if (q !== 9)
@@ -293,7 +293,7 @@ function Question({ q, definition, onGo, embedded }) {
           label={q === 10 ? 'Referência do recorte · série 2002–2024' : 'Ano da eleição'}
           value={year}
           options={
-            [3, 6].includes(q)
+            [3, 4, 6].includes(q)
               ? Q_ALL_OFFICES_YEARS
               : (years.length ? years : [year]).map((value) => ({
                   value,
@@ -304,7 +304,7 @@ function Question({ q, definition, onGo, embedded }) {
           }
           onChange={(newYear) => {
             setYear(newYear);
-            if ([3, 6].includes(q)) {
+            if ([3, 4, 6].includes(q)) {
               const isMunYear = ['2024', '2020'].includes(newYear);
               const isMun = isMunicipalCargo(cargo);
               if (isMunYear && !isMun) {
@@ -321,14 +321,14 @@ function Question({ q, definition, onGo, embedded }) {
           label="Cargo"
           value={cargo}
           options={
-            [3, 6].includes(q)
+            [3, 4, 6].includes(q)
               ? Q_ALL_OFFICES_CARGOS
               : allowed || [...new Set((meta?.eleicoes || []).map((e) => e.cargo))]
           }
           onChange={(newCargo) => {
             setCargo(newCargo);
             setTown('');
-            if ([3, 6].includes(q)) {
+            if ([3, 4, 6].includes(q)) {
               const isMun = isMunicipalCargo(newCargo);
               if (isMun && !['2024', '2020'].includes(year)) {
                 setYear('2024');

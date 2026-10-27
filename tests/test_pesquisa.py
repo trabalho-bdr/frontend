@@ -52,8 +52,10 @@ class ResearchTests(unittest.TestCase):
   with patch.object(p,'read',side_effect=self.query):rows=p.municipal_data(self.scoped())
   self.assertIsNone(next(r for r in rows if r['id']=='1')['abstencao'])
  def test_historical_electorate_is_not_published_as_validated(self):
+  self.prepare()
   f=self.scoped();f['ano']=2022
-  self.assertEqual(p.electorate(f,6,'16_24','18mais')['status'],'em_validacao')
+  with patch.object(p,'read',side_effect=self.query):
+   self.assertEqual(p.electorate(f,6,'16_24','18mais')['status'],'em_validacao')
  def test_party_ratio_aggregates_counts_before_division(self):
   self.prepare()
   with patch.object(p,'read',side_effect=self.query):data=p.party_series(self.scoped(),5)

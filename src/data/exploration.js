@@ -364,7 +364,7 @@ export function seatInk(person, mode, colors) {
   if (mode === 'partido') return colors[person.partido] || '#7d898a';
   if (mode === 'escolaridade') return schoolColor(person.escolaridade);
   if (mode === 'fundos_publicos') return publicFundingColor(person.faixa_publico);
-  const value = person.patrimonio;
+  const value = mode === 'patrimonio' ? person.patrimonio : person.gastos ?? person.patrimonio;
   return !isValidAmount(value)
     ? '#929b9c'
     : Number(value) === 0
