@@ -1,0 +1,163 @@
+.candidate-trajectory-explorer {
+  border-top: 1px dashed #bdae90;
+  padding-top: 20px;
+  margin-top: 22px;
+}
+.candidate-trajectory-explorer h4 {
+  font-size: 21px;
+  margin: 0 0 10px;
+}
+.candidate-trajectory-explorer p {
+  line-height: 1.7;
+}
+.candidate-trajectory-explorer button {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 10px 14px;
+  background: #fffaf0;
+  color: #173e78;
+  border: 1px solid #b6a786;
+  font-weight: 700;
+}
+.candidate-trajectory-explorer .evidence-people-search label {
+  min-width: min(250px, 100%);
+}
+.candidate-trajectory-explorer .evidence-people-search input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.candidate-trajectory-explorer button:focus-visible,
+.candidate-trajectory-scroll:focus-visible {
+  outline: 3px solid #173e78;
+  outline-offset: 3px;
+}
+.candidate-trajectory-explorer button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.trajectory-candidate-results {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+.trajectory-candidate-results button {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 7px;
+  text-align: left;
+  background: #fffaf0;
+  border: 1px solid #bdae90;
+  padding: 16px;
+  color: #173e78;
+}
+.trajectory-candidate-results span {
+  font-size: 12px;
+}
+.trajectory-candidate-results [aria-pressed='true'] {
+  box-shadow: inset 0 -4px #245b4d;
+  background: #e8eddc;
+  border-color: #245b4d;
+}
+.candidate-trajectory {
+  margin: 28px 0;
+  padding: 20px;
+  background: #fffaf0;
+  border: 1px solid #bdae90;
+  min-width: 0;
+}
+.candidate-trajectory-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 205px;
+  gap: 20px;
+  margin-top: 20px;
+  align-items: start;
+}
+.candidate-trajectory-scroll {
+  overflow-x: auto;
+  min-width: 0;
+}
+.candidate-trajectory-scroll > svg {
+  display: block;
+  width: 100%;
+  font-family: inherit;
+  font-size: 11px;
+  fill: #173e78;
+}
+.trajectory-axis-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.trajectory-point {
+  cursor: pointer;
+}
+.trajectory-point:focus {
+  outline: none;
+}
+.trajectory-point:focus > circle {
+  stroke: #173e78;
+  stroke-width: 3;
+}
+.trajectory-legend {
+  border-left: 1px solid #d8cbb5;
+  padding-left: 16px;
+  font-size: 12px;
+}
+.trajectory-legend ul {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0;
+}
+.trajectory-legend li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+.trajectory-legend svg {
+  width: 24px;
+  height: 24px;
+  flex: none;
+}
+.trajectory-selected {
+  margin: 18px 0;
+  padding: 14px;
+  background: #e8eddc;
+  border-left: 4px solid #245b4d;
+}
+.trajectory-selected p {
+  margin: 5px 0 0;
+}
+.trajectory-changes li {
+  margin-top: 8px;
+}
+.trajectory-note {
+  font-size: 12px;
+  color: #53665d;
+}
+@media (max-width: 900px) {
+  .candidate-trajectory-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .trajectory-legend {
+    border-left: 0;
+    border-top: 1px solid #d8cbb5;
+    padding: 16px 0 0;
+  }
+  .trajectory-legend ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+}
+@media (max-width: 600px) {
+  .trajectory-candidate-results {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .candidate-trajectory {
+    padding: 12px;
+  }
+}

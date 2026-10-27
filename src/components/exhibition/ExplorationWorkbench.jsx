@@ -1,4 +1,5 @@
 import { getQuestion } from '../../features/questions/registry.js';
+import CandidateTrajectoryExplorer from '../../features/questions/q10_trajetorias/CandidateTrajectoryExplorer.jsx';
 import { useCatalog } from '../../catalog/useCatalog.jsx';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { request } from '../../data/client.js';
@@ -6,6 +7,7 @@ import {
   displayNumber as num,
   displayMoney as money,
   candidateContext,
+  catalogQuery,
   emptyCatalogFilters,
 } from '../../catalog/logic.js';
 import SearchSelect from '../../catalog/SearchSelect.jsx';
@@ -160,9 +162,11 @@ export default function ExplorationWorkbench({
     { ano: other.ano, uf: other.uf, cargo: scope.cargo },
     mode === 'comparar',
   ).data;
+  const fields = getQuestion(q).mapFields(data);
+  const field = fields.find((f) => f.value === mapField) || fields[0];
   const query = new URLSearchParams(scope).toString(),
     municipal = ['VEREADOR', 'PREFEITO'].includes(scope.cargo),
-    canMap = municipal && getQuestion(q).map,
+    canMap = municipal && getQuestion(q).map && !!field,
     canChamber =
       getQuestion(q).chamber &&
       ['VEREADOR', 'DEPUTADO ESTADUAL', 'DEPUTADO FEDERAL'].includes(scope.cargo) &&
@@ -210,15 +214,15 @@ export default function ExplorationWorkbench({
       });
     return () => ac.abort();
   }, [compareKey, q]);
-  const personParams = new URLSearchParams({
+  const personParams = catalogQuery({
     ...scope,
     ano: q === 10 ? '' : scope.ano,
     q: personQuery,
     limit: 8,
     offset: personPage * 8,
-  }).toString();
+  });
   useEffect(() => {
-    if (mode !== 'pessoas') return;
+    if (mode !== 'pessoas' || q === 10) return;
     const ac = new AbortController();
     setPersons({ loading: true });
     request('/catalogo/pessoas?' + personParams, { signal: ac.signal, timeout: 90000 })
@@ -229,7 +233,7 @@ export default function ExplorationWorkbench({
         if (!ac.signal.aborted) setPersons({ error: true });
       });
     return () => ac.abort();
-  }, [mode, personParams]);
+  }, [mode, personParams, q]);
   const contestReady = scope.cargo === 'VEREADOR' ? !!scope.uf && !!scope.municipio : !!scope.uf;
   useEffect(() => {
     if (mode !== 'plenario' || !canChamber || !contestReady) return;
@@ -268,24 +272,26 @@ export default function ExplorationWorkbench({
       [chamber.data, colorBy],
     );
   const rawMap = existingMap || mapState.data?.rows || [];
-  const fields = getQuestion(q).mapFields(data);
-  const field = fields.find((f) => f.value === mapField) || fields[0],
-    mapRows = rawMap.map((row) => ({
-      ...row,
-      id: String(row.municipio_id || row.id),
-      researchValue: row[field.value],
-    }));
-  const definition = {
-    label: field.label,
-    unit: field.unit,
-    breaks:
-      field.unit === 'money'
-        ? [10000, 50000, 100000, 500000]
-        : field.unit === 'pp' && q === 4
-          ? [-20, -5, 5, 20]
-          : [10, 25, 50, 75],
-    context: scopeText(scope) + (field.unit === 'pp' ? ' · pontos percentuais' : ''),
-  };
+  const mapRows = field
+    ? rawMap.map((row) => ({
+        ...row,
+        id: String(row.municipio_id || row.id),
+        researchValue: row[field.value],
+      }))
+    : [];
+  const definition = field
+    ? {
+        label: field.label,
+        unit: field.unit,
+        breaks:
+          field.unit === 'money'
+            ? [10000, 50000, 100000, 500000]
+            : field.unit === 'pp' && q === 4
+              ? [-20, -5, 5, 20]
+              : [10, 25, 50, 75],
+        context: scopeText(scope) + (field.unit === 'pp' ? ' · pontos percentuais' : ''),
+      }
+    : null;
   const searchable = mode === 'mapa' ? mapRows : data?.points || data?.rows || [],
     matches = findEvidence(searchable, text),
     visible = matches.slice(page * 6, page * 6 + 6);
@@ -331,7 +337,7 @@ export default function ExplorationWorkbench({
           [canMap ? 'mapa' : null, 'Mapa', 'Onde estão as diferenças'],
           ['comparar', 'Comparar', 'Outro ano, estado ou partido'],
           ['registros', 'Conferir', 'Valores e denominadores'],
-          ['pessoas', 'Pessoas', 'Buscar candidaturas do recorte'],
+          ['pessoas', q === 10 ? 'Candidatos' : 'Pessoas', 'Buscar candidaturas do recorte'],
           [canChamber ? 'plenario' : null, 'Plenário', 'Conhecer eleitos da disputa'],
         ]
           .filter((row) => row[0])
@@ -350,7 +356,10 @@ export default function ExplorationWorkbench({
             </button>
           ))}
       </nav>
-      {mode && (
+      {q === 10 && (!mode || mode === 'pessoas') && (
+        <CandidateTrajectoryExplorer scope={scope} onGo={onGo} />
+      )}
+      {mode && !(q === 10 && mode === 'pessoas') && (
         <div className="exploration-panel">
           <p className="exploration-instruction">{prompt}</p>
           <p className="exploration-current">Recorte em leitura: {scopeText(currentScope)}</p>
@@ -360,7 +369,8 @@ export default function ExplorationWorkbench({
               liberados.
             </p>
           ) : (
-            mode === 'mapa' && (
+            mode === 'mapa' &&
+            canMap && (
               <>
                 <SearchSelect
                   label="Indicador no mapa"
@@ -445,7 +455,7 @@ export default function ExplorationWorkbench({
                   </button>
                 </div>
               )}
-              {selected && mode === 'mapa' && (
+              {selected && mode === 'mapa' && canMap && (
                 <article className="map-record-card">
                   <header>
                     <h4>{selected.nome || 'Município selecionado'}</h4>
